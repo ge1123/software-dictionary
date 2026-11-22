@@ -1,0 +1,200 @@
+{
+  "id": "infra",
+  "name": "Infra 基礎設施",
+  "terms": [
+    {
+      "id": "pod",
+      "en": "Pod",
+      "zh": "容器組",
+      "category": "工作負載",
+      "definition": "Kubernetes 排程的最小單位。一個 Pod 內的一個或多個容器在同一節點執行，共用網路空間，可透過 localhost 互通。",
+      "example": "訂單 API 跑三個副本時，通常可看到三個各有 IP 的 Pod。替換其中一個後，新 Pod 可能取得不同 IP。",
+      "properties": [
+        [
+          "怎麼識別",
+          "標籤 app=orders 是本例的查詢條件。kubectl get pods 預設只列出目前命名空間的 Pod。"
+        ]
+      ],
+      "sample": {
+        "language": "kubectl",
+        "setup": "假設 kubectl 已連到練習叢集，訂單 API 部署在 shop 命名空間。",
+        "code": "kubectl get pods -n shop -l app=orders -o wide",
+        "result": "核對 NAME、READY、RESTARTS 與 IP。Running 的 Pod 仍可能顯示 0/1 Ready。"
+      }
+    },
+    {
+      "id": "deployment",
+      "en": "Deployment",
+      "zh": "部署控制器",
+      "category": "工作負載",
+      "definition": "以 Pod 樣板和期望副本數描述工作負載。Deployment 透過 ReplicaSet 建立、替換 Pod，並協調版本更新。",
+      "example": "更新訂單 API 映像時，滾動更新會依設定逐步建立新版副本、縮減舊版。新版沒有就緒時，先查 Pod 事件與 readiness。",
+      "properties": [
+        [
+          "部署與流量",
+          "Deployment 管理版本與副本；哪一批 Pod 能接到訂單流量，由 Service 的選擇條件和端點就緒狀態決定。"
+        ]
+      ],
+      "sample": {
+        "language": "kubectl",
+        "setup": "假設 kubectl 已連到練習叢集，訂單 API 部署在 shop 命名空間。 Deployment 名稱為 orders。",
+        "code": "kubectl rollout status deployment/orders -n shop --timeout=60s\nkubectl get rs -n shop -l app=orders",
+        "result": "前者顯示發布進度或等待逾時，後者可比較新舊 ReplicaSet 的期望及就緒副本數。"
+      }
+    },
+    {
+      "id": "service",
+      "en": "Service",
+      "zh": "服務",
+      "category": "服務與流量",
+      "definition": "提供穩定的服務名稱和連接埠。對有 selector 的一般 ClusterIP Service，Kubernetes 依 Pod 標籤維護對應端點。",
+      "example": "orders Service 用 app=orders 選取副本，把服務的 80 埠對應到 API 的 8080 埠。即使新版 Pod 換了 IP，其他服務仍能呼叫同一個名稱。",
+      "properties": [
+        [
+          "端點怎麼查",
+          "EndpointSlice 列出候選位址與就緒條件。若清單是空的，先比對 Service selector 與 Pod labels。"
+        ]
+      ],
+      "sample": {
+        "language": "kubectl",
+        "setup": "假設 kubectl 已連到練習叢集，訂單 API 部署在 shop 命名空間。 Service 名稱為 orders。",
+        "code": "kubectl describe service orders -n shop\nkubectl get endpointslice -n shop -l kubernetes.io/service-name=orders -o yaml",
+        "result": "可比對 selector、port、targetPort、端點位址與 conditions.ready，找出服務選到了哪些 Pod。"
+      }
+    },
+    {
+      "id": "ingress",
+      "en": "Ingress",
+      "zh": "HTTP 入口路由",
+      "category": "服務與流量",
+      "definition": "以主機名稱和路徑描述外部 HTTP 或 HTTPS 請求要交給哪個 Service，由對應的 Ingress Controller 實作轉送。",
+      "example": "客戶端送出 POST /orders/42/payments。入口依 api.example.test 與 /orders 選到 orders Service 的 80 埠；其就緒端點上的 .NET API 再用方法與完整路徑選取付款 Action。",
+      "properties": [
+        [
+          "追查順序",
+          "依序核對入口規則、Service 名稱與埠、EndpointSlice 位址與就緒狀態。部分控制器直接轉送到端點，實際封包路徑依實作而異。"
+        ]
+      ],
+      "sample": {
+        "language": "kubectl",
+        "setup": "假設 kubectl 已連到練習叢集，訂單 API 部署在 shop 命名空間。 已安裝對應的 Ingress Controller，Ingress 名稱為 orders。",
+        "code": "kubectl describe ingress orders -n shop",
+        "result": "在 Rules 下核對 Host、Path 和 Backend，再查看 Events 是否報告控制器或後端設定問題。"
+      }
+    },
+    {
+      "id": "startup-probe",
+      "en": "Startup Probe",
+      "zh": "啟動探針",
+      "category": "健康探針",
+      "definition": "讓 kubelet 給慢啟動容器一段初始化時間。啟動探針首次成功後，才開始執行該容器的存活與就緒探針。",
+      "example": "新版訂單 API 要先載入本地規則。完成前 /startupz 回 503，完成後回 200；之後由 /readyz 判斷能否接單。",
+      "properties": [
+        [
+          "時間預算",
+          "依實際冷啟動時間設定門檻。本例每 5 秒一次，允許連續失敗 24 次，預算約兩分鐘。"
+        ]
+      ],
+      "sample": {
+        "language": "Kubernetes YAML",
+        "setup": "Deployment 的 spec.template.spec.containers 中，以下片段放在訂單 API 容器下。API 須監聽 8080 並實作對應路徑。",
+        "code": "startupProbe:\n  httpGet:\n    path: /startupz\n    port: 8080\n  periodSeconds: 5\n  timeoutSeconds: 2\n  failureThreshold: 24",
+        "result": "初始化期間不會因 liveness 過早失敗而重啟。啟動檢查若持續失敗達門檻，kubelet 會終止容器，再按重啟策略處理。"
+      }
+    },
+    {
+      "id": "readiness-probe",
+      "en": "Readiness Probe",
+      "zh": "就緒探針",
+      "category": "健康探針",
+      "definition": "持續判斷容器是否準備好服務。Pod 未就緒時，一般 Service 會將它排除於新流量的就緒端點之外，容器可繼續執行。",
+      "example": "若訂單 API 的所有請求都依賴 PostgreSQL，可讓 /readyz 在必要連線失效時回 503，恢復後再回 200。若只有報表依賴資料庫，應評估其他端點能否繼續服務。",
+      "properties": [
+        [
+          "共用依賴故障",
+          "所有副本都檢查同一個資料庫時，可能一起變成未就緒。探針需有短逾時，並考量是否支援部分功能。"
+        ]
+      ],
+      "sample": {
+        "language": "Kubernetes YAML",
+        "setup": "Deployment 的 spec.template.spec.containers 中，以下片段放在訂單 API 容器下。API 須監聽 8080 並實作對應路徑。",
+        "code": "readinessProbe:\n  httpGet:\n    path: /readyz\n    port: 8080\n  periodSeconds: 5\n  timeoutSeconds: 2\n  failureThreshold: 2",
+        "result": "連續失敗達門檻後可看到 Pod Ready=False。檢查恢復成功後可重新接流量，單純 readiness 失敗不會觸發容器重啟。"
+      }
+    },
+    {
+      "id": "liveness-probe",
+      "en": "Liveness Probe",
+      "zh": "存活探針",
+      "category": "健康探針",
+      "definition": "讓 kubelet 判斷容器是否陷入需要重啟才能恢復的狀態。連續失敗達門檻後，kubelet 會終止該容器並依重啟策略處理。",
+      "example": "訂單 API 的 HTTP 處理完全卡死，連輕量的 /healthz 都逾時，重啟可讓該副本恢復。若只有資料庫離線，這個端點仍可回 200，避免所有副本反覆重啟。",
+      "properties": [
+        [
+          "檢查範圍",
+          "/healthz 是本例選用的路徑。若只有背景工作卡住而 HTTP 仍能回應，此檢查無法偵測，需按故障模式設計進度檢查。"
+        ]
+      ],
+      "sample": {
+        "language": "Kubernetes YAML",
+        "setup": "Deployment 的 spec.template.spec.containers 中，以下片段放在訂單 API 容器下。API 須監聽 8080 並實作對應路徑。",
+        "code": "livenessProbe:\n  httpGet:\n    path: /healthz\n    port: 8080\n  periodSeconds: 10\n  timeoutSeconds: 2\n  failureThreshold: 3",
+        "result": "在 Deployment 中，連續失敗三次後可用 kubectl describe pod 查看探針事件，並觀察該容器的 RESTARTS 計數。"
+      }
+    }
+  ],
+  "relations": [
+    [
+      "deployment",
+      "pod"
+    ],
+    [
+      "service",
+      "pod"
+    ],
+    [
+      "ingress",
+      "service"
+    ],
+    [
+      "ingress",
+      "dotnet/routing"
+    ],
+    [
+      "service",
+      "backend/load-balancing"
+    ],
+    [
+      "deployment",
+      "readiness-probe"
+    ],
+    [
+      "pod",
+      "liveness-probe"
+    ],
+    [
+      "startup-probe",
+      "readiness-probe"
+    ],
+    [
+      "startup-probe",
+      "liveness-probe"
+    ],
+    [
+      "readiness-probe",
+      "liveness-probe"
+    ],
+    [
+      "readiness-probe",
+      "service"
+    ],
+    [
+      "readiness-probe",
+      "backend/health-probe"
+    ],
+    [
+      "liveness-probe",
+      "backend/health-probe"
+    ]
+  ]
+}

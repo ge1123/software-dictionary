@@ -10,7 +10,9 @@ import dotnet from './domains/dotnet.json' with { type: 'json' };
 import commerce from './domains/commerce.json' with { type: 'json' };
 import algorithms from './domains/algorithms.json' with { type: 'json' };
 
-export const domains = [sql, backend, dotnet, redis, mq, commerce, algorithms];
+import infra from './domains/infra.json' with { type: 'json' };
+
+export const domains = [sql, backend, dotnet, redis, mq, commerce, algorithms, infra];
 
 // Only previously published URLs belong in this lookup.
 const formerBackendTopics = new Map([

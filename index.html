@@ -19,6 +19,15 @@
       </dl>
       <h2>{{ selected.sources ? "專案實例" : "使用情境" }}</h2>
       <p>{{ selected.example }}</p>
+      <section v-if="comparison.length" class="comparison">
+        <h2>容易混淆的詞</h2>
+        <dl>
+          <template v-for="term in comparison" :key="term.id">
+            <dt><strong v-if="term.id === selected.id">{{ term.zh }}（本詞條）</strong><a v-else :href="'#'+term.id">{{ term.zh }}</a></dt>
+            <dd>{{ term.comparison.hint }}</dd>
+          </template>
+        </dl>
+      </section>
       <template v-if="selected.practice">
         <h2>技術原理</h2><p>{{ selected.practice.principle }}</p>
         <h2>調校步驟</h2>
@@ -65,6 +74,12 @@
     <section v-else-if="domain" class="term-list">
       <a href="#" class="back">← 主題索引</a>
       <h1 ref="title" tabindex="-1">{{ domain.name }} 詞典<span>.</span></h1>
+      <section v-if="questions.length" class="question-list" aria-labelledby="lookup-heading">
+        <h2 id="lookup-heading">依業務問題查詞</h2>
+        <ul>
+          <li v-for="term in questions" :key="term.id"><a :href="'#'+term.id">{{ term.lookupQuestion }}</a></li>
+        </ul>
+      </section>
       <input type="search" v-model="query" aria-label="搜尋詞條" placeholder="搜尋英文名詞、中文名稱或關鍵字…">
       <nav aria-label="詞條分類">
         <button v-for="name in categories" :key="name" :aria-pressed="category === name" @click="category = name">{{ name }}</button>

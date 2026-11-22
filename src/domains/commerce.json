@@ -32,7 +32,17 @@
       "zh": "退款",
       "category": "付款與退款",
       "definition": "將已收取款項部分或全部退回並記錄獨立結果。",
-      "example": "同一訂單可分次退款，送出前檢查已退與處理中總額；金流逾時保留退款編號供查詢。"
+      "example": "在 Adyen，支援部分退款的付款方式可以分次退回款項，累計不得超過已請款金額。送出退款後可用回傳的參考號追蹤，實際結果由 REFUND 通知回報。",
+      "comparison": {
+        "group": "payment",
+        "hint": "買家已付款，要退回多少？Adyen 的退款針對已請款金額，支援部分退款的付款方式也可只退一部分。"
+      },
+      "sources": [
+        [
+          "Adyen Checkout · refunds",
+          "https://github.com/Adyen/adyen-openapi/blob/63f87f80250b7c5c0f006fbb123fb49c9e84a93b/json/CheckoutService-v72.json#L2463-L2468"
+        ]
+      ]
     },
     {
       "id": "cart",
@@ -106,7 +116,7 @@
       "zh": "付款沖正",
       "category": "付款與退款",
       "definition": "針對原交易建立有關聯的反向操作，以撤回原付款效果。支付服務商對 reversal 的適用階段、名稱與最終結果可能不同。",
-      "example": "訂單 42 取消時，先查 A1。若只有授權且尚未請款，依金流規約撤銷授權；若 800 元已收取且應退回，建立退款紀錄。若 A1 還在待確認，先查明原交易。",
+      "example": "以 Adyen 為例，商家要整筆撤回原付款時，可用原付款參考號送出 reversal。尚未請款會取消授權，已請款會退款，最終結果看 CANCEL_OR_REFUND 通知。該介面不適用於多次部分請款。",
       "properties": [
         [
           "金流差異",
@@ -116,7 +126,18 @@
           "帳務留痕",
           "保留原付款、反向操作識別碼、金額及結果，讓對帳能同時追到兩筆。"
         ]
-      ]
+      ],
+      "comparison": {
+        "group": "payment",
+        "hint": "想整筆撤回原付款，但還不知道是否已請款？Adyen 的 reversal 會依請款狀態取消授權或退款。"
+      },
+      "sources": [
+        [
+          "Adyen Checkout · reversals",
+          "https://github.com/Adyen/adyen-openapi/blob/63f87f80250b7c5c0f006fbb123fb49c9e84a93b/json/CheckoutService-v72.json#L2607-L2612"
+        ]
+      ],
+      "lookupQuestion": "要整筆撤回買家的付款，先查哪個狀態？"
     },
     {
       "id": "b2b2c",
@@ -382,7 +403,12 @@
           "OCA Stock Availability · DESCRIPTION.md",
           "https://github.com/OCA/stock-logistics-availability/blob/9358076ef4fe42ce56fed79abf1abbdf6d939716/stock_available/readme/DESCRIPTION.md#L1-L7"
         ]
-      ]
+      ],
+      "comparison": {
+        "group": "stock",
+        "hint": "現在能答應客戶幾件？OCA 以預計庫存為基礎，依設定納入報價單或可立即生產的數量。"
+      },
+      "lookupQuestion": "倉庫裡還有貨，現在能答應客戶幾件？"
     },
     {
       "id": "backorder",
@@ -554,7 +580,11 @@
           "Odoo · 庫存預測報表",
           "https://github.com/odoo/documentation/blob/a394faae5aa5baec38dfb6e3db3e22b8d4b923af/content/applications/inventory_and_mrp/inventory/warehouses_storage/reporting/forecast.rst#L145-L152"
         ]
-      ]
+      ],
+      "comparison": {
+        "group": "stock",
+        "hint": "倉庫此刻實際有幾件？看 Odoo 的在手量，其中可能已有貨品預留給其他訂單。"
+      }
     },
     {
       "id": "forecasted-inventory",
@@ -572,7 +602,11 @@
           "Odoo · 庫存預測報表",
           "https://github.com/odoo/documentation/blob/a394faae5aa5baec38dfb6e3db3e22b8d4b923af/content/applications/inventory_and_mrp/inventory/warehouses_storage/reporting/forecast.rst#L109-L122"
         ]
-      ]
+      ],
+      "comparison": {
+        "group": "stock",
+        "hint": "到了交貨日，預計還剩幾件？Odoo 把預定入庫與出庫依日期列入預測。"
+      }
     },
     {
       "id": "purchase-order",
@@ -660,7 +694,8 @@
           "OCA RMA · USAGE.md",
           "https://github.com/OCA/rma/blob/4e5260dffca266529a82ef02bba4658e762716ef/rma/readme/USAGE.md#L3-L20"
         ]
-      ]
+      ],
+      "lookupQuestion": "倉庫收到客人寄回的貨了嗎？"
     },
     {
       "id": "replacement-shipment",
@@ -688,7 +723,8 @@
           "ERPNext · test_pricing_rule.py",
           "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/accounts/doctype/pricing_rule/test_pricing_rule.py#L789-L832"
         ]
-      ]
+      ],
+      "lookupQuestion": "兩個優惠一起用，第二個折扣怎麼算？"
     },
     {
       "id": "discounted-price",
@@ -716,7 +752,8 @@
           "Mercur · payout-pipeline.mdx",
           "https://github.com/mercurjs/mercur/blob/752e3d6ee73e437d9250bab907afe9d5d86f5757/apps/docs/platform/payout/concepts/payout-pipeline.mdx#L28-L45"
         ]
-      ]
+      ],
+      "lookupQuestion": "買家已下單，為什麼賣家還沒收到撥款？"
     },
     {
       "id": "payout-reversal",
@@ -733,6 +770,65 @@
         [
           "Mercur · payout-pipeline.mdx",
           "https://github.com/mercurjs/mercur/blob/752e3d6ee73e437d9250bab907afe9d5d86f5757/apps/docs/platform/payout/concepts/payout-pipeline.mdx#L58-L66"
+        ]
+      ],
+      "comparison": {
+        "group": "payment",
+        "hint": "買家已獲退款，還要向賣家收回多少？Mercur 從退款扣掉分攤佣金，略過已從原撥款扣除的退款。"
+      }
+    },
+    {
+      "id": "repeat-check-in",
+      "en": "Repeat Check-in",
+      "zh": "重複掃票",
+      "category": "B2B2C 履約與配送",
+      "definition": "同一張票在同一份入場名單再次掃描時，pretix 會依該名單是否允許多次入場決定結果。",
+      "example": "單次入場測試中，第一次掃票成功，第二次回傳 already_redeemed。開啟 allow_multiple_entries 後，兩次獨立掃描都成功，留下兩筆紀錄。若只是斷線後重送同一次掃描，沿用原 nonce，即使允許多次入場，仍只留一筆。",
+      "sources": [
+        [
+          "pretix · 單次與多次入場測試",
+          "https://github.com/pretix/pretix/blob/526a79c7d175a37421242a8167821373c357773d/src/tests/api/test_checkinrpc.py#L439-L476"
+        ],
+        [
+          "pretix · 重送同筆掃描的測試",
+          "https://github.com/pretix/pretix/blob/526a79c7d175a37421242a8167821373c357773d/src/tests/api/test_checkinrpc.py#L480-L492"
+        ]
+      ],
+      "lookupQuestion": "同一張票掃第二次，還能入場嗎？"
+    },
+    {
+      "id": "check-in-annulment",
+      "en": "Check-in Annulment",
+      "zh": "撤銷入場核銷",
+      "category": "B2B2C 履約與配送",
+      "definition": "pretix 可把誤記成功、實際未放行的核銷標記為已撤銷。設備建立的核銷須由原設備帶原 nonce 撤銷，此版本規定撤銷時間與核銷時間相差不得超過 15 分鐘。",
+      "example": "自動閘門掃票成功卻沒有轉動。測試以原 nonce 送出撤銷後，原紀錄仍查得到，結果改為未成功，原因為 annulled，也保留閘門未轉動的說明。pretix 建議這項操作主要用在能確認未放行的自動設備。",
+      "sources": [
+        [
+          "pretix · 撤銷用途與限制",
+          "https://github.com/pretix/pretix/blob/526a79c7d175a37421242a8167821373c357773d/doc/api/resources/checkin.rst#L385-L410"
+        ],
+        [
+          "pretix · 閘門未放行的測試",
+          "https://github.com/pretix/pretix/blob/526a79c7d175a37421242a8167821373c357773d/src/tests/api/test_checkinrpc.py#L1167-L1187"
+        ]
+      ]
+    },
+    {
+      "id": "offline-check-in",
+      "en": "Offline Check-in",
+      "zh": "離線掃票",
+      "category": "B2B2C 履約與配送",
+      "definition": "pretixSCAN 可先下載票券資料，斷網時由設備在本機判斷能否入場，之後再與伺服器同步。",
+      "example": "同一張票先在 A 閘口放行，隨即拿到尚未同步的 B 閘口，也可能再次通過。上傳已發生的離線掃描時，可用原掃描時間記錄入場，並以同一 nonce 重試同一筆上傳，避免多建一筆紀錄。",
+      "sources": [
+        [
+          "pretixSCAN Proxy · 離線模式與跨設備重複入場",
+          "https://github.com/pretix/pretixscan-proxy/blob/5273fc1320ee392477065281b3f878ca23bc1f62/README.md#L17-L30"
+        ],
+        [
+          "pretix · 離線補登時間與重送辨識",
+          "https://github.com/pretix/pretix/blob/526a79c7d175a37421242a8167821373c357773d/doc/api/resources/checkin.rst#L38-L58"
         ]
       ]
     }
@@ -1576,6 +1672,46 @@
       {
         "forward": "若要查的是發票還欠多少，ERPNext 付款核銷後如何驗證？",
         "reverse": "若要查的是平台暫緩付給賣家的原因，Mercur 檢查哪些條件？"
+      }
+    ],
+    [
+      "voucher-redemption",
+      "repeat-check-in",
+      {
+        "forward": "同一張票再次掃描，什麼設定決定能否入場？",
+        "reverse": "第一次掃票時，設備用票上的哪個值找到入場明細？"
+      }
+    ],
+    [
+      "voucher-redemption",
+      "check-in-annulment",
+      {
+        "forward": "核銷已成功，閘門卻沒放人，原設備怎麼更正紀錄？",
+        "reverse": "若要登記的是正常入場或出場，pretix 要送哪種掃描？"
+      }
+    ],
+    [
+      "voucher-redemption",
+      "offline-check-in",
+      {
+        "forward": "現場斷網時，設備怎麼判斷票券並補登入場紀錄？",
+        "reverse": "設備連線時，pretix 的掃票介面如何登記入場？"
+      }
+    ],
+    [
+      "repeat-check-in",
+      "offline-check-in",
+      {
+        "forward": "兩個離線閘口短時間內掃同一張票，為什麼可能都放行？",
+        "reverse": "資料送到同一伺服器時，重掃一次和重送同一筆掃描如何區分？"
+      }
+    ],
+    [
+      "repeat-check-in",
+      "backend/idempotency-key",
+      {
+        "forward": "重送同一次掃描時沿用 nonce，這種識別同一操作的機制如何運作？",
+        "reverse": "想看允許多次入場卻仍可避免重送多算的例子？"
       }
     ]
   ]

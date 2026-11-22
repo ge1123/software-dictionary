@@ -19,12 +19,17 @@ createApp({
       selected.value?.domain === item.id || slug.value === '/topics/' + item.id
     ));
     const domainTerms = computed(() => sorted.filter(term => term.domain === domain.value?.id));
+    const comparison = computed(() => {
+      const group = selected.value?.comparison?.group;
+      return group ? domainTerms.value.filter(term => term.comparison?.group === group) : [];
+    });
+    const questions = computed(() => domainTerms.value.filter(term => term.lookupQuestion));
     const categories = computed(() => ['全部', ...new Set(domainTerms.value.map(term => term.category))]);
     const filtered = computed(() => {
       const text = query.value.trim().toLowerCase();
       return domainTerms.value.filter(term =>
         (category.value === '全部' || term.category === category.value) &&
-        [term.en, term.zh, term.category, term.definition, term.example, ...(term.practice ? [term.practice.principle, ...term.practice.steps, term.practice.verify, term.practice.tradeoff] : [])].some(value => value.toLowerCase().includes(text))
+        [term.en, term.zh, term.lookupQuestion ?? '', term.category, term.definition, term.example, ...(term.practice ? [term.practice.principle, ...term.practice.steps, term.practice.verify, term.practice.tradeoff] : [])].some(value => value.toLowerCase().includes(text))
       );
     });
     function reset() {
@@ -49,6 +54,6 @@ createApp({
       document.title = (term?.en ?? topic?.name ?? '主題索引') + ' · Software Dictionary';
     }, { immediate: true });
     const related = computed(() => relatedTerms(slug.value));
-    return { withdrawn, domains, plannedTopics, domain, related, query, category, categories, filtered, reset, selected, title };
+    return { questions, comparison, withdrawn, domains, plannedTopics, domain, related, query, category, categories, filtered, reset, selected, title };
   }
 }).mount('#app');

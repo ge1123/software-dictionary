@@ -6,6 +6,22 @@ for (const domain of domains) {
   assert.match(domain.id, slug);
   assert.ok(domain.name.trim() && domain.terms.length > 0, domain.id);
   for (const term of domain.terms) assert.match(term.id, slug);
+  const questions = new Set();
+  const groupSizes = new Map();
+  for (const term of domain.terms) {
+    if (term.lookupQuestion !== undefined) {
+      const question = term.lookupQuestion.trim();
+      assert.ok(question && !questions.has(question), term.id);
+      questions.add(question);
+    }
+    if (term.comparison !== undefined) {
+      const { group, hint } = term.comparison;
+      assert.match(group, slug);
+      assert.ok(hint.trim(), term.id);
+      groupSizes.set(group, (groupSizes.get(group) ?? 0) + 1);
+    }
+  }
+  for (const [group, size] of groupSizes) assert.ok(size >= 2, group);
   for (const pair of domain.relations) {
     assert.ok(pair.length === 2 || pair.length === 3);
     for (const ref of pair.slice(0, 2)) {

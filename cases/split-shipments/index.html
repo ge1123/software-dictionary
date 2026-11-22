@@ -6,6 +6,7 @@
   <title>分批出貨的資料模型 · Software Dictionary</title>
   <link rel="stylesheet" href="../../src/style.css">
   <link rel="stylesheet" href="../case.css">
+  <script defer src="/models/pan-hint.js"></script>
 </head>
 <body>
   <header><a href="../../"><b>Software Dictionary</b></a><a href="https://github.com/ge1123/software-dictionary">GitHub ↗</a></header>
@@ -61,7 +62,7 @@
       <div class="er-scroll" tabindex="0" role="region" aria-label="分批出貨 ER 圖">
         <img src="./model.svg" width="540" height="495" alt="orders 分別連到 order_line 和 shipment，兩者再連到 shipment_item。每筆出貨明細只對應一張出貨單與一筆訂單明細。">
       </div>
-      <figcaption>一張訂單可有零到多筆明細，也可分成零到多張出貨單。圖中保留四張核心表；完整模型另有商品與供應商表。PK 表示主鍵，FK 表示外鍵。</figcaption>
+      <figcaption>一張訂單可有零到多筆明細，也可分成零到多張出貨單。PK 表示主鍵，FK 表示外鍵。這裡畫出查詢包裹的四張表。<a href="../../models/core-06-split-shipments/#b">完整 ER 圖</a>列出商品、供應商及每組複合外鍵的欄位。</figcaption>
     </figure>
     <div class="data-scroll" tabindex="0" role="region" aria-label="方案 B 的逐批資料">
       <table>

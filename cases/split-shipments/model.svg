@@ -9,12 +9,21 @@
     .key { font: bold 12px monospace; fill:#456b52; text-anchor:end; }
     .number { font: bold 13px monospace; fill:#355a45; }
   </style>
-  <g class="rule"><path d="M205 70 V90 H136 V125 M335 70 V90 H404 V125 M136 291 V326 H205 V355 M404 291 V326 H335 V355"/></g>
-  <g class="number">
-    <text x="186" y="85">1</text><text x="344" y="85">1</text>
-    <text x="94" y="119">0..N</text><text x="411" y="119">0..N</text>
-    <text x="118" y="311">1</text><text x="412" y="311">1</text>
-    <text x="163" y="350">0..N</text><text x="341" y="350">0..N</text>
+  <g class="number" data-parent="orders" data-child="order_line">
+    <path class="rule" d="M205 70 V90 H136 V125"/>
+    <text x="186" y="85">1</text><text x="94" y="119">0..N</text>
+  </g>
+  <g class="number" data-parent="orders" data-child="shipment">
+    <path class="rule" d="M335 70 V90 H404 V125"/>
+    <text x="344" y="85">1</text><text x="411" y="119">0..N</text>
+  </g>
+  <g class="number" data-parent="order_line" data-child="shipment_item">
+    <path class="rule" d="M136 291 V326 H205 V355"/>
+    <text x="118" y="311">1</text><text x="163" y="350">0..N</text>
+  </g>
+  <g class="number" data-parent="shipment" data-child="shipment_item">
+    <path class="rule" d="M404 291 V326 H335 V355"/>
+    <text x="412" y="311">1</text><text x="341" y="350">0..N</text>
   </g>
   <g transform="translate(151 5)">
     <rect class="box" width="238" height="65" rx="5"/>
@@ -26,7 +35,7 @@
     <text class="heading" x="12" y="23">order_line</text><path class="rule" d="M0 33H252"/>
     <text class="field" x="12" y="54">line_id</text><text class="key" x="239" y="54">PK</text>
     <text class="field" x="12" y="74">order_id</text><text class="key" x="239" y="74">FK</text>
-    <text class="field" x="12" y="94">sku_id, supplier_id</text>
+    <text class="field" x="12" y="94">sku_id, supplier_id</text><text class="key" x="239" y="94">FK</text>
     <text class="field" x="12" y="120">ordered_qty</text>
     <text class="field" x="12" y="142">shipped_qty</text>
   </g>
@@ -35,14 +44,14 @@
     <text class="heading" x="12" y="23">shipment</text><path class="rule" d="M0 33H252"/>
     <text class="field" x="12" y="54">shipment_id</text><text class="key" x="239" y="54">PK</text>
     <text class="field" x="12" y="74">order_id</text><text class="key" x="239" y="74">FK</text>
-    <text class="field" x="12" y="94">supplier_id</text>
+    <text class="field" x="12" y="94">supplier_id</text><text class="key" x="239" y="94">FK</text>
     <text class="field" x="12" y="120">tracking_no</text><text class="key" x="239" y="120">UNIQUE</text>
   </g>
   <g transform="translate(138 355)">
     <rect class="box" width="264" height="132" rx="5"/>
     <text class="heading" x="12" y="23">shipment_item</text><path class="rule" d="M0 33H264"/>
-    <text class="field" x="12" y="54">shipment_id, line_id</text><text class="key" x="252" y="54">PK</text>
-    <text class="field" x="12" y="81">order_id, supplier_id</text>
+    <text class="field" x="12" y="54">shipment_id, line_id</text><text class="key" x="252" y="54">PK / FK</text>
+    <text class="field" x="12" y="81">order_id, supplier_id</text><text class="key" x="252" y="81">FK</text>
     <text class="field" x="12" y="109">qty</text>
   </g>
 </svg>

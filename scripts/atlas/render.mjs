@@ -23,10 +23,11 @@ function diagram(viz, plan, objects, parentFirst) {
   const rankdir = parentFirst ? 'BT' : 'TB';
   const lines = ['digraph ER {', `graph [rankdir=${rankdir}, bgcolor="transparent", pad=0.14, nodesep=0.4, ranksep=0.85];`,
     'node [shape=plain, fontname="Helvetica", fontsize=12];','edge [color="#496856", fontcolor="#355845", fontname="Helvetica", fontsize=10];'];
-  function edge(a,b,label,style,cardinality) {
-    const ends = cardinality ? ' headlabel='+attr(cardinality.parent)+' taillabel='+attr(cardinality.children)+' labeldistance=2.3 labelangle=48' : '';
-    const paddedLabel = `<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4"><TR><TD>${esc(label)}</TD></TR></TABLE>>`;
-    lines.push(`${attr(a)} -> ${attr(b)} [label=${paddedLabel}, style=${attr(style)}${ends}];`);
+  function edge(a, b, labels, style) {
+    // A single measured label reserves room for composite keys and multiplicity on bends.
+    const rows = labels.map(label => `<TR><TD ALIGN="LEFT">${esc(label)}</TD></TR>`).join('');
+    const paddedLabel = `<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6">${rows}</TABLE>>`;
+    lines.push(`${attr(a)} -> ${attr(b)} [label=${paddedLabel}, style=${attr(style)}];`);
   }
   function node(id,label,rows) {
     // Courier's fixed metrics keep SQL identifiers aligned in both dot and the browser.
@@ -34,11 +35,13 @@ function diagram(viz, plan, objects, parentFirst) {
       ? `<TR><TD ALIGN="LEFT">${esc(col)}</TD></TR>`
       : `<TR><TD ALIGN="LEFT"><FONT FACE="Courier" POINT-SIZE="11">${esc(col)}</FONT></TD><TD WIDTH="6" CELLPADDING="0"></TD><TD ALIGN="LEFT"><FONT FACE="Courier" POINT-SIZE="11" COLOR="#496052">${esc(type)}</FONT></TD></TR>`
     ).join('');
-    lines.push(`${attr(id)} [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#779585" BGCOLOR="#fffef8"><TR><TD COLSPAN="${plan.concept ? 1 : 3}" BGCOLOR="#e0ede2" CELLPADDING="6"><B>${esc(label)}</B></TD></TR>${cells}</TABLE>>];`);
+    // Graphviz's built-in Helvetica metrics do not include the browser's CJK fallback.
+    const headerSize = /\p{Script=Han}/u.test(label) ? ` WIDTH="${14 + 12 * [...label].length}" ALIGN="LEFT"` : '';
+    lines.push(`${attr(id)} [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#779585" BGCOLOR="#fffef8"><TR><TD COLSPAN="${plan.concept ? 1 : 3}"${headerSize} BGCOLOR="#e0ede2" CELLPADDING="6"><B>${esc(label)}</B></TD></TR>${cells}</TABLE>>];`);
   }
   if (plan.concept) {
     for (const [name, fields] of Object.entries(plan.concept.entities)) node(name,name,fields.map(f=>[f,'']));
-    for (const [from,to,label] of plan.concept.links) edge(from,to,label,'dashed');
+    for (const [from,to,label] of plan.concept.links) edge(from,to,[label],'dashed');
   } else {
     const multipleSchemas = new Set(objects.map(t=>t.schema)).size > 1;
     for (const t of objects) {
@@ -49,10 +52,11 @@ function diagram(viz, plan, objects, parentFirst) {
       for (const k of foreign) {
         const required = k.cols.every(col => t.columns.find(c => c[0] === col)[2]);
         const unique = t.constraints.some(key => ['p','u'].includes(key.type) && key.cols.every(col => k.cols.includes(col)));
-        edge(qualified(t),k.targetSchema+'.'+k.target,k.cols.join(', ')+' → '+k.refs.join(', '),'solid',
-          {parent:required?'1':'0..1',children:unique?'0..1':'0..N'});
+        const pairs = k.cols.map((col, i) => col + ' → ' + k.refs[i]);
+        const multiplicity = (unique ? '0..1' : '0..N') + ' → ' + (required ? '1' : '0..1');
+        edge(qualified(t), k.targetSchema+'.'+k.target, [...pairs, multiplicity], 'solid');
       }
-      for (const dependency of t.depends ?? []) edge(qualified(t),qualified(dependency),'reads','dashed');
+      for (const dependency of t.depends ?? []) edge(qualified(t),qualified(dependency),['reads'],'dashed');
     }
   }
   const result = viz.render(lines.concat('}').join('\n'),{format:'svg',engine:'dot'});
@@ -66,9 +70,9 @@ function records(t) {
   return `<section><h4>${esc(qualified(t))}</h4>${sample}
     <p class="meta">欄位限制與唯一索引</p><pre>${esc([...keys,...t.indexes].join('\n') || '此物件未宣告資料表約束或唯一索引。')}</pre></section>`;
 }
-function layout(title, prefix, body) {
+function layout(title, prefix, body, diagrams = false) {
   return `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>${esc(title)} · Software Dictionary</title><link rel="stylesheet" href="${prefix}atlas.css"></head>
+    <title>${esc(title)} · Software Dictionary</title><link rel="stylesheet" href="${prefix}atlas.css">${diagrams ? '<script defer src="' + prefix + 'pan-hint.js"></script>' : ''}</head>
     <body><header><a href="${prefix}../">Software Dictionary</a><a href="${prefix}../#/topics/commerce">電商業務詞典</a></header><main>${body}</main></body></html>`;
 }
 function chapterPage(viz, chapter, data) {
@@ -78,7 +82,7 @@ function chapterPage(viz, chapter, data) {
     const key=plan.code.toLowerCase();
     return `<section class="plan" id="${key}"><h2>方案 ${plan.code} · ${esc(plan.title)}</h2>
     <figure><div class="diagram" tabindex="0" role="region" aria-label="可捲動的 ER 圖">${diagram(viz,plan,objects,data.parentFirst)}</div>
-    <figcaption>${plan.concept?'概念圖 · 原章節未提供此方案的 DDL。':'PostgreSQL 實驗結束時的結構。PK 為主鍵，FK 為外鍵。實線由參照表指向被參照表，邊上依序列出外鍵與目標欄位；兩端數字依欄位可空性及主鍵、唯一約束標示。'}</figcaption></figure>
+    <figcaption>${plan.concept?'概念圖 · 原章節未提供此方案的 DDL。':'PK 為主鍵，FK 為外鍵。實線從外鍵指向被參照的資料表，每行對應一組欄位。末行標示兩端數量，例如 0..N → 1 表示每筆子資料對應一筆父資料，每筆父資料可有零到多筆子資料。'}</figcaption></figure>
     ${plan.note?'<p>'+prose(plan.note)+'</p>':''}
     ${objects.some(t=>t.depends?.length)?'<p>虛線 reads 表示檢視讀取的來源。</p>':''}
     ${objects.length?`<details><summary>看資料、外鍵與約束（${objects.length} 個物件）</summary>
@@ -93,7 +97,7 @@ function chapterPage(viz, chapter, data) {
     <h2>驗證與來源</h2><p>依 PostgreSQL 18.7 系統目錄繪製實作圖。單連線執行本章 lab.sql 並核對資料表、欄位、主外鍵與檢視。${esc(data.validationNote??'')}</p>
     <ul><li><a href="${source}lab.sql">完整 SQL 與案例斷言</a></li><li><a href="${source}README.md">固定版本教材</a></li>
     <li><a href="../../#${chapter.term}">相關詞條 · ${esc(termNames.get(chapter.term))}</a></li>
-    ${chapter.source==='06-split-shipments'?'<li><a href="../../cases/split-shipments/">分批出貨 · 逐包查詢實例</a></li>':''}</ul>`);
+    ${chapter.source==='06-split-shipments'?'<li><a href="../../cases/split-shipments/">分批出貨 · 逐包查詢實例</a></li>':''}</ul>`, true);
 }
 export async function renderAtlas() {
   const viz=await instance();

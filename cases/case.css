@@ -10,7 +10,7 @@
 .single-entity { display: block; width: min(100%, 20rem); height: auto; }
 .er-scroll, .data-scroll, .model-case pre { overflow-x: auto; }
 .er-scroll { background: #fffef8; border: 1px solid #ced6ca; border-radius: 5px; padding: .5rem; }
-.er-scroll img { display: block; width: min(100%, 36rem); min-width: 28rem; height: auto; margin: auto; }
+.er-scroll img { display: block; width: 540px; max-width: none; height: auto; margin: auto; }
 .model-case figcaption { color: #44594c; font-size: .85rem; margin-top: .5rem; }
 .model-case table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .model-case th, .model-case td { text-align: start; border-bottom: 1px solid #ccd5ca; padding: .38rem .65rem; white-space: nowrap; }

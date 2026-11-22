@@ -56,3 +56,5 @@
 資料模型圖集依 `src/model-atlas/index.json` 的固定教材版本收錄兩份索引。每個具名方案各有一張圖。實作方案使用章節主實驗回滾前的 PostgreSQL 系統目錄，保留所有欄位、主鍵、外鍵與檢視依賴；概念方案依原文繪圖並標示。案例頁的資料取自同一時點，每個資料庫物件節錄至多兩列。
 
 更新時，在專用 PostgreSQL 18 練習資料庫設定 DATABASE_URL，執行 `node scripts/atlas/verify-source.mjs /path/to/research-schema-design` 核對 lab.sql 雜湊、案例斷言與資料庫物件。接著執行 `npm run check`、`npm run build`、`python3 scripts/atlas/verify-pages.py`；最後一項會逐圖驗證節點、全部欄位、鍵標記、連線方向與複合鍵欄位順序。若來源有語法修正或只描述設計，須在對應方案頁標出驗證範圍。
+
+複合外鍵按 DDL 順序逐行畫出「子欄位 → 父欄位」。同一個連線標籤的末行寫兩端數量。分批出貨的獨立案例也須與同章實驗核對。建置後執行 `npm run check:er-layout`，以 360 和 1280 像素寬度檢查圖集與獨立案例的文字、連線和捲動範圍。可用 `CHROME_BIN` 指定已安裝的 Chrome，或先執行 `npx playwright-core install chromium`。

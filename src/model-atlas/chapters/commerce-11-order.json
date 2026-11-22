@@ -1,5 +1,6 @@
 {
   "intro": "小芸買兩件衣服；平台還要把不同賣家的商品拆單。",
+  "parentFirst": true,
   "comparison": [
     [
       "方案",

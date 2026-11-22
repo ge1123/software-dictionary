@@ -19,16 +19,22 @@ function table(headers, rows) {
   return '<div class="overflow"><table><thead><tr>' + headers.map(x => '<th scope="col">'+esc(x)+'</th>').join('') +
     '</tr></thead><tbody>' + rows.map(row => '<tr>' + row.map(x => '<td>'+cell(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
 }
-function diagram(viz, plan, objects) {
-  const lines = ['digraph ER {', 'graph [rankdir=TB, bgcolor="transparent", pad=0.14, nodesep=0.4, ranksep=0.85];',
-    'node [shape=plain, fontname="sans-serif", fontsize=12];','edge [color="#496856", fontcolor="#355845", fontname="sans-serif", fontsize=10];'];
+function diagram(viz, plan, objects, parentFirst) {
+  const rankdir = parentFirst ? 'BT' : 'TB';
+  const lines = ['digraph ER {', `graph [rankdir=${rankdir}, bgcolor="transparent", pad=0.14, nodesep=0.4, ranksep=0.85];`,
+    'node [shape=plain, fontname="Helvetica", fontsize=12];','edge [color="#496856", fontcolor="#355845", fontname="Helvetica", fontsize=10];'];
   function edge(a,b,label,style,cardinality) {
-    const ends = cardinality ? ' headlabel='+attr(cardinality.parent)+' taillabel='+attr(cardinality.children)+' labeldistance=2.0' : '';
-    lines.push(`${attr(a)} -> ${attr(b)} [label=${attr(label)}, style=${attr(style)}${ends}];`);
+    const ends = cardinality ? ' headlabel='+attr(cardinality.parent)+' taillabel='+attr(cardinality.children)+' labeldistance=2.3 labelangle=48' : '';
+    const paddedLabel = `<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4"><TR><TD>${esc(label)}</TD></TR></TABLE>>`;
+    lines.push(`${attr(a)} -> ${attr(b)} [label=${paddedLabel}, style=${attr(style)}${ends}];`);
   }
   function node(id,label,rows) {
-    const cells=rows.map(([col,type])=>`<TR><TD ALIGN="LEFT">${esc(col)}</TD><TD ALIGN="LEFT">${esc(type)||' '}</TD></TR>`).join('');
-    lines.push(`${attr(id)} [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5" COLOR="#779585" BGCOLOR="#fffef8"><TR><TD COLSPAN="2" BGCOLOR="#e0ede2"><B>${esc(label)}</B></TD></TR>${cells}</TABLE>>];`);
+    // Courier's fixed metrics keep SQL identifiers aligned in both dot and the browser.
+    const cells = rows.map(([col, type]) => plan.concept
+      ? `<TR><TD ALIGN="LEFT">${esc(col)}</TD></TR>`
+      : `<TR><TD ALIGN="LEFT"><FONT FACE="Courier" POINT-SIZE="11">${esc(col)}</FONT></TD><TD WIDTH="6" CELLPADDING="0"></TD><TD ALIGN="LEFT"><FONT FACE="Courier" POINT-SIZE="11" COLOR="#496052">${esc(type)}</FONT></TD></TR>`
+    ).join('');
+    lines.push(`${attr(id)} [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#779585" BGCOLOR="#fffef8"><TR><TD COLSPAN="${plan.concept ? 1 : 3}" BGCOLOR="#e0ede2" CELLPADDING="6"><B>${esc(label)}</B></TD></TR>${cells}</TABLE>>];`);
   }
   if (plan.concept) {
     for (const [name, fields] of Object.entries(plan.concept.entities)) node(name,name,fields.map(f=>[f,'']));
@@ -71,7 +77,7 @@ function chapterPage(viz, chapter, data) {
     const objects=data.tables.filter(t=>plan.tables?.includes(qualified(t)));
     const key=plan.code.toLowerCase();
     return `<section class="plan" id="${key}"><h2>方案 ${plan.code} · ${esc(plan.title)}</h2>
-    <figure><div class="diagram" tabindex="0" role="region" aria-label="可捲動的 ER 圖">${diagram(viz,plan,objects)}</div>
+    <figure><div class="diagram" tabindex="0" role="region" aria-label="可捲動的 ER 圖">${diagram(viz,plan,objects,data.parentFirst)}</div>
     <figcaption>${plan.concept?'概念圖 · 原章節未提供此方案的 DDL。':'PostgreSQL 實驗結束時的結構。PK 為主鍵，FK 為外鍵。實線由參照表指向被參照表，邊上依序列出外鍵與目標欄位；兩端數字依欄位可空性及主鍵、唯一約束標示。'}</figcaption></figure>
     ${plan.note?'<p>'+prose(plan.note)+'</p>':''}
     ${objects.some(t=>t.depends?.length)?'<p>虛線 reads 表示檢視讀取的來源。</p>':''}

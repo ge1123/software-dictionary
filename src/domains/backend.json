@@ -112,7 +112,13 @@
       "zh": "分散式鎖",
       "category": "韌性與流量控制",
       "definition": "讓不同程序透過共同協調機制競爭同一資源的使用權。",
-      "example": "熱賣商品的快取同時失效，搶到鎖的實例再檢查一次快取才查 DB，其餘實例短暫等待並重讀。租約過期後可能有兩個工作仍在執行。"
+      "example": "熱賣商品的快取同時失效，搶到鎖的實例再檢查一次快取才查 DB，其餘實例短暫等待並重讀。租約過期後可能有兩個工作仍在執行。",
+      "properties": [
+        [
+          "安全釋放與續租",
+          "使用唯一持有者識別碼，讓比對與刪除或延長期限成為不可分割的操作。逾期恢復的舊持有者仍需由資源端阻擋。"
+        ]
+      ]
     },
     {
       "id": "fencing-token",
@@ -128,7 +134,13 @@
       "zh": "跨服務交易流程",
       "category": "跨服務一致性",
       "definition": "把一個業務流程拆成多筆可獨立提交的本地交易，保存進度，並在業務失敗時執行適用的補償。",
-      "example": "訂單先成為 Pending；付款成功才確認，明確拒絕則取消。此例用訂單 ID 串起流程，同一訂單若有多次獨立流程，就要區分各流程識別碼。"
+      "example": "訂單先成為 Pending；付款成功才確認，明確拒絕則取消。此例用訂單 ID 串起流程，同一訂單若有多次獨立流程，就要區分各流程識別碼。",
+      "properties": [
+        [
+          "補償失敗",
+          "退款連續失敗時保留待恢復狀態、付款識別碼與最後結果，讓人工接手後能核對再續跑。"
+        ]
+      ]
     },
     {
       "id": "compensation",
@@ -144,7 +156,13 @@
       "zh": "交易式寄件匣",
       "category": "跨服務一致性",
       "definition": "將業務變更與待發事件一起寫進同一筆本地交易，再由獨立發送程序投遞事件。",
-      "example": "HTTP POST 負責寫入訂單和 outbox。Publisher 的順序是查待送事件、publish、收到確認後更新狀態；若發送成功後當機，重啟仍可能重送。"
+      "example": "HTTP POST 負責寫入訂單和 outbox。Publisher 的順序是查待送事件、publish、收到確認後更新狀態；若發送成功後當機，重啟仍可能重送。",
+      "properties": [
+        [
+          "投遞順序",
+          "提交順序與消費順序可能不同。需要依訂單套用事件時，保存訂單版本並檢查重複或缺號。"
+        ]
+      ]
     },
     {
       "id": "strategy",
@@ -232,7 +250,13 @@
       "zh": "分散式追蹤",
       "category": "可觀測性與部署",
       "definition": "用 Trace ID 串聯同一次操作的多個 span，利用父子關係與時間定位延遲。",
-      "example": "從下單 API 回應取得 Trace ID，可查看 HTTP span 下哪個 DB span 花最多時間；每個 span 都有自己的識別碼。"
+      "example": "從下單 API 回應取得 Trace ID，可查看 HTTP span 下哪個 DB span 花最多時間；每個 span 都有自己的識別碼。",
+      "properties": [
+        [
+          "跨佇列追蹤",
+          "發送時將追蹤脈絡放入訊息中繼資料，處理時建立對應的 span，區分排隊與消費耗時。"
+        ]
+      ]
     },
     {
       "id": "structured-logging",
@@ -329,6 +353,534 @@
       "category": "架構與設計模式",
       "definition": "由聚合根維護一組領域物件的一致性邊界，外部透過聚合根執行變更。",
       "example": "建立訂單時讓 Order 統一檢查明細與計算總額；不同 API 建立訂單時都會經過同一組規則。"
+    },
+    {
+      "id": "crud",
+      "en": "CRUD",
+      "zh": "新增、讀取、修改與刪除",
+      "category": "API 與資料存取",
+      "definition": "描述管理一種資源的四個基本操作。",
+      "example": "以訂單為例，建立後可讀取明細或修改收件資料；已入帳的訂單通常用取消流程保留歷史。"
+    },
+    {
+      "id": "input-validation",
+      "en": "Input Validation",
+      "zh": "輸入驗證",
+      "category": "API 與資料存取",
+      "definition": "在系統邊界檢查資料的格式、範圍與必要欄位。",
+      "example": "數量為零可以在入口拒絕。數量大於零但庫存不足，仍要在扣庫存當下判斷。"
+    },
+    {
+      "id": "error-handling",
+      "en": "Error Handling",
+      "zh": "錯誤處理",
+      "category": "API 與資料存取",
+      "definition": "依失敗原因決定回應、紀錄與恢復方式。",
+      "example": "重複訂單編號回傳衝突；付款逾時記為待確認，讓客服能用操作編號找到紀錄。"
+    },
+    {
+      "id": "authentication",
+      "en": "Authentication",
+      "zh": "身分驗證",
+      "category": "API 與資料存取",
+      "definition": "確認請求所代表的使用者或服務身分。",
+      "example": "登入後，服務驗證工作階段憑證，取得使用者識別碼供後續權限判斷。"
+    },
+    {
+      "id": "authorization",
+      "en": "Authorization",
+      "zh": "授權",
+      "category": "API 與資料存取",
+      "definition": "判斷某個身分能否對特定資源執行某項操作。",
+      "example": "同樣有查訂單權限，通路 A 的帳號只能讀自己通路的訂單。"
+    },
+    {
+      "id": "pessimistic-lock",
+      "en": "Pessimistic Locking",
+      "zh": "悲觀鎖定",
+      "category": "API 與資料存取",
+      "definition": "在交易中先鎖定要修改的資料，讓衝突操作等待。",
+      "example": "PostgreSQL 用 SELECT FOR UPDATE 鎖住庫存列，重查可用量再扣除；熱門商品會拉長等待。"
+    },
+    {
+      "id": "cache-aside",
+      "en": "Cache-Aside",
+      "zh": "旁路快取",
+      "category": "API 與資料存取",
+      "definition": "應用程式先查快取，未命中才讀來源並填回結果。",
+      "example": "熱門商品過期時，多個請求可能一起回查資料庫；觀察每秒回源數及尾端延遲。"
+    },
+    {
+      "id": "shared-cache",
+      "en": "Distributed Cache",
+      "zh": "共用快取",
+      "category": "API 與資料存取",
+      "definition": "多個應用程式實例透過網路讀寫同一份快取。",
+      "example": "兩台 API 都用商品編號查 Redis，更新後只需讓該商品鍵失效，但每次命中仍有網路成本。"
+    },
+    {
+      "id": "rate-limiting",
+      "en": "Rate Limiting",
+      "zh": "限流",
+      "category": "韌性與流量控制",
+      "definition": "依時間與呼叫者等維度限制接受的請求數。",
+      "example": "每個通路各有配額，避免批次匯入耗盡其他通路的查詢容量。"
+    },
+    {
+      "id": "background-job",
+      "en": "Background Job",
+      "zh": "背景工作",
+      "category": "API 與資料存取",
+      "definition": "將可延後的任務交給獨立執行流程。",
+      "example": "寄信先記錄任務再回應 API；工作端重啟後可接手未完成的信件。"
+    },
+    {
+      "id": "scheduled-job",
+      "en": "Scheduled Job",
+      "zh": "排程工作",
+      "category": "API 與資料存取",
+      "definition": "依時刻或週期觸發工作。",
+      "example": "每天凌晨產生前一天的對帳表，以營業日當唯一鍵，補跑同一天也能辨認。"
+    },
+    {
+      "id": "metrics",
+      "en": "Metrics",
+      "zh": "監控指標",
+      "category": "可觀測性與部署",
+      "definition": "以可聚合的數值描述一段時間的系統或業務行為。",
+      "example": "分別計算付款成功率、延遲分位數與待確認筆數，才能看出 HTTP 成功但入帳停滯。"
+    },
+    {
+      "id": "load-balancing",
+      "en": "Load Balancing",
+      "zh": "負載平衡",
+      "category": "可觀測性與部署",
+      "definition": "將請求分配給多個可用實例。",
+      "example": "兩台 API 接單時，使用共用儲存保存冪等紀錄，讓重送落在另一台也能查到結果。"
+    },
+    {
+      "id": "health-probe",
+      "en": "Health Probe",
+      "zh": "健康探針",
+      "category": "可觀測性與部署",
+      "definition": "以週期檢查決定實例能否接流量或是否需要重啟。",
+      "example": "啟動中的 API 尚未就緒就先移出流量；資料庫暫時過載時，若所有實例都因此重啟，可能放大故障。"
+    },
+    {
+      "id": "read-replica",
+      "en": "Read Replica",
+      "zh": "唯讀副本",
+      "category": "API 與資料存取",
+      "definition": "以複寫維護另一份可供讀取的資料。",
+      "example": "將可容忍延遲的報表導向副本，剛付款的確認頁則要考慮複寫進度。"
+    },
+    {
+      "id": "eventual-consistency",
+      "en": "Eventual Consistency",
+      "zh": "最終一致性",
+      "category": "跨服務一致性",
+      "definition": "在停止更新且變更能持續傳遞的條件下，各副本的狀態終將收斂。",
+      "example": "付款已成功但訂單查詢仍顯示處理中，待付款事件套用後，查詢結果才更新。"
+    },
+    {
+      "id": "event-driven",
+      "en": "Event-Driven Architecture",
+      "zh": "事件驅動架構",
+      "category": "跨服務一致性",
+      "definition": "以已發生的事件連接產生者與訂閱者。",
+      "example": "訂單成立後，寄信與報表各自訂閱；重播事件時要防止再寄一次。"
+    },
+    {
+      "id": "sharding",
+      "en": "Sharding",
+      "zh": "資料分片",
+      "category": "API 與資料存取",
+      "definition": "按分片鍵把不同資料分配給不同資料庫節點。",
+      "example": "按使用者編號分片，同一使用者的訂單可在一個節點查詢，跨使用者的報表則需彙整。單庫表分區仍由同一資料庫管理。"
+    },
+    {
+      "id": "hot-key",
+      "en": "Hot Key",
+      "zh": "熱門鍵",
+      "category": "韌性與流量控制",
+      "definition": "少數鍵承受不成比例的讀寫流量，使某個節點或資料列先到容量上限。",
+      "example": "秒殺時單一 SKU 承受大多數扣庫存請求；即使整個叢集 CPU 不高，該鍵仍可能排長隊。"
+    },
+    {
+      "id": "shard-rebalancing",
+      "en": "Shard Rebalancing",
+      "zh": "分片再平衡",
+      "category": "API 與資料存取",
+      "definition": "移動資料及其路由，使節點間負載重新分配。",
+      "example": "搬一個租戶時先複製歷史資料，再追上異動，核對後切換路由並處理舊路由上的在途寫入。"
+    },
+    {
+      "id": "backward-compatibility",
+      "en": "Backward Compatibility",
+      "zh": "向下相容",
+      "category": "API 與資料存取",
+      "definition": "新版本仍能處理先前版本的呼叫或資料。",
+      "example": "先讓消費者接受缺少新欄位的舊訊息，再部署產生新格式的發送端；回滾時也要檢查舊版能否讀新資料。"
+    },
+    {
+      "id": "multi-tenancy",
+      "en": "Multi-Tenancy",
+      "zh": "多租戶架構",
+      "category": "API 與資料存取",
+      "definition": "同一套服務承載多個客戶組織，並依租戶區分資料及設定。",
+      "example": "兩家通路都使用訂單編號 1001，應以租戶及訂單編號一起決定唯一性。"
+    },
+    {
+      "id": "tenant-isolation",
+      "en": "Tenant Isolation",
+      "zh": "租戶隔離",
+      "category": "API 與資料存取",
+      "definition": "限制租戶可存取的資料、資源與操作範圍。",
+      "example": "查詢、背景匯出與快取鍵都帶入可信任的租戶識別碼，避免下載到另一家通路的報表。"
+    },
+    {
+      "id": "autoscaling",
+      "en": "Autoscaling",
+      "zh": "自動擴縮",
+      "category": "可觀測性與部署",
+      "definition": "根據可觀察的負載調整可用運算容量。",
+      "example": "工作佇列累積時增加消費者，但要同步看資料庫等待時間，以免把壓力移到下游。"
+    },
+    {
+      "id": "blue-green",
+      "en": "Blue-Green Deployment",
+      "zh": "藍綠部署",
+      "category": "可觀測性與部署",
+      "definition": "保留兩套可服務的版本，驗證新版後切換流量。",
+      "example": "切回舊 API 前，確認它還能讀取新版寫入的訂單狀態。"
+    },
+    {
+      "id": "canary",
+      "en": "Canary Deployment",
+      "zh": "金絲雀部署",
+      "category": "可觀測性與部署",
+      "definition": "先讓少量流量使用新版，觀察差異後再擴大比例。",
+      "example": "先讓一個通路使用新版付款流程，分版本比較錯誤率、延遲及重複扣款數。"
+    },
+    {
+      "id": "multi-region",
+      "en": "Multi-Region Deployment",
+      "zh": "多區域部署",
+      "category": "可觀測性與部署",
+      "definition": "將服務部署在不同地理區域，並定義流量與資料如何跨區。",
+      "example": "台北與東京都能接查詢時，仍要指定訂單寫入位置及跨區複寫方式。"
+    },
+    {
+      "id": "region-failover",
+      "en": "Regional Failover",
+      "zh": "區域故障切換",
+      "category": "可觀測性與部署",
+      "definition": "區域失效時將服務責任移往可用區域。",
+      "example": "升級備區前先阻止原主區繼續接寫，記錄最後同步位置，核對可能遺失的付款。"
+    },
+    {
+      "id": "refund",
+      "en": "Refund",
+      "zh": "退款",
+      "category": "訂單與庫存",
+      "definition": "將已收取款項部分或全部退回並記錄獨立結果。",
+      "example": "同一訂單可分次退款，送出前檢查已退與處理中總額；金流逾時保留退款編號供查詢。"
+    },
+    {
+      "id": "cart",
+      "en": "Shopping Cart",
+      "zh": "購物車",
+      "category": "訂單與庫存",
+      "definition": "在結帳前保存使用者選擇的商品與數量。",
+      "example": "加入購物車後商品可能調價；結帳時重查售價及庫存，再把成交價存入明細。"
+    },
+    {
+      "id": "lease",
+      "en": "Lease",
+      "zh": "有期限的使用權",
+      "category": "跨服務一致性",
+      "definition": "持有者僅在有限時間內享有操作資格，續租可延長期限。",
+      "example": "工作端暫停過久，另一台可能已接手。釋放或續租要比對持有者，寫入端仍要能拒絕過期工作。"
+    },
+    {
+      "id": "fault-injection",
+      "en": "Fault Injection",
+      "zh": "故障注入",
+      "category": "可觀測性與部署",
+      "definition": "在可控環境刻意引入指定失敗，檢查恢復行為。",
+      "example": "讓工作端在資料提交後、訊息確認前停止，再觀察重送是否多扣一次庫存。"
+    },
+    {
+      "id": "complexity",
+      "en": "Computational Complexity",
+      "zh": "演算法複雜度",
+      "category": "資料結構與演算法",
+      "definition": "用輸入規模描述時間或額外空間的成長速度。",
+      "example": "逐筆比對兩份各 n 筆清單可能做 n² 次比對；先建雜湊索引可以用額外記憶體換查詢時間。"
+    },
+    {
+      "id": "dynamic-array",
+      "en": "Dynamic Array",
+      "zh": "動態陣列",
+      "category": "資料結構與演算法",
+      "definition": "以連續位置保存元素，容量不足時配置較大的空間並搬移。",
+      "example": "用索引查第十筆訂單很快；頻繁插入開頭則要移動後面的元素。"
+    },
+    {
+      "id": "hash-map",
+      "en": "Hash Map",
+      "zh": "雜湊表",
+      "category": "資料結構與演算法",
+      "definition": "用鍵的雜湊值定位儲存位置，再比對鍵取得對應值。",
+      "example": "建立 SKU 到售價的對照表，逐筆對帳時可重用；鍵的相等規則要符合商品編號規則。"
+    },
+    {
+      "id": "hash-set",
+      "en": "Hash Set",
+      "zh": "雜湊集合",
+      "category": "資料結構與演算法",
+      "definition": "保存互異的值，支援依雜湊與相等規則判斷成員資格。",
+      "example": "匯入時用集合找出檔內重複訂單編號；跨程序重複仍由資料庫唯一約束處理。"
+    },
+    {
+      "id": "sorting",
+      "en": "Sorting",
+      "zh": "排序",
+      "category": "資料結構與演算法",
+      "definition": "依比較規則排列資料，以支援顯示、搜尋或後續計算。",
+      "example": "依建立時間分頁時再加訂單編號作為同時建立時的排序鍵。"
+    },
+    {
+      "id": "queue-stack",
+      "en": "Queue and Stack",
+      "zh": "佇列與堆疊",
+      "category": "資料結構與演算法",
+      "definition": "佇列先進先出，堆疊後進先出。",
+      "example": "逐層走訪分類樹使用佇列；退回上一層路徑可以使用堆疊。"
+    },
+    {
+      "id": "graph-traversal",
+      "en": "Graph Traversal",
+      "zh": "圖走訪",
+      "category": "資料結構與演算法",
+      "definition": "沿節點之間的邊探索可達節點；廣度優先逐層探索，深度優先先沿一路往下。",
+      "example": "找無權重圖的最少轉乘次數時逐層展開，並記錄已拜訪站點避免繞圈。"
+    },
+    {
+      "id": "topological-sort",
+      "en": "Topological Sort",
+      "zh": "拓撲排序",
+      "category": "資料結構與演算法",
+      "definition": "將有向無環圖排成每個前置節點都先於依賴者的順序。",
+      "example": "先執行沒有前置依賴的匯入工作，完成後減少後續工作的待完成數；仍有工作卻無法選下一個時應檢查循環。"
+    },
+    {
+      "id": "sliding-window",
+      "en": "Sliding Window",
+      "zh": "滑動視窗",
+      "category": "資料結構與演算法",
+      "definition": "在有序輸入上移動區間邊界並重用前一個區間的計算。",
+      "example": "按時間掃描訂單，右側加入新訂單，左側移出超過五分鐘的資料；兩端各走一次即可統計尖峰。"
+    },
+    {
+      "id": "greedy",
+      "en": "Greedy Algorithm",
+      "zh": "貪婪演算法",
+      "category": "資料結構與演算法",
+      "definition": "每步選擇當下符合規則的選項，最優性取決於問題條件。",
+      "example": "一間會議室要容納最多場不重疊會議，可先選最早結束者；改成最大總收益就需重新評估。"
+    },
+    {
+      "id": "backtracking",
+      "en": "Backtracking",
+      "zh": "回溯搜尋",
+      "category": "資料結構與演算法",
+      "definition": "逐步建立候選解，遇到不可能滿足條件的分支就退回改選。",
+      "example": "找出恰好符合預算的商品組合，每項最多用一次；價格皆為正時，超出預算就能停止該分支。"
+    },
+    {
+      "id": "dynamic-programming",
+      "en": "Dynamic Programming",
+      "zh": "動態規劃",
+      "category": "資料結構與演算法",
+      "definition": "把問題拆成可重用的子問題，記錄子問題結果再組合答案。",
+      "example": "固定整數預算下選商品使價值最大，逐項更新各預算可達的最大值；每件限選一次時，一維陣列要從高預算往低更新。"
+    },
+    {
+      "id": "modular-monolith",
+      "en": "Modular Monolith",
+      "zh": "模組化單體",
+      "category": "架構與設計模式",
+      "definition": "以同一部署單位運行多個邊界明確的業務模組。",
+      "example": "訂單與庫存在同一程序內，訂單只能透過庫存模組介面預留商品，日後才能單獨調整庫存模型。"
+    },
+    {
+      "id": "business-capability",
+      "en": "Business Capability",
+      "zh": "業務能力",
+      "category": "架構與設計模式",
+      "definition": "以組織要持續完成的業務活動辨認系統邊界。",
+      "example": "退款與對帳各自有流程、規則與負責人，可依它們如何變更與協作決定模組邊界。"
+    },
+    {
+      "id": "service-owned-data",
+      "en": "Service-Owned Data",
+      "zh": "服務資料所有權",
+      "category": "架構與設計模式",
+      "definition": "由單一服務負責一組資料的規則與寫入介面。",
+      "example": "付款服務寫付款紀錄，訂單服務透過付款結果事件更新訂單摘要，避免跨服務直接改表。"
+    },
+    {
+      "id": "api-composition",
+      "en": "API Composition",
+      "zh": "API 聚合查詢",
+      "category": "架構與設計模式",
+      "definition": "呼叫多個服務並組合成一次查詢結果。",
+      "example": "訂單詳情合併付款與配送狀態；物流逾時時須明確標示暫時無法取得，避免把未知顯示為未出貨。"
+    },
+    {
+      "id": "read-model",
+      "en": "Read Model",
+      "zh": "查詢模型",
+      "category": "架構與設計模式",
+      "definition": "針對特定讀取需求整理資料，可與寫入模型獨立更新。",
+      "example": "報表服務套用付款事件更新每日營收；顯示資料更新時間並允許重建投影。"
+    },
+    {
+      "id": "grpc",
+      "en": "gRPC",
+      "zh": "gRPC 遠端呼叫",
+      "category": "架構與設計模式",
+      "definition": "用服務與訊息契約描述跨程序呼叫，常以 Protocol Buffers 定義型別並產生客戶端。",
+      "example": "庫存服務公開預留方法，訂單端設定期限；新增契約欄位時保留既有欄位編號。"
+    },
+    {
+      "id": "service-discovery",
+      "en": "Service Discovery",
+      "zh": "服務探索",
+      "category": "架構與設計模式",
+      "definition": "透過穩定名稱或登錄資訊定位目前可用的服務端點。",
+      "example": "庫存實例重新部署取得新位址，訂單端仍使用同一服務名稱連線。"
+    },
+    {
+      "id": "bff",
+      "en": "Backend for Frontend",
+      "zh": "前端專用後端",
+      "category": "架構與設計模式",
+      "definition": "依特定前端的需求設計後端介面，可在閘道之後整合多個服務。",
+      "example": "行動版訂單列表只需要三個欄位，BFF 聚合並裁切回應，避免手機逐筆查詢付款服務。"
+    },
+    {
+      "id": "command-event",
+      "en": "Command and Event",
+      "zh": "命令與事件",
+      "category": "跨服務一致性",
+      "definition": "命令請求某個接收者執行操作，事件記錄已經發生的事。",
+      "example": "「預留庫存」可因庫存不足而拒絕；「庫存已預留」可被付款及通知服務各自訂閱。"
+    },
+    {
+      "id": "deadline",
+      "en": "Deadline Propagation",
+      "zh": "傳遞截止時間",
+      "category": "韌性與流量控制",
+      "definition": "將同一請求的剩餘時間預算傳給下游，限制整條呼叫鏈的等待。",
+      "example": "上游只剩 200 毫秒時，下游重試與等待的總時間也要納入這段預算。"
+    },
+    {
+      "id": "service-identity",
+      "en": "Service Identity",
+      "zh": "服務身分",
+      "category": "API 與資料存取",
+      "definition": "代表工作負載呼叫其他服務的身分，可與發起操作的使用者分別授權。",
+      "example": "對帳工作以自己的服務身分查付款；代使用者查訂單時還要核對該使用者能否讀該筆。"
+    },
+    {
+      "id": "contract-test",
+      "en": "Contract Testing",
+      "zh": "合約測試",
+      "category": "架構與設計模式",
+      "definition": "用測試核對服務提供者與呼叫者對介面格式及行為的共同假設。",
+      "example": "提供者打算移除付款狀態欄位時，仍依賴它的消費者契約應在發布前失敗。"
+    },
+    {
+      "id": "integration-test",
+      "en": "Integration Testing",
+      "zh": "整合測試",
+      "category": "架構與設計模式",
+      "definition": "讓多個元件透過實際介面協作，以檢查邊界行為。",
+      "example": "以實際資料庫測試付款與 Outbox 是否一起提交；端到端測試則從下單入口走到可觀察的最終結果。"
+    },
+    {
+      "id": "cutover",
+      "en": "Migration Cutover",
+      "zh": "遷移切換",
+      "category": "跨服務一致性",
+      "definition": "新舊系統共存期間，將正式讀寫責任轉到目標系統。",
+      "example": "先回填付款紀錄並追上增量，核對餘額後切寫入端；回退前要能處理切換後的新交易。"
+    },
+    {
+      "id": "microservices",
+      "en": "Microservices",
+      "zh": "微服務",
+      "category": "架構與設計模式",
+      "definition": "將業務能力拆成能獨立部署並透過網路契約協作的服務。",
+      "example": "若每次修改訂單都必須同步發布庫存服務，可檢查契約耦合，甚至重新合併邊界。"
+    },
+    {
+      "id": "layered-architecture",
+      "en": "Layered Architecture",
+      "zh": "分層架構",
+      "category": "架構與設計模式",
+      "definition": "依介面、應用邏輯與資料存取等責任組織程式。",
+      "example": "新增退款上限規則時，由應用或領域層判斷，控制器負責轉換請求，資料層保存結果。"
+    },
+    {
+      "id": "tdd",
+      "en": "Test-Driven Development",
+      "zh": "測試驅動開發",
+      "category": "架構與設計模式",
+      "definition": "用一個失敗測試描述下一個行為，讓它通過後再重構。",
+      "example": "先寫「超過可退金額時拒絕退款」，確認因缺少規則而失敗，再加入判斷並整理程式。"
+    },
+    {
+      "id": "order-state",
+      "en": "Order State Machine",
+      "zh": "訂單狀態機",
+      "category": "訂單與庫存",
+      "definition": "用明確的狀態與轉移條件約束訂單生命週期。",
+      "example": "取消與出貨同時送達時，兩個操作都檢查目前狀態，只有符合條件的更新能成功。"
+    },
+    {
+      "id": "acceptance-test",
+      "en": "Acceptance Test",
+      "zh": "驗收測試",
+      "category": "架構與設計模式",
+      "definition": "從使用者可觀察的結果判斷實作是否滿足業務規格。",
+      "example": "用相同的庫存、付款及取消案例比較兩種架構，先確認業務行為一致，再比較改動涉及哪些元件。"
+    },
+    {
+      "id": "api-gateway",
+      "en": "API Gateway",
+      "zh": "API 閘道",
+      "category": "架構與設計模式",
+      "definition": "對客戶端提供共同入口，依請求路由到後端服務並執行共通政策。",
+      "example": "以路徑區分訂單與商品服務；閘道驗證憑證後，訂單服務仍要判斷能否讀特定訂單。"
+    },
+    {
+      "id": "monolith",
+      "en": "Monolithic Application",
+      "zh": "單體應用程式",
+      "category": "架構與設計模式",
+      "definition": "將主要業務功能包在一起建置與部署的應用程式。",
+      "example": "訂單與庫存可用同一資料庫交易提交，但只改庫存規則也要部署整個應用程式。"
+    },
+    {
+      "id": "end-to-end-test",
+      "en": "End-to-End Test",
+      "zh": "端到端測試",
+      "category": "架構與設計模式",
+      "definition": "從系統入口觸發操作，沿實際串接路徑檢查最終可觀察結果。",
+      "example": "下單後輪詢訂單狀態並核對付款、庫存；若用假的金流服務，驗證範圍就到該替身為止。"
     }
   ],
   "relations": [
@@ -471,6 +1023,270 @@
     [
       "backpressure",
       "mq/dead-letter-queue"
+    ],
+    [
+      "crud",
+      "input-validation"
+    ],
+    [
+      "input-validation",
+      "sql/conditional-update"
+    ],
+    [
+      "error-handling",
+      "timeout"
+    ],
+    [
+      "authentication",
+      "authorization"
+    ],
+    [
+      "authorization",
+      "tenant-isolation"
+    ],
+    [
+      "pessimistic-lock",
+      "sql/optimistic-concurrency"
+    ],
+    [
+      "cache-aside",
+      "cache-invalidation"
+    ],
+    [
+      "shared-cache",
+      "cache-aside"
+    ],
+    [
+      "rate-limiting",
+      "backpressure"
+    ],
+    [
+      "background-job",
+      "mq/idempotent-consumer"
+    ],
+    [
+      "scheduled-job",
+      "background-job"
+    ],
+    [
+      "metrics",
+      "tracing"
+    ],
+    [
+      "load-balancing",
+      "health-probe"
+    ],
+    [
+      "health-probe",
+      "graceful-shutdown"
+    ],
+    [
+      "read-replica",
+      "replication-lag"
+    ],
+    [
+      "eventual-consistency",
+      "read-your-writes"
+    ],
+    [
+      "event-driven",
+      "outbox"
+    ],
+    [
+      "sharding",
+      "shard-rebalancing"
+    ],
+    [
+      "hot-key",
+      "sharding"
+    ],
+    [
+      "shard-rebalancing",
+      "cdc"
+    ],
+    [
+      "backward-compatibility",
+      "expand-contract"
+    ],
+    [
+      "multi-tenancy",
+      "tenant-isolation"
+    ],
+    [
+      "tenant-isolation",
+      "shared-cache"
+    ],
+    [
+      "autoscaling",
+      "backpressure"
+    ],
+    [
+      "blue-green",
+      "backward-compatibility"
+    ],
+    [
+      "canary",
+      "metrics"
+    ],
+    [
+      "multi-region",
+      "region-failover"
+    ],
+    [
+      "region-failover",
+      "replication-lag"
+    ],
+    [
+      "refund",
+      "compensation"
+    ],
+    [
+      "cart",
+      "price-snapshot"
+    ],
+    [
+      "lease",
+      "fencing-token"
+    ],
+    [
+      "fault-injection",
+      "mq/idempotent-consumer"
+    ],
+    [
+      "complexity",
+      "hash-map"
+    ],
+    [
+      "dynamic-array",
+      "complexity"
+    ],
+    [
+      "hash-map",
+      "hash-set"
+    ],
+    [
+      "hash-set",
+      "sql/unique"
+    ],
+    [
+      "sorting",
+      "binary-search"
+    ],
+    [
+      "queue-stack",
+      "graph-traversal"
+    ],
+    [
+      "graph-traversal",
+      "topological-sort"
+    ],
+    [
+      "topological-sort",
+      "background-job"
+    ],
+    [
+      "sliding-window",
+      "rate-limiting"
+    ],
+    [
+      "greedy",
+      "dynamic-programming"
+    ],
+    [
+      "backtracking",
+      "dynamic-programming"
+    ],
+    [
+      "dynamic-programming",
+      "complexity"
+    ],
+    [
+      "modular-monolith",
+      "bounded-context"
+    ],
+    [
+      "business-capability",
+      "bounded-context"
+    ],
+    [
+      "service-owned-data",
+      "read-model"
+    ],
+    [
+      "api-composition",
+      "timeout"
+    ],
+    [
+      "read-model",
+      "eventual-consistency"
+    ],
+    [
+      "grpc",
+      "backward-compatibility"
+    ],
+    [
+      "service-discovery",
+      "load-balancing"
+    ],
+    [
+      "bff",
+      "api-composition"
+    ],
+    [
+      "command-event",
+      "event-driven"
+    ],
+    [
+      "deadline",
+      "retry"
+    ],
+    [
+      "service-identity",
+      "authorization"
+    ],
+    [
+      "contract-test",
+      "backward-compatibility"
+    ],
+    [
+      "integration-test",
+      "outbox"
+    ],
+    [
+      "cutover",
+      "strangler"
+    ],
+    [
+      "microservices",
+      "modular-monolith"
+    ],
+    [
+      "layered-architecture",
+      "clean-architecture"
+    ],
+    [
+      "tdd",
+      "refund"
+    ],
+    [
+      "order-state",
+      "sql/conditional-update"
+    ],
+    [
+      "acceptance-test",
+      "integration-test"
+    ],
+    [
+      "api-gateway",
+      "bff"
+    ],
+    [
+      "monolith",
+      "modular-monolith"
+    ],
+    [
+      "end-to-end-test",
+      "acceptance-test"
     ]
   ]
 }

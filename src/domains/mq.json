@@ -33,6 +33,30 @@
       "category": "投遞與確認",
       "definition": "接收符合死信條件、需要隔離或另行處理的訊息。重試次數與轉送策略由系統配置。",
       "example": "消費者多次遇到無法解析的資料後，把訊息轉入 DLQ。修正原因再重播，重播仍沿用相同業務識別碼。"
+    },
+    {
+      "id": "async-messaging",
+      "en": "Asynchronous Messaging",
+      "zh": "非同步訊息",
+      "category": "投遞與確認",
+      "definition": "傳送端將工作或事件交給訊息系統，接收端可於稍後處理。",
+      "example": "訂單成立後排入寄信工作；寄信端短暫停機時觀察最舊待處理訊息的年齡。"
+    },
+    {
+      "id": "queue-backlog",
+      "en": "Queue Backlog",
+      "zh": "佇列積壓",
+      "category": "投遞與確認",
+      "definition": "已進入佇列但尚未完成處理的工作累積。",
+      "example": "同時看進出速率、最舊訊息年齡與下游逾時，區分流量增加和消費者卡住。"
+    },
+    {
+      "id": "message-ordering",
+      "en": "Message Ordering",
+      "zh": "訊息順序",
+      "category": "投遞與確認",
+      "definition": "明確定義哪些訊息需要依序處理，以及接收端如何辨認過期與缺號。",
+      "example": "退款事件先於付款事件抵達時，以同一付款的版本檢查是否缺號，暫緩並補查；全站付款通常不需要共用一個順序。"
     }
   ],
   "relations": [
@@ -51,6 +75,18 @@
     [
       "idempotent-consumer",
       "sql/unique"
+    ],
+    [
+      "async-messaging",
+      "consumer-ack"
+    ],
+    [
+      "queue-backlog",
+      "backend/backpressure"
+    ],
+    [
+      "message-ordering",
+      "idempotent-consumer"
     ]
   ]
 }

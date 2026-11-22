@@ -656,6 +656,46 @@
         "code": "SELECT version();\nSHOW transaction_isolation;\nSHOW TimeZone;",
         "result": "依序顯示引擎版本、目前交易的隔離等級與連線時區。記錄這三項，再與原系統核對。"
       }
+    },
+    {
+      "id": "rcsi",
+      "en": "Read Committed Snapshot Isolation",
+      "zh": "讀取已提交的陳述式快照",
+      "category": "交易與併發",
+      "definition": "SQL Server 啟用 READ_COMMITTED_SNAPSHOT 後，READ COMMITTED 的一般讀取以每個陳述式開始時的已提交版本為準。",
+      "example": "同一交易查兩次餘額，中間若有其他交易提交入帳，第二次查詢可以看到新餘額。"
+    },
+    {
+      "id": "snapshot-isolation",
+      "en": "Snapshot Isolation",
+      "zh": "快照隔離",
+      "category": "交易與併發",
+      "definition": "交易以同一資料快照進行一般讀取，自身先前的寫入亦可見。",
+      "example": "SQL Server 啟用並選用 SNAPSHOT 後，同筆交易先查訂單再查付款，兩次查詢共用交易快照；應用仍需處理更新衝突。"
+    },
+    {
+      "id": "lock-timeout",
+      "en": "Lock Timeout",
+      "zh": "鎖等待逾時",
+      "category": "交易與併發",
+      "definition": "取得鎖的等待超過設定上限時，資料庫終止該次等待。",
+      "example": "連線 A 鎖住庫存，連線 B 等待逾時後檢查交易狀態並回滾。死結還需要形成循環等待。"
+    },
+    {
+      "id": "expression-index",
+      "en": "Expression Index",
+      "zh": "運算式索引",
+      "category": "索引與效能",
+      "definition": "索引鍵保存由資料欄位計算出的值，讓符合該運算式的條件有機會利用索引。",
+      "example": "PostgreSQL 可對 lower(email) 建索引供不分大小寫查詢使用；寫入時須計算並維護索引，應用 EXPLAIN 核對實際計畫。"
+    },
+    {
+      "id": "table-partitioning",
+      "en": "Table Partitioning",
+      "zh": "資料表分區",
+      "category": "索引與效能",
+      "definition": "依分區鍵把同一邏輯資料表的資料放入不同實體分區。",
+      "example": "按月份分區的訂單，限定日期範圍時可排除無關分區；查詢缺少日期條件則可能仍須查看許多分區。"
     }
   ],
   "relations": [
@@ -870,6 +910,26 @@
     [
       "postgresql-vs-sql-server",
       "pg-explain-buffers"
+    ],
+    [
+      "rcsi",
+      "read-committed"
+    ],
+    [
+      "snapshot-isolation",
+      "mvcc"
+    ],
+    [
+      "lock-timeout",
+      "deadlock"
+    ],
+    [
+      "expression-index",
+      "index"
+    ],
+    [
+      "table-partitioning",
+      "backend/sharding"
     ]
   ]
 }

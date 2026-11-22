@@ -374,6 +374,160 @@
           "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Content-Type-Options"
         ]
       ]
+    },
+    {
+      "id": "claim",
+      "en": "Claim",
+      "zh": "身分宣告",
+      "category": "身分驗證與授權",
+      "definition": "System.Security.Claims.Claim 表示關於某個身分的一項敘述。Type 表示敘述的是哪個屬性，Value 是該屬性的值，Issuer 記錄宣告的簽發者。",
+      "example": "在偵錯器展開 HttpContext.User.Claims，每一項都是一個 Claim。同一個身分可以有多筆 Type 相同的宣告，例如分別記錄兩個角色。",
+      "comparison": {
+        "group": "claims-model",
+        "hint": "要讀一筆資料的類型和值？查看 Claim.Type 與 Claim.Value。"
+      },
+      "sample": {
+        "language": "C#",
+        "setup": ".NET 主控台專案，使用 System.Security.Claims 命名空間。",
+        "code": "var claim = new Claim(\"language\", \"zh-TW\");\nConsole.WriteLine(claim.Type);\nConsole.WriteLine(claim.Value);",
+        "result": "依序印出 language 和 zh-TW。"
+      },
+      "sources": [
+        [
+          "Microsoft Learn · Claim",
+          "https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claim?view=net-10.0"
+        ]
+      ]
+    },
+    {
+      "id": "claims-identity",
+      "en": "ClaimsIdentity",
+      "zh": "一組宣告所描述的身分",
+      "category": "身分驗證與授權",
+      "definition": "System.Security.Claims.ClaimsIdentity 把屬於同一個身分的 Claim 放在一起，並記錄驗證類型（AuthenticationType）。Name 會從符合 NameClaimType 的宣告取值。",
+      "example": "在偵錯器看到 Identity.Name 有值，但 IsAuthenticated 是 false，兩者可以同時成立。對 ClaimsIdentity 而言，只要 AuthenticationType 是 null 或空字串，IsAuthenticated 就是 false。",
+      "comparison": {
+        "group": "claims-model",
+        "hint": "要讀一個身分的名稱或驗證類型？查看 ClaimsIdentity.Name 與 AuthenticationType。"
+      },
+      "sample": {
+        "language": "C#",
+        "setup": ".NET 主控台專案，使用 System.Security.Claims 命名空間。",
+        "code": "var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, \"Ada\") });\nConsole.WriteLine(identity.Name);\nConsole.WriteLine(identity.IsAuthenticated);",
+        "result": "依序印出 Ada 和 False。這個建構式收到了名稱宣告，AuthenticationType 保持為 null。"
+      },
+      "sources": [
+        [
+          "Microsoft Learn · ClaimsIdentity",
+          "https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimsidentity?view=net-10.0"
+        ],
+        [
+          "Microsoft Learn · ClaimsIdentity.IsAuthenticated",
+          "https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimsidentity.isauthenticated?view=net-10.0"
+        ]
+      ]
+    },
+    {
+      "id": "claims-principal",
+      "en": "ClaimsPrincipal",
+      "zh": "代表呼叫者的身分主體",
+      "category": "身分驗證與授權",
+      "definition": "System.Security.Claims.ClaimsPrincipal 代表使用者或服務，可持有多個 ClaimsIdentity。在 ASP.NET Core，HttpContext.User 的型別就是 ClaimsPrincipal。",
+      "example": "在 Controller 中讀取 User，或在 Middleware 中讀取 context.User，拿到的都是目前請求的身分主體。FindFirst(type) 可跨身分找出第一筆符合類型的宣告，FindAll(type) 則取出所有符合項目。",
+      "comparison": {
+        "group": "claims-model",
+        "hint": "要從整個請求取得呼叫者，或跨身分找宣告？從 HttpContext.User 取得 ClaimsPrincipal。"
+      },
+      "sample": {
+        "language": "C#",
+        "setup": ".NET 主控台專案，使用 System.Security.Claims 命名空間。",
+        "code": "var first = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, \"Ada\") });\nvar second = new ClaimsIdentity(new[] { new Claim(\"language\", \"zh-TW\") });\nvar user = new ClaimsPrincipal(new[] { first, second });\nConsole.WriteLine(user.FindFirst(\"language\")?.Value);",
+        "result": "印出 zh-TW。language 位於第二個身分，呼叫端直接向主體查詢即可。"
+      },
+      "sources": [
+        [
+          "Microsoft Learn · ClaimsPrincipal",
+          "https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimsprincipal?view=net-10.0"
+        ],
+        [
+          "Microsoft Learn · HttpContext.User",
+          "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.httpcontext.user?view=aspnetcore-10.0"
+        ]
+      ]
+    },
+    {
+      "id": "authentication-scheme",
+      "en": "Authentication Scheme",
+      "zh": "身分驗證方案",
+      "category": "身分驗證與授權",
+      "definition": "ASP.NET Core 用方案名稱選擇驗證處理器和該方案的設定。執行驗證時可以指定名稱，也可以使用預設方案。",
+      "example": "讀到 AddAuthentication(\"SiteCookie\").AddCookie(\"SiteCookie\") 時，前一個 SiteCookie 指定預設方案，後一個把 Cookie 處理器登記在這個名稱下。程式中的對應型別為 AuthenticationScheme。",
+      "comparison": {
+        "group": "authentication-scheme-handler",
+        "hint": "想知道這次要用哪一組驗證設定？查方案名稱，例如 SiteCookie 或 Bearer。"
+      },
+      "sources": [
+        [
+          "Microsoft Learn · ASP.NET Core 身分驗證方案",
+          "https://learn.microsoft.com/en-us/aspnet/core/security/authentication/?view=aspnetcore-10.0#authentication-scheme"
+        ],
+        [
+          "Microsoft Learn · AuthenticationScheme",
+          "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.authentication.authenticationscheme?view=aspnetcore-10.0"
+        ]
+      ]
+    },
+    {
+      "id": "jwt-bearer-handler",
+      "en": "JwtBearerHandler",
+      "zh": "JWT Bearer 驗證處理器",
+      "category": "身分驗證與授權",
+      "definition": "ASP.NET Core 處理 JWT Bearer 驗證的類別，由 AddJwtBearer() 註冊。預設從請求的 Authorization 標頭取出 Bearer 權杖，依方案設定驗證，成功時產生包含 ClaimsPrincipal 的驗證結果。",
+      "example": "Program.cs 裡常見的是 AddJwtBearer()。驗證流程選中 Bearer 方案時，框架才會呼叫對應的 JwtBearerHandler。簽章、簽發者、受眾與有效期限都是驗證存取權杖時要核對的項目。",
+      "comparison": {
+        "group": "authentication-scheme-handler",
+        "hint": "想知道 Bearer 權杖由誰讀取和驗證？由該方案註冊的 JwtBearerHandler 處理。"
+      },
+      "sample": {
+        "language": "HTTP",
+        "setup": "端點要求已驗證的使用者，採用預設 JWT Bearer challenge 行為。以下為請求標頭節錄，<access-token> 代表實際的存取權杖。",
+        "code": "Authorization: Bearer <access-token>",
+        "result": "有效的權杖可建立本次請求的身分。若權杖的簽章驗證失敗，受保護端點會回應 401。"
+      },
+      "sources": [
+        [
+          "Microsoft Learn · JwtBearerHandler",
+          "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.authentication.jwtbearer.jwtbearerhandler?view=aspnetcore-10.0"
+        ],
+        [
+          "Microsoft Learn · 設定 JWT Bearer 驗證",
+          "https://learn.microsoft.com/en-us/aspnet/core/security/authentication/configure-jwt-bearer-authentication?view=aspnetcore-10.0"
+        ]
+      ]
+    },
+    {
+      "id": "authorization-policy",
+      "en": "AuthorizationPolicy",
+      "zh": "授權原則",
+      "category": "身分驗證與授權",
+      "definition": "Microsoft.AspNetCore.Authorization.AuthorizationPolicy 描述授權時必須滿足的要求。原則可以指定用哪些方案驗證身分，並將多個要求放在一起，所有要求都成功才通過。",
+      "example": "Minimal API 的 RequireAuthorization(\"Diagnostics\") 和 MVC 的 [Authorize(Policy = \"Diagnostics\")] 都以名稱套用同一個原則。要知道端點實際檢查什麼，可用名稱回查 AddPolicy 的註冊位置。",
+      "sample": {
+        "language": "C#",
+        "setup": "在 ASP.NET Core 的 Program.cs，將下列註冊放在 builder.Build() 前。應用程式已設定身分驗證，並有一個使用 Diagnostics 原則的端點。",
+        "code": "builder.Services.AddAuthorization(options =>\n{\n    options.AddPolicy(\"Diagnostics\", policy => policy\n        .RequireAuthenticatedUser()\n        .RequireClaim(\"permission\", \"diagnostics.read\"));\n});",
+        "result": "原則要求呼叫者已通過驗證，且有一筆 permission 值為 diagnostics.read 的宣告。已登入但缺少這筆宣告的呼叫者無法通過。"
+      },
+      "sources": [
+        [
+          "Microsoft Learn · AuthorizationPolicy",
+          "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.authorization.authorizationpolicy?view=aspnetcore-10.0"
+        ],
+        [
+          "Microsoft Learn · ASP.NET Core 原則式授權",
+          "https://learn.microsoft.com/en-us/aspnet/core/security/authorization/policies?view=aspnetcore-10.0"
+        ]
+      ]
     }
   ],
   "relations": [
@@ -524,6 +678,42 @@
         "forward": "同樣以 X- 開頭，哪個回應標頭會揭露框架名稱？",
         "reverse": "哪個回應標頭指示瀏覽器依宣告的內容類型載入資源？"
       }
+    ],
+    [
+      "claim",
+      "claims-identity"
+    ],
+    [
+      "claims-identity",
+      "claims-principal"
+    ],
+    [
+      "claim",
+      "claims-principal"
+    ],
+    [
+      "authentication-scheme",
+      "jwt-bearer-handler"
+    ],
+    [
+      "jwt-bearer-handler",
+      "claims-principal"
+    ],
+    [
+      "authentication-scheme",
+      "backend/authentication"
+    ],
+    [
+      "authorization-policy",
+      "authentication-scheme"
+    ],
+    [
+      "authorization-policy",
+      "claim"
+    ],
+    [
+      "authorization-policy",
+      "backend/authorization"
     ]
   ]
 }

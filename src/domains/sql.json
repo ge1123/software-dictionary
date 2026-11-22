@@ -467,6 +467,170 @@
         "code": "CREATE INDEX ix_orders_channel_date\nON #orders (channel_id, created_at)\nINCLUDE (amount);\n\nSELECT SUM(amount) AS total\nFROM #orders\nWHERE channel_id = 7\n  AND created_at >= '20260201'\n  AND created_at <  '20260301';",
         "result": "仍應得到 67,200。若選用新索引，計畫可同時使用通路與日期搜尋條件，並從索引取得 amount。"
       }
+    },
+    {
+      "id": "pg-explain-buffers",
+      "en": "EXPLAIN (ANALYZE, BUFFERS)",
+      "zh": "讀懂 PostgreSQL 實際執行計畫",
+      "category": "技術實作",
+      "definition": "用實際列數、掃描方式與緩衝區存取量比較同一查詢的兩個計畫。",
+      "example": "財務只查一個通路，卻掃過整張訂單表。先比較加索引前後讀取資料的方式。",
+      "practice": {
+        "principle": "B-tree 能定位指定通路。若符合的資料分散在許多頁，規劃器可能選 Bitmap Heap Scan，先收集位置再按頁取資料。",
+        "steps": [
+          "建立十萬筆訂單並更新統計資訊。先記下掃描節點的估計列數、actual rows 和被篩掉的列數。",
+          "建立索引後用同一條 SQL 再量一次，看 Scan 節點及 Buffers。暫存表的資料頁顯示為 local。",
+          "執行不帶 EXPLAIN 的 SELECT 核對總額。"
+        ],
+        "verify": "比較資料存取節點的估計與實際列數、讀頁量和執行時間。父節點的 Buffers 已包含子節點，避免重複加總。 本例在 PostgreSQL 18.7 的實測為 Seq Scan → Bitmap Index Scan 搭配 Bitmap Heap Scan，掃描節點都輸出 1,000 列。",
+        "tradeoff": "EXPLAIN ANALYZE 會執行查詢。快取狀態、統計資料及資料分布都會影響計畫；不宜用單次時間當結論。",
+        "sources": [
+          [
+            "PostgreSQL · Using EXPLAIN",
+            "https://www.postgresql.org/docs/current/using-explain.html"
+          ]
+        ]
+      },
+      "sample": {
+        "language": "PostgreSQL",
+        "setup": "在 psql 或 pgAdmin 開一個新連線，依序執行整段。範例使用連線專屬的暫存表。",
+        "code": "CREATE TEMP TABLE lab_orders AS\nSELECT n AS id, n % 100 AS channel_id, n::numeric AS amount\nFROM generate_series(1, 100000) AS n;\nANALYZE lab_orders;\n\nEXPLAIN (ANALYZE, BUFFERS)\nSELECT sum(amount) FROM lab_orders WHERE channel_id = 7;\n\nCREATE INDEX ON lab_orders (channel_id);\nEXPLAIN (ANALYZE, BUFFERS)\nSELECT sum(amount) FROM lab_orders WHERE channel_id = 7;\nSELECT sum(amount) FROM lab_orders WHERE channel_id = 7;",
+        "result": "通路 7 有 1,000 筆，總額 49,957,000。計畫最上層 Aggregate 輸出一列；查看它下方的掃描節點才能看到輸入列數。"
+      }
+    },
+    {
+      "id": "pg-partial-index",
+      "en": "Partial Index",
+      "zh": "為待處理訂單建立部分索引",
+      "category": "技術實作",
+      "definition": "只索引符合固定條件的列，讓常查的少量資料有較小的搜尋範圍。",
+      "example": "十萬筆訂單中只有一百筆待處理，背景工作每次按單號讀最早的十筆。",
+      "practice": {
+        "principle": "索引條件把已完成訂單排除，索引鍵 id 提供排序；若採用這個存取路徑，讀到十筆便能停止。",
+        "steps": [
+          "建立資料，先看沒有索引時的排序和掃描。",
+          "建立只含 pending 訂單的索引，再查同一批資料。",
+          "將篩選值改為 done，觀察這個部分索引的條件是否仍能涵蓋查詢。"
+        ],
+        "verify": "查看有無明確的 Sort、新索引名稱，以及 Limit 下游實際讀取的列數。 PostgreSQL 18.7 實測由 Seq Scan 加 top-N 排序改成 lab_pending_id 上的 Index Only Scan。若要知道是否仍讀取資料表，請看 Heap Fetches。",
+        "tradeoff": "規劃器必須能推知查詢條件符合索引條件。若 ORM 把 status 參數化，通用計畫不一定能用此索引。",
+        "sources": [
+          [
+            "PostgreSQL · Partial Indexes",
+            "https://www.postgresql.org/docs/current/indexes-partial.html"
+          ]
+        ]
+      },
+      "sample": {
+        "language": "PostgreSQL",
+        "setup": "在 psql 或 pgAdmin 開一個新連線，依序執行整段。範例使用連線專屬的暫存表。",
+        "code": "CREATE TEMP TABLE lab_queue AS\nSELECT n AS id, CASE WHEN n % 1000 = 0 THEN 'pending' ELSE 'done' END AS status\nFROM generate_series(1, 100000) AS n;\nANALYZE lab_queue;\nEXPLAIN (ANALYZE, BUFFERS)\nSELECT id FROM lab_queue WHERE status = 'pending' ORDER BY id LIMIT 10;\n\nCREATE INDEX lab_pending_id ON lab_queue (id) WHERE status = 'pending';\nEXPLAIN (ANALYZE, BUFFERS)\nSELECT id FROM lab_queue WHERE status = 'pending' ORDER BY id LIMIT 10;\nSELECT id FROM lab_queue WHERE status = 'pending' ORDER BY id LIMIT 10;",
+        "result": "兩次查詢的前十個 id 都是 1000、2000，一直到 10000。"
+      }
+    },
+    {
+      "id": "pg-keyset-pagination",
+      "en": "Keyset Pagination",
+      "zh": "用複合游標分頁",
+      "category": "技術實作",
+      "definition": "將上一頁最後一列的排序鍵作為下一頁起點。",
+      "example": "客服按時間由新到舊翻訂單，同一秒可能有多筆，因此游標要包含時間與唯一單號。",
+      "practice": {
+        "principle": "(created_at, id) 依序比較兩欄。在兩欄都是降冪時，小於上一頁末筆的鍵就是下一頁的範圍。",
+        "steps": [
+          "建立五筆訂單，刻意讓三筆時間相同。",
+          "取得第一頁，記下最後一筆的完整鍵，再執行第二個 SELECT。",
+          "在正式大小的表上比較深頁 OFFSET 與游標查詢的讀取列數。"
+        ],
+        "verify": "以固定資料完整翻頁，比對所有 id 是否各出現一次。五筆資料用來驗證邊界；效能要在代表性資料量上量測。",
+        "tradeoff": "適合依序翻頁。若排序欄位在翻頁間變動，跨請求仍可能重複或漏列；實例使用非空欄位與穩定排序鍵。",
+        "sources": [
+          [
+            "PostgreSQL · Indexes and ORDER BY",
+            "https://www.postgresql.org/docs/current/indexes-ordering.html"
+          ]
+        ]
+      },
+      "sample": {
+        "language": "PostgreSQL",
+        "setup": "在 psql 或 pgAdmin 開一個新連線，依序執行整段。範例使用連線專屬的暫存表。",
+        "code": "CREATE TEMP TABLE lab_feed (id int PRIMARY KEY, created_at timestamp NOT NULL);\nINSERT INTO lab_feed VALUES\n  (1,'2026-02-01 09:00'), (2,'2026-02-01 10:00'), (3,'2026-02-01 10:00'),\n  (4,'2026-02-01 10:00'), (5,'2026-02-01 11:00');\nCREATE INDEX ON lab_feed (created_at DESC, id DESC);\nSELECT id, created_at FROM lab_feed ORDER BY created_at DESC, id DESC LIMIT 2;\nSELECT id, created_at FROM lab_feed\nWHERE (created_at, id) < (timestamp '2026-02-01 10:00', 4)\nORDER BY created_at DESC, id DESC LIMIT 2;",
+        "result": "第一頁為 5、4，第二頁為 3、2。若游標只比時間，第二頁會漏掉同時間的 3 和 2。"
+      }
+    },
+    {
+      "id": "pg-conflict-insert",
+      "en": "INSERT ON CONFLICT",
+      "zh": "用唯一鍵攔下重送訂單",
+      "category": "技術實作",
+      "definition": "透過唯一約束和衝突處理，讓同一外部單號最多新增一筆。",
+      "example": "通路因逾時重送訂單，平台需要分辨本次請求是否真的新增了資料。",
+      "practice": {
+        "principle": "唯一索引是兩筆請求共同競爭的判斷點。DO NOTHING 跳過衝突列，RETURNING 只回傳這次成功插入的列。",
+        "steps": [
+          "用通路與外部單號建立複合唯一約束。",
+          "以相同單號連送兩次，分別查看 RETURNING。",
+          "若同一單號可能帶不同金額，另行比對既有訂單內容並回報衝突。"
+        ],
+        "verify": "核對兩次 RETURNING 的列數和表內總筆數。若 API 要回傳舊訂單 id，跳過插入後還需查詢原有訂單。",
+        "tradeoff": "約束只保護資料庫內的新增；付款或寄信等外部副作用也需要自己的去重機制。",
+        "sources": [
+          [
+            "PostgreSQL · INSERT",
+            "https://www.postgresql.org/docs/current/sql-insert.html"
+          ]
+        ]
+      },
+      "sample": {
+        "language": "PostgreSQL",
+        "setup": "在 psql 或 pgAdmin 開一個新連線，依序執行整段。範例使用連線專屬的暫存表。",
+        "code": "CREATE TEMP TABLE lab_inbox (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  channel_id int NOT NULL, external_id text NOT NULL, amount int NOT NULL,\n  UNIQUE (channel_id, external_id)\n);\nINSERT INTO lab_inbox (channel_id, external_id, amount) VALUES (7,'A-1',500)\nON CONFLICT (channel_id, external_id) DO NOTHING RETURNING id;\nINSERT INTO lab_inbox (channel_id, external_id, amount) VALUES (7,'A-1',500)\nON CONFLICT (channel_id, external_id) DO NOTHING RETURNING id;\nSELECT count(*) AS orders, sum(amount) AS total FROM lab_inbox;",
+        "result": "第一次回傳新 id，第二次回傳零列。最後仍是一張訂單，合計 500。"
+      }
+    },
+    {
+      "id": "postgresql-vs-sql-server",
+      "en": "PostgreSQL (Postgres, pgsql) vs. SQL Server",
+      "zh": "從 SQL Server 轉學 PostgreSQL",
+      "category": "資料庫比較",
+      "definition": "把熟悉的 T-SQL 寫法對照到 PostgreSQL，並區分需要重新驗證的交易、型別與查詢行為。",
+      "example": "從 SSMS 改用 psql 查訂單時，先核對排序與交易行為；同一份報表即使能執行，也可能因時間型別或讀取時點而得到不同結果。",
+      "properties": [
+        [
+          "名稱與工具",
+          "PostgreSQL 是資料庫，psql 是命令列用戶端，PL/pgSQL 是撰寫程序與函式的語言。可用 pgAdmin 或 psql 跑本詞典的 PostgreSQL 範例。"
+        ],
+        [
+          "前 N 筆與翻頁",
+          "SQL Server 常用 SELECT TOP (20)；PostgreSQL 在查詢尾端寫 LIMIT 20。兩邊都要明確 ORDER BY，若時間會相同，再加唯一鍵穩定順序。"
+        ],
+        [
+          "日期與時區",
+          "SQL Server 的 timestamp 是 rowversion 同義詞；PostgreSQL 的 timestamp 是日期時間。搬遷 datetime2 要先確認原值代表哪個時區；timestamptz 保存時間點，顯示會依連線時區換算。"
+        ],
+        [
+          "識別字大小寫",
+          "PostgreSQL 會把沒有雙引號的識別字折成小寫；建立 \"OrderItems\" 之後，查詢也要保留引號及大小寫。從 SQL Server 搬遷時先檢查 ORM 產生的名稱與原資料庫定序。"
+        ],
+        [
+          "已提交讀取",
+          "PostgreSQL 的 READ COMMITTED 一般 SELECT 以每個陳述式開始時的快照讀取。SQL Server 的 READ COMMITTED 在 RCSI 關閉時使用共用鎖，開啟時使用列版本。移植依賴讀取阻塞的流程，應以兩個連線重測。"
+        ],
+        [
+          "新增後取值",
+          "SQL Server 用 OUTPUT inserted.id；PostgreSQL 用 RETURNING id。ON CONFLICT DO NOTHING 的衝突列不會回傳 id，應用程式須處理零列結果。"
+        ],
+        [
+          "讀執行計畫",
+          "SQL Server 可以用實際執行計畫及 SET STATISTICS IO；PostgreSQL 用 EXPLAIN (ANALYZE, BUFFERS)。兩邊的節點、計量及成本單位不同，調校前後應在同一引擎比較。"
+        ]
+      ],
+      "sample": {
+        "language": "PostgreSQL",
+        "setup": "開啟 PostgreSQL 連線。以下只讀取連線設定，無須建立資料表。",
+        "code": "SELECT version();\nSHOW transaction_isolation;\nSHOW TimeZone;",
+        "result": "依序顯示引擎版本、目前交易的隔離等級與連線時區。記錄這三項，再與原系統核對。"
+      }
     }
   ],
   "relations": [
@@ -633,6 +797,54 @@
     [
       "design-report-index",
       "execution-plan"
+    ],
+    [
+      "pg-explain-buffers",
+      "execution-plan"
+    ],
+    [
+      "pg-explain-buffers",
+      "profile-slow-query"
+    ],
+    [
+      "pg-partial-index",
+      "pg-explain-buffers"
+    ],
+    [
+      "pg-partial-index",
+      "index"
+    ],
+    [
+      "pg-keyset-pagination",
+      "composite-index"
+    ],
+    [
+      "pg-keyset-pagination",
+      "pg-explain-buffers"
+    ],
+    [
+      "pg-conflict-insert",
+      "unique"
+    ],
+    [
+      "pg-conflict-insert",
+      "transaction"
+    ],
+    [
+      "postgresql-vs-sql-server",
+      "read-committed"
+    ],
+    [
+      "postgresql-vs-sql-server",
+      "pg-keyset-pagination"
+    ],
+    [
+      "postgresql-vs-sql-server",
+      "pg-conflict-insert"
+    ],
+    [
+      "postgresql-vs-sql-server",
+      "pg-explain-buffers"
     ]
   ]
 }

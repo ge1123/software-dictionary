@@ -58,14 +58,23 @@ function entryId(domain, slug) {
 export const terms = domains.flatMap(domain =>
   domain.terms.map(term => ({ ...term, domain: domain.id, id: entryId(domain.id, term.id) }))
 );
+function resolveReference(domain, ref) {
+  const [scope, slug] = ref.split('/');
+  return slug ? entryId(scope, slug) : entryId(domain, scope);
+}
+
 export const relations = domains.flatMap(domain =>
-  domain.relations.map(pair => pair.map(ref => {
-    const [scope, slug] = ref.split('/');
-    return slug ? entryId(scope, slug) : entryId(domain.id, scope);
-  }))
+  domain.relations.map(([from, to, reasons]) => [
+    resolveReference(domain.id, from), resolveReference(domain.id, to), reasons
+  ])
 );
 
 export function relatedTerms(id) {
-  const neighbors = relations.filter(pair => pair.includes(id)).flat();
-  return terms.filter(term => term.id !== id && neighbors.includes(term.id));
+  const neighbors = new Map();
+  for (const [from, to, reasons] of relations) {
+    if (from === id) neighbors.set(to, reasons?.forward);
+    if (to === id) neighbors.set(from, reasons?.reverse);
+  }
+  return terms.filter(term => neighbors.has(term.id))
+    .map(term => ({ ...term, reason: neighbors.get(term.id) }));
 }

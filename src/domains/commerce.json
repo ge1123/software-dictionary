@@ -695,7 +695,7 @@
       "en": "Discounted Price",
       "zh": "折後價",
       "category": "B2B2C 價格與促銷",
-      "definition": "在 ERPNext 的連續折扣案例中，前一條規則套用後的價格，會作為下一條規則的計算基礎。",
+      "definition": "折後價是套用折扣後的價格。在 ERPNext 的連續折扣案例中，第一個折後價也是第二個折扣的計算基礎。",
       "example": "先折 20% 後剩下原價的 80%。第二次在這 80% 上再折 10%，相當於再折原價的 8%；最後剩原價的 72%，與測試斷言的總折扣 28% 一致。",
       "sources": [
         [
@@ -804,391 +804,779 @@
     ],
     [
       "b2b2c",
-      "supplier"
+      "supplier",
+      {
+        "forward": "在 Open Food Network 的訂購週期裡，哪一方負責供貨？",
+        "reverse": "農戶和集散中心如何透過線上商店服務消費者？"
+      }
     ],
     [
       "b2b2c",
-      "sales-channel"
+      "sales-channel",
+      {
+        "forward": "看一個通路模型的實例，Saleor 在哪裡記錄通路與幣別？",
+        "reverse": "通路背後有哪些合作角色？看 Open Food Network 的市集案例。"
+      }
     ],
     [
       "b2b2c",
-      "supplier-settlement"
+      "supplier-settlement",
+      {
+        "forward": "平台怎麼向賣家列出一期的結算淨額？看 Mercur 的結算明細。",
+        "reverse": "想先了解供貨企業與面向消費者的商店怎麼合作？"
+      }
     ],
     [
       "supplier",
-      "channel-listing"
+      "channel-listing",
+      {
+        "forward": "供貨和開放販售各管什麼？看 Saleor 如何記錄商品在哪個通路上架。",
+        "reverse": "若要辨識提供貨品的企業，Open Food Network 從哪筆進貨紀錄查？"
+      }
     ],
     [
       "sales-channel",
-      "channel-listing"
+      "channel-listing",
+      {
+        "forward": "通路已經啟用，某件商品是否在這個通路顯示、何時可買？",
+        "reverse": "這筆上架資料屬於哪個通路，通路又用哪種幣別？"
+      }
     ],
     [
       "channel-listing",
-      "channel-pricing"
+      "channel-pricing",
+      {
+        "forward": "商品已上架，去哪裡查各款式在該通路的售價？",
+        "reverse": "已經有通路售價，要去哪裡看商品是否開放購買？"
+      }
     ],
     [
       "channel-listing",
-      "sku"
+      "sku",
+      {
+        "forward": "同一商品有多種顏色和尺寸，庫存用什麼單位區分？",
+        "reverse": "知道 SKU 後，怎麼查所屬商品在哪個通路開放購買？"
+      }
     ],
     [
       "channel-pricing",
-      "price-snapshot"
+      "price-snapshot",
+      {
+        "forward": "通路明天調價，昨天訂單的成交金額從哪裡查？",
+        "reverse": "要比較歷史成交金額和現行售價，現行價格記在哪裡？"
+      }
     ],
     [
       "channel-pricing",
-      "channel-commission"
+      "channel-commission",
+      {
+        "forward": "售價與夥伴佣金怎麼區分？看 ERPNext 用計佣金額與佣金率算出佣金。",
+        "reverse": "要查商品在不同通路的售價，Saleor 把價格放在哪裡？"
+      }
     ],
     [
       "channel-listing",
-      "voucher-issuance"
+      "voucher-issuance",
+      {
+        "forward": "販售的是入場票時，買家怎麼從 pretix 的訂單明細取得票檔？",
+        "reverse": "要比較售票後的下載與售前的商品曝光，Saleor 如何控制商品上架？"
+      }
     ],
     [
       "voucher-issuance",
-      "order-state"
+      "order-state",
+      {
+        "forward": "票檔仍在產生時，若要另外追蹤整張訂單進度，可以怎麼表示？",
+        "reverse": "要追的是某張票能否下載？看 pretix 如何回應票檔尚未產生。"
+      }
     ],
     [
       "voucher-issuance",
-      "voucher-redemption"
+      "voucher-redemption",
+      {
+        "forward": "票已下載，入場時掃描器用票上的哪個值核銷？",
+        "reverse": "掃票前，持票人從哪一筆訂單明細下載入場券？"
+      }
     ],
     [
       "voucher-redemption",
-      "refund"
+      "refund",
+      {
+        "forward": "掃票記錄的是入場；若要查退給買家的款項，該看哪筆紀錄？",
+        "reverse": "若要另外確認入場紀錄，pretix 如何用票上的識別碼核銷？"
+      }
     ],
     [
       "voucher-redemption",
-      "supplier-settlement"
+      "supplier-settlement",
+      {
+        "forward": "要查的是賣家一期的結算金額？看 Mercur 怎麼彙總撥款和調整。",
+        "reverse": "若要查的是持票人入場的紀錄，pretix 核銷時用哪個識別碼？"
+      }
     ],
     [
       "channel-commission",
-      "supplier-settlement"
+      "supplier-settlement",
+      {
+        "forward": "要從單筆佣金轉看整期淨額，Mercur 的結算測試納入哪些款項？",
+        "reverse": "想單獨核對一筆佣金？看 ERPNext 如何從可計佣明細算出金額。"
+      }
     ],
     [
       "supplier-settlement",
-      "payment-reconciliation"
+      "payment-reconciliation",
+      {
+        "forward": "若差異出在買家那筆付款，怎麼用交易號核對金流明細？",
+        "reverse": "若核對的是賣家一整期的款項，撥款、沖回和調整怎麼合計？"
+      }
     ],
     [
       "merchant-onboarding",
-      "supplier"
+      "supplier",
+      {
+        "forward": "登記為生產者後，如何辨認某個訂購週期的供貨企業？",
+        "reverse": "生產者怎麼在 Open Food Network 建立企業檔案？"
+      }
     ],
     [
       "merchant-onboarding",
-      "channel-listing"
+      "channel-listing",
+      {
+        "forward": "想分清登記企業與上架商品？看 Saleor 的商品通路設定。",
+        "reverse": "要追的是企業加入平台的步驟？看 Open Food Network 如何登記角色。"
+      }
     ],
     [
       "wholesale-price",
-      "channel-pricing"
+      "channel-pricing",
+      {
+        "forward": "同一商品對消費者的通路售價記在哪裡？看 Saleor 的款式定價。",
+        "reverse": "如果要查向供應商採買的價格，ERPNext 用哪份價目表？"
+      }
     ],
     [
       "wholesale-price",
-      "channel-commission"
+      "channel-commission",
+      {
+        "forward": "除了進貨單價，銷售夥伴的佣金在 ERPNext 怎麼計算？",
+        "reverse": "佣金以外，供應商的商品報價在 ERPNext 哪裡查？"
+      }
     ],
     [
       "consignment",
-      "supplier-settlement"
+      "supplier-settlement",
+      {
+        "forward": "要了解平台如何彙總賣家款項，可對照 Mercur 的結算案例。",
+        "reverse": "貨在倉庫時歸誰所有？看 Odoo 寄售收貨時如何指定貨主。"
+      }
     ],
     [
       "consignment",
-      "wholesale-price"
+      "wholesale-price",
+      {
+        "forward": "若改採買斷進貨，ERPNext 怎麼保存供應商的商品價格？",
+        "reverse": "若供應商仍保有貨物所有權，Odoo 收貨時要記下誰？"
+      }
     ],
     [
       "product-variant",
-      "sku"
+      "sku",
+      {
+        "forward": "一件衣服有多種尺寸，哪個識別單位可以分開計庫存？",
+        "reverse": "SKU 在 Saleor 是掛在哪一層？同層還有哪些庫存設定？"
+      }
     ],
     [
       "product-variant",
-      "channel-listing"
+      "channel-listing",
+      {
+        "forward": "款式屬於某個商品，這個商品在哪些通路可見或可購買？",
+        "reverse": "上架的是商品，底下的款式在哪裡保存自己的 SKU？"
+      }
     ],
     [
       "channel-sku-mapping",
-      "sku"
+      "sku",
+      {
+        "forward": "客戶貨號以外，內部要用哪個單位追蹤商品庫存？",
+        "reverse": "客戶單據上的品號和內部 SKU 不同，去哪裡查對照？"
+      }
     ],
     [
       "channel-sku-mapping",
-      "sales-channel"
+      "sales-channel",
+      {
+        "forward": "要識別的是交易通路？看 Saleor 如何用 slug 辨認通路。",
+        "reverse": "要識別的是客戶使用的商品編號？看 ERPNext 如何按客戶取貨號。"
+      }
     ],
     [
       "promotion-eligibility",
-      "cart"
+      "cart",
+      {
+        "forward": "檢查訂單優惠前，買家選了哪些商品和數量，記在哪裡？",
+        "reverse": "怎麼判斷購物車內的品項或整張訂單符合哪條促銷規則？"
+      }
     ],
     [
       "promotion-eligibility",
-      "channel-pricing"
+      "channel-pricing",
+      {
+        "forward": "促銷限定通路時，怎麼查款式在該通路的售價？",
+        "reverse": "知道款式的通路售價後，怎麼查促銷的通路及商品條件？"
+      }
     ],
     [
       "promotion-stacking",
-      "promotion-eligibility"
+      "promotion-eligibility",
+      {
+        "forward": "討論兩條規則能否併用前，怎麼看一條規則適用哪些商品或通路？",
+        "reverse": "如果同時符合兩條規則，ERPNext 如何設定併用？"
+      }
     ],
     [
       "promotion-stacking",
-      "price-snapshot"
+      "price-snapshot",
+      {
+        "forward": "多個優惠算完後，如何保留這筆訂單實際採用的價格？",
+        "reverse": "要理解成交價的折扣來源，兩條百分比折扣併用會怎麼算？"
+      }
     ],
     [
       "discount-allocation",
-      "price-snapshot"
+      "price-snapshot",
+      {
+        "forward": "要在日後重現成交金額，訂單明細需要保留什麼價格？",
+        "reverse": "若明細含整單優惠，分到這一列的折扣怎麼算？"
+      }
     ],
     [
       "discount-allocation",
-      "refund"
+      "refund",
+      {
+        "forward": "查完明細分到的折扣後，已退給買家的金額在哪裡追蹤？",
+        "reverse": "要核對原訂單明細拿到多少整單折扣，該怎麼分攤？"
+      }
     ],
     [
       "loyalty-redemption",
-      "refund"
+      "refund",
+      {
+        "forward": "點數折抵之外，實際退給買家的款項如何追蹤？",
+        "reverse": "想查原交易用了多少點數、折抵多少金額？看 ERPNext 的發票案例。"
+      }
     ],
     [
       "loyalty-redemption",
-      "discount-allocation"
+      "discount-allocation",
+      {
+        "forward": "要追的是整單折扣分到哪幾列？看 ERPNext 如何分攤。",
+        "reverse": "若優惠來自會員點數，發票怎麼保留使用點數與折抵金額？"
+      }
     ],
     [
       "available-to-promise",
-      "inventory-reservation"
+      "inventory-reservation",
+      {
+        "forward": "接下一筆訂單前，已經答應其他訂單的數量怎麼追蹤？",
+        "reverse": "預留之外，OCA 的可承諾量還能納入哪些供貨因素？"
+      }
     ],
     [
       "backorder",
-      "available-to-promise"
+      "available-to-promise",
+      {
+        "forward": "接受新的交貨承諾前，OCA 用哪些資訊估算可供數量？",
+        "reverse": "作業只完成一部分時，Odoo 如何處理本次交不出的餘量？"
+      }
     ],
     [
       "backorder",
-      "order-state"
+      "order-state",
+      {
+        "forward": "要區別訂單能否取消或出貨，怎麼描述允許的狀態轉移？",
+        "reverse": "狀態顯示已開始履約後，剩餘未交數量要不要建立補交單？"
+      }
     ],
     [
       "channel-order",
-      "sales-channel"
+      "sales-channel",
+      {
+        "forward": "訂單上的通路欄位指向哪個通路，該通路用什麼幣別？",
+        "reverse": "如何從 Saleor 的通路找到歸屬於它的訂單？"
+      }
     ],
     [
       "channel-order",
-      "order-state"
+      "order-state",
+      {
+        "forward": "知道訂單來自哪個通路後，怎麼判斷它還能否取消或出貨？",
+        "reverse": "要查的是訂單來源，Saleor 如何記錄下單通路？"
+      }
     ],
     [
       "channel-order",
-      "backend/idempotency-key"
+      "backend/idempotency-key",
+      {
+        "forward": "通路重送同一個建單請求時，如何辨認這是同一次操作？",
+        "reverse": "若冪等操作是建立訂單，訂單本身如何標記來源通路？"
+      }
     ],
     [
       "split-order",
-      "channel-order"
+      "channel-order",
+      {
+        "forward": "要查訂單來自哪個通路，可對照 Saleor 的訂單模型。",
+        "reverse": "一筆結帳含多個賣家的商品，Mercur 按什麼拆單？"
+      }
     ],
     [
       "split-order",
-      "voucher-issuance"
+      "voucher-issuance",
+      {
+        "forward": "要找的是某一張票？對照 pretix 如何從訂單明細取得票檔。",
+        "reverse": "要區分的是各賣家負責的訂單？看 Mercur 如何拆分購物車。"
+      }
     ],
     [
       "drop-shipping",
-      "supplier"
+      "supplier",
+      {
+        "forward": "負責供貨的是哪一方？對照 Open Food Network 如何從進貨紀錄辨識供應商。",
+        "reverse": "供應商直接交貨給客人時，ERPNext 如何區分直送品與一般品？"
+      }
     ],
     [
       "drop-shipping",
-      "split-order"
+      "split-order",
+      {
+        "forward": "若問題是多個賣家各自接哪張訂單，Mercur 怎麼拆單？",
+        "reverse": "同張訂單裡哪些明細交給供應商直送？看 ERPNext 的轉採購測試。"
+      }
     ],
     [
       "partial-shipment",
-      "split-order"
+      "split-order",
+      {
+        "forward": "看到多張訂單時，怎麼辨認 Mercur 依賣家拆單的情形？",
+        "reverse": "要追的是同一筆明細分幾次交貨？看 Saleor 如何記每次履約數量。"
+      }
     ],
     [
       "partial-shipment",
-      "backorder"
+      "backorder",
+      {
+        "forward": "只出了一部分，Odoo 有哪些選項處理剩餘數量？",
+        "reverse": "要核對已交了幾件，Saleor 的訂單明細和履約明細各記什麼？"
+      }
     ],
     [
       "return-authorization",
-      "channel-order"
+      "channel-order",
+      {
+        "forward": "想追原訂單屬於哪個通路？對照 Saleor 的訂單通路欄位。",
+        "reverse": "客人要求退貨時，OCA RMA 的授權單要登記哪些資料？"
+      }
     ],
     [
       "return-authorization",
-      "refund"
+      "refund",
+      {
+        "forward": "退貨涉及返還款項時，怎麼追蹤這筆退款的處理結果？",
+        "reverse": "若退款涉及實體商品，OCA RMA 用哪張單追蹤退貨與收件？"
+      }
     ],
     [
       "reverse-logistics",
-      "return-authorization"
+      "return-authorization",
+      {
+        "forward": "倉庫處理退回商品之前，OCA 用什麼單據記錄產品與數量？",
+        "reverse": "想看退回的貨怎麼入庫？對照 Odoo 從交貨單建立反向移轉的做法。"
+      }
     ],
     [
       "reverse-logistics",
-      "drop-shipping"
+      "drop-shipping",
+      {
+        "forward": "若要追原商品由誰出貨，ERPNext 如何識別供應商直送品？",
+        "reverse": "若要看貨物往回走的案例，Odoo 如何登記客戶退回的數量？"
+      }
     ],
     [
       "exchange-order",
-      "reverse-logistics"
+      "reverse-logistics",
+      {
+        "forward": "除了建立換貨訂單，退回的舊品如何登記入庫？看 Odoo 的案例。",
+        "reverse": "若客人要換貨，Saleor 怎麼建立另一張訂單？"
+      }
     ],
     [
       "exchange-order",
-      "inventory-reservation"
+      "inventory-reservation",
+      {
+        "forward": "若要另外追蹤替換品是否已被占用，預留紀錄看什麼？",
+        "reverse": "若要追蹤換貨本身，Saleor 的換貨單和原訂單如何區分？"
+      }
     ],
     [
       "settlement-cycle",
-      "supplier-settlement"
+      "supplier-settlement",
+      {
+        "forward": "知道期間起訖後，怎麼算期間內的淨額？看 Mercur 的截止日測試。",
+        "reverse": "要比較月結和半月結，OCA 怎麼決定佣金期間的第一天？"
+      }
     ],
     [
       "settlement-cycle",
-      "voucher-redemption"
+      "voucher-redemption",
+      {
+        "forward": "若要核對的是單次入場，pretix 的掃票紀錄如何辨識明細？",
+        "reverse": "若要查的是佣金歸屬期間，OCA 如何劃分半月結？"
+      }
     ],
     [
       "settlement-adjustment",
-      "supplier-settlement"
+      "supplier-settlement",
+      {
+        "forward": "借貸調整、撥款和沖回最後怎麼合成結算淨額？",
+        "reverse": "結算單上的調整小計怎麼算？看借方 29 和貸方 5 的案例。"
+      }
     ],
     [
       "settlement-adjustment",
-      "return-authorization"
+      "return-authorization",
+      {
+        "forward": "要查退貨作業的進度，OCA 的哪張單據可以追到收件？",
+        "reverse": "若要讀的是結算明細，Mercur 怎麼區別借貸調整和沖回？"
+      }
     ],
     [
       "supplier-payout",
-      "supplier-settlement"
+      "supplier-settlement",
+      {
+        "forward": "要對整期帳，個別撥款如何與沖回、調整一起彙總？",
+        "reverse": "要追一筆結算明細，Mercur 如何決定單張賣家訂單的撥款？"
+      }
     ],
     [
       "supplier-payout",
-      "payment-reconciliation"
+      "payment-reconciliation",
+      {
+        "forward": "若差異出在買家付款，怎麼核對內部紀錄和金流明細？",
+        "reverse": "若差異出在賣家實收，Mercur 的撥款金額考慮哪些扣項？"
+      }
     ],
     [
       "b2b2c",
-      "channel-order"
+      "channel-order",
+      {
+        "forward": "消費者從哪個通路下單，在 Saleor 要查哪個欄位？",
+        "reverse": "想先理解供貨商、集散中心與消費者的關係？看食品市集的例子。"
+      }
     ],
     [
       "b2b2c",
-      "split-order"
+      "split-order",
+      {
+        "forward": "購物車含不同賣家的商品時，Mercur 怎麼分配訂單？",
+        "reverse": "一筆結帳牽涉多家企業時，可以怎麼理解平台上的合作角色？"
+      }
     ],
     [
       "b2b2c",
-      "return-authorization"
+      "return-authorization",
+      {
+        "forward": "消費者要求退貨後，OCA 用什麼單據讓客服與倉庫追蹤？",
+        "reverse": "想了解售後作業以外的平台合作角色？看 Open Food Network 的案例。"
+      }
     ],
     [
       "on-hand-quantity",
-      "inventory-reservation"
+      "inventory-reservation",
+      {
+        "forward": "倉庫裡還有貨，哪些數量已經留給其他訂單？",
+        "reverse": "追完預留後，要核對倉庫實際持有幾件，看哪個數量？"
+      }
     ],
     [
       "on-hand-quantity",
-      "available-to-promise"
+      "available-to-promise",
+      {
+        "forward": "要答覆新的交貨需求，除了現在的現貨還能考慮什麼？",
+        "reverse": "要單獨看倉庫此刻實際有幾件，該用哪個數量？"
+      }
     ],
     [
       "forecasted-inventory",
-      "on-hand-quantity"
+      "on-hand-quantity",
+      {
+        "forward": "把未來的進出貨先放一旁，今天倉庫實際有多少？",
+        "reverse": "今天的現貨加上後續進出貨，怎麼按日期看未來庫存？"
+      }
     ],
     [
       "forecasted-inventory",
-      "available-to-promise"
+      "available-to-promise",
+      {
+        "forward": "有了庫存預測後，OCA 如何選擇估算可承諾量的因素？",
+        "reverse": "可承諾量用到的預計庫存，會隨哪些已確認的進出貨變動？"
+      }
     ],
     [
       "forecasted-inventory",
-      "inventory-reservation"
+      "inventory-reservation",
+      {
+        "forward": "要追某批貨已答應給哪一筆訂單，應看哪種占用紀錄？",
+        "reverse": "除了已預留的數量，怎麼把未來到貨和出貨排進時間表？"
+      }
     ],
     [
       "purchase-order",
-      "drop-shipping"
+      "drop-shipping",
+      {
+        "forward": "哪些銷售明細要交供應商直送，哪些還是從倉庫出貨？",
+        "reverse": "直送明細分屬兩家供應商，ERPNext 會產生幾張採購單？"
+      }
     ],
     [
       "purchase-order",
-      "supplier"
+      "supplier",
+      {
+        "forward": "採購單指定的供貨方是什麼角色？對照食品市集的進貨紀錄。",
+        "reverse": "同一銷售單有兩家供應商，ERPNext 如何分別向他們下採購單？"
+      }
     ],
     [
       "purchase-order",
-      "forecasted-inventory"
+      "forecasted-inventory",
+      {
+        "forward": "在 Odoo，詢價與確認採購在哪個時間點影響預計到貨？",
+        "reverse": "若要追到採購單如何建立，可看 ERPNext 的直送轉單案例。"
+      }
     ],
     [
       "sales-order-line",
-      "purchase-order"
+      "purchase-order",
+      {
+        "forward": "兩列相同品號分屬不同供應商，轉出的採購單會列哪些品項？",
+        "reverse": "怎麼確認採購品項來自原銷售單的哪一列？"
+      }
     ],
     [
       "sales-order-line",
-      "channel-order"
+      "channel-order",
+      {
+        "forward": "要查整張訂單來自哪個通路，Saleor 把通路記在哪一層？",
+        "reverse": "要追採購品項來自哪一列，ERPNext 怎麼識別銷售單明細？"
+      }
     ],
     [
       "outstanding-amount",
-      "supplier-settlement"
+      "supplier-settlement",
+      {
+        "forward": "若要查的是整期賣家淨額，Mercur 怎麼彙總期間內的款項？",
+        "reverse": "若要核對單張進貨發票尚欠多少，ERPNext 的哪個欄位可查？"
+      }
     ],
     [
       "payment-allocation",
-      "outstanding-amount"
+      "outstanding-amount",
+      {
+        "forward": "付款分給各張發票後，去哪裡核對每張發票還欠多少？",
+        "reverse": "要找出哪筆付款沖抵這張發票，怎麼讀付款分配明細？"
+      }
     ],
     [
       "payment-allocation",
-      "supplier-payout"
+      "supplier-payout",
+      {
+        "forward": "若業務問題是平台要付賣家多少，Mercur 如何按賣家訂單撥款？",
+        "reverse": "若要處理一筆付款沖多張發票，ERPNext 如何逐張指定金額？"
+      }
     ],
     [
       "payment-application",
-      "payment-allocation"
+      "payment-allocation",
+      {
+        "forward": "要查已核銷的 500 怎麼分到兩張發票，付款單的哪幾列可看？",
+        "reverse": "分配好金額後，怎麼驗證提交付款單真的沖清了發票？"
+      }
     ],
     [
       "payment-application",
-      "outstanding-amount"
+      "outstanding-amount",
+      {
+        "forward": "付款單已提交，從哪個欄位確認每張發票的剩餘欠款？",
+        "reverse": "帳上顯示已經付清，要怎麼從付款單查核銷結果？"
+      }
     ],
     [
       "payment-application",
-      "supplier-settlement"
+      "supplier-settlement",
+      {
+        "forward": "若要對的是平台整期結算，Mercur 怎麼從撥款明細算淨額？",
+        "reverse": "若要對的是進貨發票，ERPNext 怎麼用付款單核銷？"
+      }
     ],
     [
       "payment-application",
-      "supplier-payout"
+      "supplier-payout",
+      {
+        "forward": "要確認的是賣家訂單是否可以撥款？看 Mercur 的撥款條件。",
+        "reverse": "要確認的是發票是否付清？看 ERPNext 提交付款單後的核對方式。"
+      }
     ],
     [
       "return-receipt",
-      "return-authorization"
+      "return-authorization",
+      {
+        "forward": "這次收件對應哪張退貨授權單，授權單原本登記了什麼？",
+        "reverse": "倉庫做完哪一步，退貨授權單才會變成已收件？"
+      }
     ],
     [
       "return-receipt",
-      "reverse-logistics"
+      "reverse-logistics",
+      {
+        "forward": "想看貨品退回倉庫的移轉紀錄？對照 Odoo 的退貨入庫作業。",
+        "reverse": "要看的是客服如何確認倉庫已收件？查 OCA RMA 的收貨狀態。"
+      }
     ],
     [
       "return-receipt",
-      "refund"
+      "refund",
+      {
+        "forward": "收件後若選擇退錢，如何另外追蹤退款結果？",
+        "reverse": "若客人也寄回商品，OCA RMA 怎麼區分已收件與退款單據已確認？"
+      }
     ],
     [
       "replacement-shipment",
-      "return-receipt"
+      "return-receipt",
+      {
+        "forward": "建立替換品交貨單前，如何確認倉庫已收到退回商品？",
+        "reverse": "收件後若選擇換貨，要出完多少件才會標記為 Replaced？"
+      }
     ],
     [
       "replacement-shipment",
-      "return-authorization"
+      "return-authorization",
+      {
+        "forward": "要核對替換數量，原退貨授權單登記了哪些品項資料？",
+        "reverse": "若走換貨，如何從退貨授權單查到替換品的交貨進度？"
+      }
     ],
     [
       "replacement-shipment",
-      "exchange-order"
+      "exchange-order",
+      {
+        "forward": "換貨也可以另建一張訂單，Saleor 如何識別換貨單與原單？",
+        "reverse": "要看替換品實際出貨的進度，OCA 用哪張交貨單追蹤？"
+      }
     ],
     [
       "discount-basis",
-      "promotion-stacking"
+      "promotion-stacking",
+      {
+        "forward": "何種設定允許 20% 與 10% 的兩條規則一起生效？",
+        "reverse": "兩條折扣都適用時，第二次折扣要拿哪個價格來算？"
+      }
     ],
     [
       "discount-basis",
-      "discount-allocation"
+      "discount-allocation",
+      {
+        "forward": "若折扣是給整張單，怎麼把它分到各列並處理捨入差額？",
+        "reverse": "明細的多重百分比折扣應該相加還是連乘？看第二條規則的基礎。"
+      }
     ],
     [
       "discounted-price",
-      "discount-basis"
+      "discount-basis",
+      {
+        "forward": "同樣是 20% 和 10%，為什麼改變第二次折扣的基礎就會改變結果？",
+        "reverse": "第二次用已打折的價格計算，最後剩原價的幾成？"
+      }
     ],
     [
       "discounted-price",
-      "promotion-stacking"
+      "promotion-stacking",
+      {
+        "forward": "要讓兩個折扣同時生效，ERPNext 如何設定多規則併用？",
+        "reverse": "兩個優惠依序套用，原價 100 元最後剩多少？"
+      }
     ],
     [
       "payout-hold",
-      "supplier-payout"
+      "supplier-payout",
+      {
+        "forward": "條件齊備後，Mercur 怎麼決定這張賣家訂單的撥款金額？",
+        "reverse": "賣家尚未收到錢，要查哪些條件會讓撥款暫緩？"
+      }
     ],
     [
       "payout-hold",
-      "supplier-settlement"
+      "supplier-settlement",
+      {
+        "forward": "若關心的是本期已列帳的款項，結算明細如何計算截止日？",
+        "reverse": "要追某筆撥款為何仍在等待，Mercur 會重新檢查哪些條件？"
+      }
     ],
     [
       "payout-reversal",
-      "payout-hold"
+      "payout-hold",
+      {
+        "forward": "沖回在等原撥款完成時，原撥款可能因為什麼條件而暫緩？",
+        "reverse": "原撥款後來完成又遇到退款，什麼情況需要向賣家沖回？"
+      }
     ],
     [
       "payout-reversal",
-      "supplier-payout"
+      "supplier-payout",
+      {
+        "forward": "怎麼算原始撥款，哪些先發生的退款已經扣過？",
+        "reverse": "撥款後買家才退款，要從賣家收回多少？"
+      }
     ],
     [
       "payout-reversal",
-      "refund"
+      "refund",
+      {
+        "forward": "沖回處理的是賣家款項，買家那筆退款要怎麼追蹤？",
+        "reverse": "退給買家之後，如何判斷這筆是否還要向賣家收回？"
+      }
     ],
     [
       "payout-reversal",
-      "settlement-adjustment"
+      "settlement-adjustment",
+      {
+        "forward": "要對結算單時，退款沖回與借貸調整各列在哪個小計？",
+        "reverse": "結算明細裡的沖回，是針對哪種退款產生的？"
+      }
     ],
     [
       "payout-reversal",
-      "payment-application"
+      "payment-application",
+      {
+        "forward": "要查的是付款沖抵發票？對照 ERPNext 如何逐張核銷。",
+        "reverse": "若單據中的「沖回」是向賣家收回款項，Mercur 如何處理？"
+      }
     ],
     [
       "payout-reversal",
-      "channel-commission"
+      "channel-commission",
+      {
+        "forward": "想先看佣金怎麼算？ERPNext 的測試用哪些明細和佣金率？",
+        "reverse": "若要看退款時佣金如何影響賣家沖回金額，Mercur 用什麼算法？"
+      }
     ],
     [
       "payout-hold",
-      "payment-application"
+      "payment-application",
+      {
+        "forward": "若要查的是發票還欠多少，ERPNext 付款核銷後如何驗證？",
+        "reverse": "若要查的是平台暫緩付給賣家的原因，Mercur 檢查哪些條件？"
+      }
     ]
   ]
 }

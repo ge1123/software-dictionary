@@ -7,8 +7,8 @@ for (const domain of domains) {
   assert.ok(domain.name.trim() && domain.terms.length > 0, domain.id);
   for (const term of domain.terms) assert.match(term.id, slug);
   for (const pair of domain.relations) {
-    assert.equal(pair.length, 2);
-    for (const ref of pair) {
+    assert.ok(pair.length === 2 || pair.length === 3);
+    for (const ref of pair.slice(0, 2)) {
       const parts = ref.split('/');
       assert.ok(parts.length <= 2 && parts.every(part => slug.test(part)), ref);
     }
@@ -27,13 +27,23 @@ for (const { id, sample } of terms) {
   if (!sample) continue;
   for (const key of ['language', 'setup', 'code', 'result']) assert.ok(sample[key]?.trim(), id);
 }
+const b2b2c = terms.filter(t => t.domain === 'commerce' && t.category.startsWith('B2B2C'));
+const businessIds = new Set(b2b2c.map(term => term.id));
 const pairs = new Set();
-for (const [a, b] of relations) {
+for (const [a, b, reasons] of relations) {
   const key = [a, b].sort().join('/');
   assert.ok(ids.has(a) && ids.has(b) && a !== b && !pairs.has(key), key);
   pairs.add(key);
-  assert.ok(relatedTerms(a).some(term => term.id === b), key);
-  assert.ok(relatedTerms(b).some(term => term.id === a), key);
+  const forward = relatedTerms(a).find(term => term.id === b);
+  const reverse = relatedTerms(b).find(term => term.id === a);
+  assert.ok(forward && reverse, key);
+  if (reasons !== undefined || businessIds.has(a) || businessIds.has(b)) {
+    for (const direction of ['forward', 'reverse']) {
+      assert.ok(typeof reasons?.[direction] === 'string' && reasons[direction].trim(), key + ' ' + direction);
+    }
+    assert.equal(forward.reason, reasons.forward, key);
+    assert.equal(reverse.reason, reasons.reverse, key);
+  }
 }
 console.log('Validated', pairs.size, 'bidirectional references.');
 for (const { id, practice, sample } of terms) {
@@ -47,7 +57,8 @@ for (const { id, scale } of terms) {
   for (const key of ['benefit', 'cost', 'measure']) assert.ok(scale?.[key]?.trim(), id);
 }
 
-for (const term of terms.filter(t => t.domain === 'commerce' && t.category.startsWith('B2B2C'))) {
+for (const term of b2b2c) {
+  assert.ok(relatedTerms(term.id).length, term.id);
   assert.ok(Array.isArray(term.sources) && term.sources.length > 0, term.id);
   for (const [name, url] of term.sources) {
     assert.ok(name.trim(), term.id);

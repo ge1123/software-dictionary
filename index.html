@@ -51,7 +51,9 @@
       <template v-if="related.length">
         <h2>相關詞條</h2>
         <ul class="references">
-          <li v-for="term in related" :key="term.id"><a :href="'#'+term.id">{{ term.en }} · {{ term.zh }}</a></li>
+          <li v-for="term in related" :key="term.id">
+            <span v-if="term.reason">{{ term.reason }} </span><a :href="'#'+term.id">{{ term.en }} · {{ term.zh }}</a>
+          </li>
         </ul>
       </template>
     </section>

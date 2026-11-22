@@ -123,16 +123,12 @@
       "en": "Business-to-Business-to-Consumer (B2B2C)",
       "zh": "企業透過合作企業服務消費者",
       "category": "B2B2C 合作與商品",
-      "definition": "一家企業與另一家企業合作，把商品或服務交付給最終消費者。釐清一筆交易時，先辨認誰供貨、誰接單、誰履約，以及消費者遇到問題要找誰。",
-      "example": "海港餐廳提供雙人餐券，旅遊通路在 App 接單收取 1,000 元，票券平台發券並彙整核銷紀錄，消費者最後到餐廳用餐。這個案例有三個企業角色；實務上一家公司也可以兼任平台與通路。",
-      "properties": [
+      "definition": "在 Open Food Network 的在地食品市集中，農戶與食品集散中心透過獨立線上商店，向個人及在地企業供貨。",
+      "example": "專案列出的集散中心包含合作社與線上農夫市集。「B2B2C」是本詞典對這種合作關係的分類。",
+      "sources": [
         [
-          "角色分工",
-          "消費者沒收到券，先找通路客服；通路用訂單號請平台查發券結果。若已領券但門市無法兌換，就要核對餐廳與門市的適用條件。"
-        ],
-        [
-          "實體商品怎麼走",
-          "品牌把咖啡機上架到福利網，福利網接單，平台依通路貨號轉成供應商出貨單。品牌倉直接寄給消費者，簽收後按合約週期結算；部分退貨另走逆物流與結算調整。"
+          "Open Food Network · README.md",
+          "https://github.com/openfoodfoundation/openfoodnetwork/blob/e13ef4d7fdc85d6f165638f574cec1492437750d/README.md#L3-L6"
         ]
       ]
     },
@@ -141,12 +137,12 @@
       "en": "Supplier",
       "zh": "供應商",
       "category": "B2B2C 合作與商品",
-      "definition": "提供商品或履約能力的合作方。合作資料通常需要標明能供應哪些品項、在哪些地點履約，以及如何與平台結算。",
-      "example": "海港餐廳提供雙人套餐，約定平日可在甲、乙兩家門市核銷。品牌旗下新開的丙店若尚未加入合作，就不能直接接受這張券。",
-      "properties": [
+      "definition": "在 Open Food Network 的訂購週期中，供應商是把貨品送入該週期的企業。",
+      "example": "OrderCycle 從進貨交換紀錄取出發送方作為 suppliers，從出貨交換紀錄取出接收方作為 distributors。",
+      "sources": [
         [
-          "合作範圍",
-          "同一供應商可以供應多個 SKU，每個 SKU 也可能有不同的適用門市與排除日期。"
+          "Open Food Network · order_cycle.rb",
+          "https://github.com/openfoodfoundation/openfoodnetwork/blob/e13ef4d7fdc85d6f165638f574cec1492437750d/app/models/order_cycle.rb#L19-L31"
         ]
       ]
     },
@@ -155,12 +151,12 @@
       "en": "Sales Channel",
       "zh": "銷售通路",
       "category": "B2B2C 合作與商品",
-      "definition": "消費者接觸商品並下單的銷售管道。B2B2C 平台須能辨認訂單來自哪個合作通路，以套用該通路的價格、客服與結算條件。",
-      "example": "同一張餐券可在旅遊 App 或員工福利網販售。兩邊都可能產生訂單 42，客服查單時要同時帶上通路與通路訂單號。",
-      "properties": [
+      "definition": "Saleor 以 Channel 識別銷售通路，各通路保存自己的啟用狀態、幣別與預設國家。",
+      "example": "查看某個通路時，可從 slug 辨識通路，從 currency_code 查到它使用的幣別。",
+      "sources": [
         [
-          "履約查詢",
-          "通路知道消費者買了哪一筆，平台保存該筆訂單對應的票券，餐廳以核銷紀錄確認哪家門市提供了服務。"
+          "Saleor · models.py",
+          "https://github.com/saleor/saleor/blob/e1ccf4d580025b06c2ff01441a1e798dc4635f24/saleor/channel/models.py#L12-L26"
         ]
       ]
     },
@@ -169,12 +165,12 @@
       "en": "Channel Listing",
       "zh": "通路上架",
       "category": "B2B2C 合作與商品",
-      "definition": "把指定商品發布到某個通路銷售，約定販售期間、商品內容與適用條件。每個通路可有自己的上架狀態。",
-      "example": "雙人餐券在旅遊 App 販售到 6 月 30 日，已售券可使用到 8 月 31 日。7 月 1 日停止接新單，6 月買券的客人仍可依原條件到店。",
-      "properties": [
+      "definition": "Saleor 把商品在某個通路的販售設定保存在商品與通路的關聯紀錄。",
+      "example": "visible_in_listings 表示商品是否出現在清單；available_for_purchase_at 另行記錄開放購買的時間。",
+      "sources": [
         [
-          "兩個時間",
-          "販售期間決定能否建立新訂單；兌換期間決定已發出的券能否使用。通路下架時要分別處理。"
+          "Saleor · models.py",
+          "https://github.com/saleor/saleor/blob/e1ccf4d580025b06c2ff01441a1e798dc4635f24/saleor/product/models.py#L318-L338"
         ]
       ]
     },
@@ -183,40 +179,40 @@
       "en": "Channel Pricing",
       "zh": "通路定價",
       "category": "B2B2C 價格與促銷",
-      "definition": "依通路及生效期間決定商品的銷售價格。同一 SKU 可有多份價表，每筆訂單要能追溯成交時採用的價格。",
-      "example": "旅遊 App 的雙人餐券售價為 1,000 元，福利網為 950 元。下個月 App 改售 1,050 元，六月成交的那張仍依 1,000 元計算本例佣金。",
-      "properties": [
+      "definition": "Saleor 把規格款式的售價記在該款式與通路的組合上。",
+      "example": "查看 ProductVariantChannelListing 可取得該通路的售價與幣別；同一模型也另設成本價欄位。",
+      "sources": [
         [
-          "兩種金額",
-          "消費者成交價用來核對客人實付多少。供應商可分得多少，還要看合作合約的拆分方式。"
+          "Saleor · models.py",
+          "https://github.com/saleor/saleor/blob/e1ccf4d580025b06c2ff01441a1e798dc4635f24/saleor/product/models.py#L492-L523"
         ]
       ]
     },
     {
       "id": "voucher-issuance",
-      "en": "Voucher Issuance",
-      "zh": "發券",
+      "en": "Order Position Ticket Download",
+      "zh": "訂單明細票券下載",
       "category": "B2B2C 履約與配送",
-      "definition": "依訂單明細產生可供消費者使用的憑證，並保存券號、權益內容、適用條件與使用期限。",
-      "example": "旅遊 App 確認訂單 42 已付款，平台為其中一份雙人套餐發出券 V1。若通知信寄送失敗，客服可重寄 V1；多發一張新券會增加可兌換的權益。",
-      "properties": [
+      "definition": "pretix 提供按訂單明細取得入場票券的介面，可用的輸出格式由該明細列出。",
+      "example": "文件描述，允許下載但票檔尚未生成時，下載端點回傳 HTTP 409，呼叫端稍後再試。",
+      "sources": [
         [
-          "查詢線索",
-          "訂單已付款、平台已發券、通知已送達是三個不同結果。客服可依序查看付款號、券號及通知紀錄。"
+          "pretix · orders.rst",
+          "https://github.com/pretix/pretix/blob/526a79c7d175a37421242a8167821373c357773d/doc/api/resources/orders.rst#L1944-L1963"
         ]
       ]
     },
     {
       "id": "voucher-redemption",
-      "en": "Voucher Redemption",
-      "zh": "票券核銷",
+      "en": "Ticket Check-in",
+      "zh": "入場票券核銷",
       "category": "B2B2C 履約與配送",
-      "definition": "履約方接受票券、提供對應服務並留下使用紀錄。是否允許多次或部分使用，依票種而定。",
-      "example": "消費者持 V1 到甲店用餐。這是一次性餐券，第一次核銷留下門市與核銷編號；再掃同一張時，櫃台能查到先前結果。",
-      "properties": [
+      "definition": "pretix 掃票介面使用票上的識別碼對訂單明細辦理入場或出場。",
+      "example": "掃描器將 QR code 的值放入 secret，送到 checkinrpc/redeem。",
+      "sources": [
         [
-          "撤銷與退款",
-          "掃錯券時，依規則建立連到原核銷的撤銷紀錄。是否退回消費者款項，要另外確認訂單及退款狀態。"
+          "pretix · checkin.rst",
+          "https://github.com/pretix/pretix/blob/526a79c7d175a37421242a8167821373c357773d/doc/api/resources/checkin.rst#L22-L39"
         ]
       ]
     },
@@ -225,12 +221,12 @@
       "en": "Channel Commission",
       "zh": "通路佣金",
       "category": "B2B2C 售後與結算",
-      "definition": "依通路合作條件計算的銷售報酬。要約定計算基礎、費率、何時取得佣金，以及退款或撤銷時如何調整。",
-      "example": "本例約定依有效核銷的成交價分配：每張 1,000 元餐券，通路取得 10% 即 100 元，平台服務費 50 元，供應商應得 850 元。案例略去稅費與金流手續費。",
-      "properties": [
+      "definition": "ERPNext 依銷售夥伴的佣金率與訂單中可計佣的金額計算佣金。",
+      "example": "測試把商品設為可計佣，賣出 10 件、每件 100，佣金率 7%。斷言檢查計佣基礎為 1,000，佣金為 70。",
+      "sources": [
         [
-          "同樣售出一張",
-          "本例以核銷為條件，已付款但未使用的券尚未列入分潤。若另一份合約以售出為條件，就依付款或售出的約定日期計算。"
+          "ERPNext · test_sales_order.py",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/selling/doctype/sales_order/test_sales_order.py#L4635-L4652"
         ]
       ]
     },
@@ -239,12 +235,12 @@
       "en": "Supplier Settlement",
       "zh": "供應商結算",
       "category": "B2B2C 售後與結算",
-      "definition": "依合作合約與結算週期，逐筆彙整供應商應收金額及調整項目，產生可核對的結算明細。撥款後再記錄實際支付結果。",
-      "example": "六月售出 10 張千元券，月底有 8 張有效核銷。本例以核銷結算，合計 8,000 元，其中供應商 6,800 元、通路佣金 800 元、平台服務費 400 元。剩下 2 張留待符合條件時處理。",
-      "properties": [
+      "definition": "Mercur 的 Stripe 連接器在結算期間內彙總賣家的撥款、沖回與調整明細。",
+      "example": "測試資料有撥款 162、沖回 54、借方調整 29、貸方調整 5，結算淨額為 84。截止時間之後的另一筆 999 未計入。",
+      "sources": [
         [
-          "跨期調整",
-          "若七月核准撤銷六月其中一筆已結算核銷，且合約約定全額回沖，可在七月加列供應商 −850 元調整並引用原明細。六月已出具的結算單仍可追溯。"
+          "Mercur · settlement-builder.unit.spec.ts",
+          "https://github.com/mercurjs/mercur/blob/752e3d6ee73e437d9250bab907afe9d5d86f5757/packages/plugins/stripe-connector/src/workflows/settlements/utils/__tests__/settlement-builder.unit.spec.ts#L15-L37"
         ]
       ]
     },
@@ -253,200 +249,294 @@
       "en": "Merchant Onboarding",
       "zh": "商家進駐",
       "category": "B2B2C 合作與商品",
-      "definition": "平台審核合作商家的身分、收款資料、可售範圍與營運條件，決定何時開放銷售。",
-      "example": "家電商已簽約，但退貨地址未確認，平台可以先讓它建商品草稿，待履約資料齊全再開賣。"
-    },
-    {
-      "id": "distribution-agreement",
-      "en": "Distribution Agreement",
-      "zh": "通路合作合約",
-      "category": "B2B2C 合作與商品",
-      "definition": "約定哪些商品可在哪些通路銷售，以及價格權限、售後分工與生效期間。",
-      "example": "品牌開放福利網販售咖啡機，但保留官網獨家色。通路有合作資格，仍要逐品確認可售範圍。"
+      "definition": "Open Food Network 讓使用者登入後登記企業資料，選擇企業在平台上的角色。",
+      "example": "系統測試依序填入企業名稱、地址與聯絡人，接著選擇生產者身分建立企業檔案。",
+      "sources": [
+        [
+          "Open Food Network · registration_spec.rb",
+          "https://github.com/openfoodfoundation/openfoodnetwork/blob/e13ef4d7fdc85d6f165638f574cec1492437750d/spec/system/consumer/registration_spec.rb#L30-L80"
+        ]
+      ]
     },
     {
       "id": "wholesale-price",
-      "en": "Wholesale Price",
-      "zh": "供貨價",
+      "en": "Supplier Item Price",
+      "zh": "供應商採購價",
       "category": "B2B2C 合作與商品",
-      "definition": "供應商向採購方供貨時約定的單價，可依數量、通路或生效日期調整。",
-      "example": "通路以每台 800 元買斷，再以 1,000 元售出。計算進銷差額時要扣進貨成本；抽佣模式則依佣金合約拆分。"
+      "definition": "ERPNext 的 Item Price 可在採購價目表記錄供應商的商品價格。",
+      "example": "資料模型在採購設定下顯示 supplier 欄位；價格以 price_list_rate 記錄。",
+      "sources": [
+        [
+          "ERPNext · item_price.json",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/stock/doctype/item_price/item_price.json#L111-L180"
+        ]
+      ]
     },
     {
       "id": "consignment",
       "en": "Consignment",
       "zh": "寄售",
       "category": "B2B2C 合作與商品",
-      "definition": "供應商委託合作方代售，按約定的實銷數量結算，並約定未售商品如何退回。",
-      "example": "寄出 100 台咖啡機到通路倉，月底售出 12 台。依實銷合約，先核對 12 台應付貨款與 88 台存貨。"
+      "definition": "Odoo 把寄售描述為供應商將商品放在另一家公司倉庫銷售，收貨方無須先買下商品。",
+      "example": "收貨時依文件設定 Assign Owner，並讓貨主與 Receive From 的供應商一致。",
+      "sources": [
+        [
+          "Odoo · owned_stock.rst",
+          "https://github.com/odoo/documentation/blob/a394faae5aa5baec38dfb6e3db3e22b8d4b923af/content/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations/owned_stock.rst#L3-L45"
+        ]
+      ]
     },
     {
       "id": "product-variant",
       "en": "Product Variant",
       "zh": "商品規格款式",
       "category": "B2B2C 合作與商品",
-      "definition": "同一商品由顏色、尺寸或容量等屬性組合形成的可選款式。",
-      "example": "同款咖啡機有黑、白兩色，各自有 SKU 和庫存。黑色缺貨時仍可接受白色訂單。"
+      "definition": "Saleor 的 ProductVariant 是隸屬某項商品的款式，可有自己的名稱、SKU 與庫存追蹤設定。",
+      "example": "資料模型在款式上保存 SKU；有填寫的 SKU 受唯一性約束。",
+      "sources": [
+        [
+          "Saleor · models.py",
+          "https://github.com/saleor/saleor/blob/e1ccf4d580025b06c2ff01441a1e798dc4635f24/saleor/product/models.py#L362-L378"
+        ]
+      ]
     },
     {
       "id": "channel-sku-mapping",
-      "en": "Channel SKU Mapping",
-      "zh": "通路貨號對照",
+      "en": "Customer Item Code",
+      "zh": "客戶貨號對照",
       "category": "B2B2C 合作與商品",
-      "definition": "保存通路貨號與平台 SKU 的對應關係，供接單、庫存更新與退貨時辨識同一品項。",
-      "example": "福利網傳來 W-88，平台對應到白色咖啡機 CM-W。另一通路也使用 W-88，查找時須包含通路識別碼。"
+      "definition": "ERPNext 可依交易客戶取得對方使用的品號，填入單據的客戶貨號欄位。",
+      "example": "取得商品資料時，程式先比對 customer_name，找到對應紀錄後，把 ref_code 帶入 customer_item_code。",
+      "sources": [
+        [
+          "ERPNext · get_item_details.py",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/stock/get_item_details.py#L1713-L1726"
+        ]
+      ]
     },
     {
       "id": "promotion-eligibility",
       "en": "Promotion Eligibility",
       "zh": "促銷適用條件",
       "category": "B2B2C 價格與促銷",
-      "definition": "判斷訂單或明細能否參加優惠的條件，如通路、商品、會員身分及活動期間。",
-      "example": "福利網滿千折百，排除禮券。購物車中咖啡機 900 元、禮券 200 元，可計入金額只有 900 元。"
+      "definition": "Saleor 的 PromotionRule 可限定通路，並分開保存商品目錄條件與訂單條件。",
+      "example": "查看規則時，channels 可查適用通路，catalogue_predicate 與 order_predicate 則分別記錄兩類條件。",
+      "sources": [
+        [
+          "Saleor · models.py",
+          "https://github.com/saleor/saleor/blob/e1ccf4d580025b06c2ff01441a1e798dc4635f24/saleor/discount/models.py#L423-L453"
+        ]
+      ]
     },
     {
       "id": "promotion-stacking",
       "en": "Promotion Stacking",
       "zh": "優惠併用",
       "category": "B2B2C 價格與促銷",
-      "definition": "多項優惠同時符合時，依活動規則決定能否並用、套用順序與折扣上限。",
-      "example": "商品先打九折再減 100 元，原價 1,000 元成交為 800 元。若活動只准擇優，這兩項單獨都折 100 元。"
+      "definition": "ERPNext 的定價規則可以啟用多規則併用，是否按已折價格計算會影響結果。",
+      "example": "兩個測試都使用 20% 與 10% 折扣。直接合併得到 30%；第二條改按折後價計算，結果為 28%。",
+      "sources": [
+        [
+          "ERPNext · test_pricing_rule.py",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/accounts/doctype/pricing_rule/test_pricing_rule.py#L789-L837"
+        ]
+      ]
     },
     {
       "id": "discount-allocation",
       "en": "Discount Allocation",
       "zh": "折扣分攤",
       "category": "B2B2C 價格與促銷",
-      "definition": "把整單折扣依指定基準分配到明細，使部分退貨、對帳與結算能沿用成交時的折扣。",
-      "example": "兩件商品原價 600 與 400 元，整單折 100 元並按原價比例分攤。單退第一件時，依此案例的規則退 540 元。"
-    },
-    {
-      "id": "promotion-funding",
-      "en": "Promotion Funding",
-      "zh": "促銷費用分擔",
-      "category": "B2B2C 價格與促銷",
-      "definition": "約定折扣由供應商、平台或通路各自負擔多少，作為合作方結算依據。",
-      "example": "消費者折 100 元，通路補貼 60 元、供應商負擔 40 元。結算時供應商的扣項只計 40 元。"
+      "definition": "ERPNext 把單據折扣按明細淨額占折扣計算基礎的比例分配，再處理金額精度造成的差額。",
+      "example": "程式逐列更新 net_amount 與 distributed_discount_amount，遇到累計捨入差額時也會調整該列的折扣。",
+      "sources": [
+        [
+          "ERPNext · taxes_and_totals.py",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/controllers/taxes_and_totals.py#L1076-L1118"
+        ]
+      ]
     },
     {
       "id": "loyalty-redemption",
       "en": "Loyalty Points Redemption",
       "zh": "點數折抵",
       "category": "B2B2C 價格與促銷",
-      "definition": "按活動兌換比例與上限，使用會員點數支付訂單的部分金額。",
-      "example": "一張 1,000 元訂單以 100 點抵 100 元、刷卡 900 元。取消時依活動規則分別處理退點與退刷。"
+      "definition": "ERPNext 可將購物車訂單上的點數及折抵金額帶入銷售發票。",
+      "example": "測試訂單使用 50 點，折抵金額為 50。由訂單產生發票後，測試分別核對點數、金額與會員方案。",
+      "sources": [
+        [
+          "ERPNext · test_sales_invoice.py",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/accounts/doctype/sales_invoice/test_sales_invoice.py#L5788-L5823"
+        ]
+      ]
     },
     {
       "id": "available-to-promise",
       "en": "Available to Promise (ATP)",
       "zh": "可承諾量",
       "category": "B2B2C 庫存與通路接單",
-      "definition": "依指定交付日期，根據庫存、既有承諾及可納入的預計到貨，計算還能承諾給客戶的數量。",
-      "example": "今天現貨 10 台，已預留 4 台，另保留安全量 2 台，今天可承諾 4 台。下週才到的貨不能拿來承諾今天出貨。"
-    },
-    {
-      "id": "channel-allocation",
-      "en": "Channel Inventory Allocation",
-      "zh": "通路庫存配額",
-      "category": "B2B2C 庫存與通路接單",
-      "definition": "把一部分可售庫存分配給特定通路，限制各通路接受訂單的數量。",
-      "example": "總量 20 台，App 配 12 台、福利網配 8 台。福利網售罄後，是否可用 App 的餘量取決於調撥規則。"
+      "definition": "OCA 的 stock_available 模組以預計庫存為基礎計算商品可承諾量，並開放企業選擇納入哪些因素。",
+      "example": "設定可納入銷售報價或即時生產能力；計算生產能力時，可選擇依據的欄位，預設為在手量。",
+      "sources": [
+        [
+          "OCA Stock Availability · DESCRIPTION.md",
+          "https://github.com/OCA/stock-logistics-availability/blob/9358076ef4fe42ce56fed79abf1abbdf6d939716/stock_available/readme/DESCRIPTION.md#L1-L7"
+        ]
+      ]
     },
     {
       "id": "backorder",
       "en": "Backorder",
       "zh": "缺貨待補訂單",
       "category": "B2B2C 庫存與通路接單",
-      "definition": "現貨不足時，仍接受客戶訂購並安排補貨後交付。",
-      "example": "福利網願意讓客人等七天，就先記錄承諾日期；若該通路只賣現貨，同一 SKU 應顯示售罄。"
+      "definition": "在 Odoo 的庫存作業中，確認作業時尚未履行的數量可轉入後續補交單。",
+      "example": "Create Backorder 有三種設定：詢問是否建立、自動建立，或取消剩餘數量。",
+      "sources": [
+        [
+          "Odoo · operation_type.rst",
+          "https://github.com/odoo/documentation/blob/a394faae5aa5baec38dfb6e3db3e22b8d4b923af/content/applications/inventory_and_mrp/inventory/warehouses_storage/inventory_management/operation_type.rst#L30-L38"
+        ]
+      ]
     },
     {
       "id": "channel-order",
       "en": "Channel Order",
       "zh": "通路訂單",
       "category": "B2B2C 庫存與通路接單",
-      "definition": "由銷售通路建立並傳交平台處理的訂單，須保留原通路、外部訂單號與通路明細號。",
-      "example": "App 在逾時後重傳訂單 42。平台用通路與外部訂單號找回既有訂單，退單時仍可對應原通路明細。"
+      "definition": "Saleor 在訂單上記錄所屬的銷售通路。",
+      "example": "Order.channel 指向 Channel，通路端可透過 orders 關聯找到所屬訂單。",
+      "sources": [
+        [
+          "Saleor · models.py",
+          "https://github.com/saleor/saleor/blob/e1ccf4d580025b06c2ff01441a1e798dc4635f24/saleor/order/models.py#L189-L199"
+        ]
+      ]
     },
     {
       "id": "split-order",
       "en": "Order Splitting",
       "zh": "訂單拆分",
       "category": "B2B2C 履約與配送",
-      "definition": "將一筆消費者訂單依供應商、倉別或履約方式拆成可獨立作業的子單。",
-      "example": "一張訂單含餐券與咖啡機。平台拆為發券子單與宅配子單，咖啡機缺貨時仍能查到已發出的券。"
+      "definition": "Mercur 將含有多個賣家商品的購物車，按賣家拆成各自的訂單。",
+      "example": "消費者以同一個購物車結帳；拆分的依據是商品所屬賣家。",
+      "sources": [
+        [
+          "Mercur · PRODUCT.md",
+          "https://github.com/mercurjs/mercur/blob/752e3d6ee73e437d9250bab907afe9d5d86f5757/docs/PRODUCT.md#L40-L48"
+        ]
+      ]
     },
     {
       "id": "drop-shipping",
       "en": "Drop Shipping",
       "zh": "供應商直送",
       "category": "B2B2C 履約與配送",
-      "definition": "通路接單後由供應商直接出貨給消費者，平台或通路負責交換訂單、物流與售後資訊。",
-      "example": "品牌倉直接寄出咖啡機，旅遊 App 仍是消費者的訂單查詢入口。平台用履約子單把物流單號回傳給 App。"
+      "definition": "ERPNext 用銷售訂單明細標示由供應商直送的商品，並以該明細建立採購單。",
+      "example": "同張測試訂單含直送品和一般品。測試核對採購單只有直送品，從倉庫開立的交貨單則列一般品。",
+      "sources": [
+        [
+          "ERPNext · test_sales_order.py",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/selling/doctype/sales_order/test_sales_order.py#L2140-L2188"
+        ]
+      ]
     },
     {
       "id": "partial-shipment",
       "en": "Partial Shipment",
       "zh": "分批出貨",
       "category": "B2B2C 履約與配送",
-      "definition": "同一筆訂購數量分成多批寄出，各批有自己的內容、數量與物流進度。",
-      "example": "訂三箱耗材，今天先寄兩箱，明天寄一箱。首批的物流單號只能證明兩箱已交寄。"
-    },
-    {
-      "id": "proof-of-delivery",
-      "en": "Proof of Delivery (POD)",
-      "zh": "交付證明",
-      "category": "B2B2C 履約與配送",
-      "definition": "用以確認貨件於何時、何地及以何種方式完成交付的紀錄。",
-      "example": "宅配系統回傳簽收時間與貨件號。若訂單有兩件包裹，客服應按貨件核對，避免將一件簽收解讀成整單到齊。"
+      "definition": "Saleor 在訂單明細分別記錄訂購量與已履約量，履約明細另記該次完成的數量。",
+      "example": "退換貨測試先建立訂購 5 件、已履約 2 件的明細，並在履約紀錄登記該 2 件。",
+      "sources": [
+        [
+          "Saleor · test_fulfillment_return_products.py",
+          "https://github.com/saleor/saleor/blob/e1ccf4d580025b06c2ff01441a1e798dc4635f24/saleor/graphql/order/tests/mutations/test_fulfillment_return_products.py#L1094-L1117"
+        ]
+      ]
     },
     {
       "id": "return-authorization",
       "en": "Return Merchandise Authorization (RMA)",
       "zh": "退貨授權",
       "category": "B2B2C 售後與結算",
-      "definition": "受理退貨申請後，識別可退的訂單明細、數量、退回目的地與後續處理方式。",
-      "example": "客人訂兩台只退一台。客服建立一件的退貨單並提供指定倉地址，倉庫據此點收。"
+      "definition": "OCA RMA 模組用退貨授權單記錄合作方、產品及數量，並連到倉庫收件作業。",
+      "example": "使用者確認 RMA 後可開啟 Receipt，倉庫驗收完成後，回到授權單可看到 received 狀態。",
+      "sources": [
+        [
+          "OCA RMA · USAGE.md",
+          "https://github.com/OCA/rma/blob/4e5260dffca266529a82ef02bba4658e762716ef/rma/readme/USAGE.md#L1-L18"
+        ]
+      ]
     },
     {
       "id": "reverse-logistics",
       "en": "Reverse Logistics",
       "zh": "逆物流",
       "category": "B2B2C 售後與結算",
-      "definition": "讓商品從消費者端回到供應商、平台倉或維修點的取件、運輸與點收流程。",
-      "example": "物流已到府取件，供應商尚未入庫驗收。客服可以分開查取件、簽收與驗收，依約定時點啟動退款。"
+      "definition": "Odoo 可從已驗證的交貨單建立反向移轉，登記客戶退回倉庫的商品。",
+      "example": "建立退貨時可修改退回數量或移除某項商品；確認後會產生一筆入庫作業。",
+      "sources": [
+        [
+          "Odoo · returns.rst",
+          "https://github.com/odoo/documentation/blob/a394faae5aa5baec38dfb6e3db3e22b8d4b923af/content/applications/sales/sales/products_prices/returns.rst#L12-L48"
+        ]
+      ]
     },
     {
       "id": "exchange-order",
       "en": "Exchange Order",
       "zh": "換貨單",
       "category": "B2B2C 售後與結算",
-      "definition": "以原訂單明細為依據，追蹤收回舊品與交付替代品的售後單據。",
-      "example": "白色咖啡機有瑕疵，客人要求換同款。平台分別追蹤舊機取件與新機出貨，並先確認替換庫存。"
+      "definition": "Saleor 的退換貨流程可對明細指定 replace，並建立另一張換貨訂單。",
+      "example": "測試將相關明細指定為換貨後，斷言訂單總數增加一筆、換貨單與原單 ID 不同，且沒有發出退款事件。",
+      "sources": [
+        [
+          "Saleor · test_fulfillment_return_products.py",
+          "https://github.com/saleor/saleor/blob/e1ccf4d580025b06c2ff01441a1e798dc4635f24/saleor/graphql/order/tests/mutations/test_fulfillment_return_products.py#L1120-L1150"
+        ]
+      ]
     },
     {
       "id": "settlement-cycle",
-      "en": "Settlement Cycle",
-      "zh": "結算週期",
+      "en": "Commission Settlement Period",
+      "zh": "佣金結算週期",
       "category": "B2B2C 售後與結算",
-      "definition": "買賣雙方約定依特定時區、截止日與業務事件，把交易歸入某一期結算。",
-      "example": "合約採簽收月結。6 月 30 日下單、7 月 2 日簽收的咖啡機列入七月；餐券若採核銷月結，則看核銷日期。"
+      "definition": "OCA Commission 依代理人的佣金結算設定，決定某日期落在哪個結算期間。",
+      "example": "月結期間從每月 1 日開始；半月結依日期從 1 日或 16 日開始。",
+      "sources": [
+        [
+          "OCA Commission · commission_make_settle.py",
+          "https://github.com/OCA/commission/blob/82e5e2cd2e1c8db1455b28f4a9a881f1d99bd006/commission_oca/wizards/commission_make_settle.py#L32-L52"
+        ]
+      ]
     },
     {
       "id": "settlement-adjustment",
       "en": "Settlement Adjustment",
       "zh": "結算調整",
       "category": "B2B2C 售後與結算",
-      "definition": "透過連回原交易的加項或減項，記錄已結算交易後續發生的退貨、補貼差額或人工更正。",
-      "example": "六月已結算的咖啡機七月退貨。七月明細新增負向調整，保留六月結算單號與退貨單號，方便供應商查帳。"
+      "definition": "Mercur 的 Stripe 結算可納入借方與貸方調整，並分別彙總調整淨額和沖回金額。",
+      "example": "同一個測試中，借方 29 與貸方 5 合計為 −24；另外一筆沖回 54 列在 reversals_total。",
+      "sources": [
+        [
+          "Mercur · settlement-builder.unit.spec.ts",
+          "https://github.com/mercurjs/mercur/blob/752e3d6ee73e437d9250bab907afe9d5d86f5757/packages/plugins/stripe-connector/src/workflows/settlements/utils/__tests__/settlement-builder.unit.spec.ts#L15-L37"
+        ]
+      ]
     },
     {
       "id": "supplier-payout",
       "en": "Supplier Payout",
       "zh": "供應商撥款",
       "category": "B2B2C 售後與結算",
-      "definition": "依已核准的應付金額實際向供應商付款，並以撥款編號追蹤成功、退匯或待確認狀態。",
-      "example": "月結單核准 6,800 元，銀行退匯。該期金額已結算但尚未付清；補正帳戶資料後，新的撥款紀錄仍連回同一張結算單。"
+      "definition": "Mercur 按賣家訂單建立撥款，考慮佣金以及撥款前已發生的退款。",
+      "example": "產品文件列出三種暫緩原因：收款帳戶未啟用、尚未履約、付款尚未請款。再次執行撥款流程時會重新判斷。",
+      "sources": [
+        [
+          "Mercur · PRODUCT.md",
+          "https://github.com/mercurjs/mercur/blob/752e3d6ee73e437d9250bab907afe9d5d86f5757/docs/PRODUCT.md#L31-L38"
+        ]
+      ]
     }
   ],
   "relations": [
@@ -587,14 +677,6 @@
       "channel-listing"
     ],
     [
-      "distribution-agreement",
-      "sales-channel"
-    ],
-    [
-      "distribution-agreement",
-      "channel-listing"
-    ],
-    [
       "wholesale-price",
       "channel-pricing"
     ],
@@ -651,14 +733,6 @@
       "refund"
     ],
     [
-      "promotion-funding",
-      "discount-allocation"
-    ],
-    [
-      "promotion-funding",
-      "supplier-settlement"
-    ],
-    [
       "loyalty-redemption",
       "refund"
     ],
@@ -669,14 +743,6 @@
     [
       "available-to-promise",
       "inventory-reservation"
-    ],
-    [
-      "channel-allocation",
-      "available-to-promise"
-    ],
-    [
-      "channel-allocation",
-      "sales-channel"
     ],
     [
       "backorder",
@@ -723,10 +789,6 @@
       "backorder"
     ],
     [
-      "proof-of-delivery",
-      "partial-shipment"
-    ],
-    [
       "return-authorization",
       "channel-order"
     ],
@@ -756,10 +818,6 @@
     ],
     [
       "settlement-cycle",
-      "proof-of-delivery"
-    ],
-    [
-      "settlement-cycle",
       "voucher-redemption"
     ],
     [
@@ -771,24 +829,12 @@
       "return-authorization"
     ],
     [
-      "settlement-adjustment",
-      "promotion-funding"
-    ],
-    [
       "supplier-payout",
       "supplier-settlement"
     ],
     [
       "supplier-payout",
       "payment-reconciliation"
-    ],
-    [
-      "b2b2c",
-      "distribution-agreement"
-    ],
-    [
-      "b2b2c",
-      "promotion-funding"
     ],
     [
       "b2b2c",

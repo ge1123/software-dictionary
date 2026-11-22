@@ -2,6 +2,10 @@ import { createApp, computed, watch, onUnmounted, ref } from 'vue/dist/vue.esm-b
 import { resolveEntryId, relatedTerms, domains, plannedTopics, terms } from './terms.js';
 import './style.css';
 
+const withdrawnEntries = new Set([
+  'commerce/distribution-agreement', 'commerce/channel-allocation',
+  'commerce/proof-of-delivery', 'commerce/promotion-funding'
+]);
 const sorted = [...terms].sort((a, b) => a.en.localeCompare(b.en, 'en'));
 createApp({
   setup() {
@@ -9,6 +13,7 @@ createApp({
     const category = ref('全部');
     const slug = ref(resolveEntryId(location.hash.slice(1)));
     const title = ref(null);
+    const withdrawn = computed(() => withdrawnEntries.has(slug.value));
     const selected = computed(() => terms.find(term => term.id === slug.value));
     const domain = computed(() => domains.find(item =>
       selected.value?.domain === item.id || slug.value === '/topics/' + item.id
@@ -44,6 +49,6 @@ createApp({
       document.title = (term?.en ?? topic?.name ?? '主題索引') + ' · Software Dictionary';
     }, { immediate: true });
     const related = computed(() => relatedTerms(slug.value));
-    return { domains, plannedTopics, domain, related, query, category, categories, filtered, reset, selected, title };
+    return { withdrawn, domains, plannedTopics, domain, related, query, category, categories, filtered, reset, selected, title };
   }
 }).mount('#app');

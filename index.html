@@ -17,7 +17,7 @@
           <dt>{{ name }}</dt><dd>{{ meaning }}</dd>
         </template>
       </dl>
-      <h2>使用情境</h2>
+      <h2>{{ selected.sources ? "專案實例" : "使用情境" }}</h2>
       <p>{{ selected.example }}</p>
       <template v-if="selected.practice">
         <h2>技術原理</h2><p>{{ selected.practice.principle }}</p>
@@ -36,6 +36,10 @@
         <h2>參考文件</h2>
         <ul class="references"><li v-for="[name, url] in selected.practice.sources" :key="url"><a :href="url">{{ name }}</a></li></ul>
       </template>
+      <template v-if="selected.sources">
+        <h2>開源專案依據</h2>
+        <ul class="references"><li v-for="[name, url] in selected.sources" :key="url"><a :href="url">{{ name }}</a></li></ul>
+      </template>
       <section v-if="selected.scale">
         <h2>大量資料時的取捨</h2>
         <dl>
@@ -50,6 +54,11 @@
           <li v-for="term in related" :key="term.id"><a :href="'#'+term.id">{{ term.en }} · {{ term.zh }}</a></li>
         </ul>
       </template>
+    </section>
+    <section v-else-if="withdrawn" class="detail">
+      <a href="#/topics/commerce" class="back">← 電商業務詞條清單</a>
+      <h1 tabindex="-1" ref="title">詞條已撤下</h1>
+      <p>此詞條原有的業務規則尚缺可核對的開源專案依據。</p>
     </section>
     <section v-else-if="domain" class="term-list">
       <a href="#" class="back">← 主題索引</a>

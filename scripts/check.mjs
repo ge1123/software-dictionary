@@ -46,3 +46,11 @@ for (const { id, scale } of terms) {
   if (scale === undefined) continue;
   for (const key of ['benefit', 'cost', 'measure']) assert.ok(scale?.[key]?.trim(), id);
 }
+
+for (const term of terms.filter(t => t.domain === 'commerce' && t.category.startsWith('B2B2C'))) {
+  assert.ok(Array.isArray(term.sources) && term.sources.length > 0, term.id);
+  for (const [name, url] of term.sources) {
+    assert.ok(name.trim(), term.id);
+    assert.match(url, /^https:\/\/github\.com\/[^/]+\/[^/]+\/blob\/[0-9a-f]{40}\/.+#L\d+(?:-L\d+)?$/, term.id);
+  }
+}

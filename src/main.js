@@ -24,6 +24,7 @@ createApp({
       return group ? domainTerms.value.filter(term => term.comparison?.group === group) : [];
     });
     const questions = computed(() => domainTerms.value.filter(term => term.lookupQuestion));
+    const modelCases = computed(() => domainTerms.value.filter(term => term.modelCase));
     const categories = computed(() => ['全部', ...new Set(domainTerms.value.map(term => term.category))]);
     const filtered = computed(() => {
       const text = query.value.trim().toLowerCase();
@@ -54,6 +55,6 @@ createApp({
       document.title = (term?.en ?? topic?.name ?? '主題索引') + ' · Software Dictionary';
     }, { immediate: true });
     const related = computed(() => relatedTerms(slug.value));
-    return { questions, comparison, withdrawn, domains, plannedTopics, domain, related, query, category, categories, filtered, reset, selected, title };
+    return { modelCases, questions, comparison, withdrawn, domains, plannedTopics, domain, related, query, category, categories, filtered, reset, selected, title };
   }
 }).mount('#app');

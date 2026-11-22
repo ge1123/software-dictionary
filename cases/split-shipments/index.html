@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>分批出貨的資料模型 · Software Dictionary</title>
+  <link rel="stylesheet" href="../../src/style.css">
+  <link rel="stylesheet" href="../case.css">
+</head>
+<body>
+  <header><a href="../../"><b>Software Dictionary</b></a><a href="https://github.com/ge1123/software-dictionary">GitHub ↗</a></header>
+  <main class="model-case">
+    <a class="back" href="../../#commerce/partial-shipment">← 分批出貨詞條</a>
+    <p class="case-kind">資料模型案例 · PostgreSQL 設計實驗</p>
+    <h1>一筆訂單明細分兩次寄，怎麼查每包寄了幾件？</h1>
+    <p>訂單 <code>100</code> 買了 3 件衣服、2 支牙刷。兩家供應商都有足夠庫存。服飾商先寄 2 件衣服，日用品商寄出 2 支牙刷，服飾商再寄最後 1 件衣服。客服拿著第一包的物流號，想知道裡面裝了幾件。</p>
+
+    <h2>同一張訂單，兩種記法</h2>
+    <div class="case-compare">
+      <section>
+        <h3>A · 累計數量與最後物流號</h3>
+        <p>每寄一批就更新 <code>order_line</code>。只查目前進度時，讀取該筆明細就能知道剩幾件；同一明細再次出貨時，先前的物流號會被覆寫。</p>
+      </section>
+      <section>
+        <h3>B · 出貨單與出貨明細</h3>
+        <p>每批建立一張 <code>shipment</code>，用 <code>shipment_item</code> 記下各明細這次寄出的數量。可以逐包追溯，寫入時要一併維護明細與累計數。</p>
+      </section>
+    </div>
+    <div class="data-scroll" tabindex="0" role="region" aria-label="方案 A 出貨摘要">
+      <table>
+        <caption>方案 A · 衣服明細在兩個時間點的值</caption>
+        <thead><tr><th>時間點</th><th>line_id</th><th>shipped_qty</th><th>last_tracking_no</th></tr></thead>
+        <tbody>
+          <tr><td>第一批寄出後</td><td>1</td><td>2</td><td>CLOTH-01</td></tr>
+          <tr><td>第三批寄出後</td><td>1</td><td>3</td><td>CLOTH-02</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>這兩列是同一筆資料在不同時間的快照。最後只看得到累計 3 件；即使知道最後一個物流號，也無法從這列還原第一包寄了幾件。</p>
+
+    <h2>方案 B 的 ER 圖</h2>
+    <figure>
+      <div class="er-scroll" tabindex="0" role="region" aria-label="分批出貨 ER 圖">
+        <img src="./model.svg" width="540" height="495" alt="orders 分別連到 order_line 和 shipment，兩者再連到 shipment_item。每筆出貨明細只對應一張出貨單與一筆訂單明細。">
+      </div>
+      <figcaption>一張訂單可有零到多筆明細，也可分成零到多張出貨單。圖中保留四張核心表；完整模型另有商品與供應商表。PK 表示主鍵，FK 表示外鍵。</figcaption>
+    </figure>
+    <div class="data-scroll" tabindex="0" role="region" aria-label="方案 B 的逐批資料">
+      <table>
+        <caption>方案 B · 訂單 100 三批寄完後的查詢結果</caption>
+        <thead><tr><th>物流號</th><th>shipment_id</th><th>line_id</th><th>商品</th><th>本批 qty</th></tr></thead>
+        <tbody>
+          <tr><td>CLOTH-01</td><td>1</td><td>1</td><td>衣服</td><td>2</td></tr>
+          <tr><td>BRUSH-01</td><td>2</td><td>2</td><td>牙刷</td><td>2</td></tr>
+          <tr><td>CLOTH-02</td><td>3</td><td>1</td><td>衣服</td><td>1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>第一包 CLOTH-01 寄了 2 件衣服。</strong>沿著 <code>line_id = 1</code> 還能找到第三包的 1 件；兩筆相加，正好等於衣服明細的累計出貨數 3。</p>
+    <details>
+      <summary>看 SQL · 用物流號查第一包</summary>
+      <pre tabindex="0"><code>SELECT s.tracking_no, i.line_id, i.qty
+FROM lab06_b.shipment AS s
+JOIN lab06_b.shipment_item AS i
+  USING (shipment_id, order_id, supplier_id)
+WHERE s.tracking_no = 'CLOTH-01';</code></pre>
+      <p>在三次出貨完成後、實驗結尾回滾前執行，結果為 <code>CLOTH-01 | 1 | 2</code>。</p>
+    </details>
+
+    <h2>哪一層擋下錯誤？</h2>
+    <dl>
+      <dt>把牙刷放到服飾商的包裹</dt>
+      <dd><code>shipment_item</code> 用 <code>(shipment_id, order_id, supplier_id)</code> 對出貨單，用 <code>(line_id, order_id, supplier_id)</code> 對訂單明細。兩個複合外鍵共用訂單與供應商欄位。配錯供應商或配到另一張訂單，新增明細就會失敗。</dd>
+      <dt>衣服只訂 3 件，卻想寄第 4 件</dt>
+      <dd><code>allocate()</code> 先以 <code>shipped_qty + p_qty &lt;= ordered_qty</code> 為條件更新累計數，成功後才新增出貨明細。若明細寫入失敗，這次更新也會回滾。直接繞過函式修改數量，摘要與明細仍可能失去一致性。</dd>
+      <dt>兩個人同時按出貨</dt>
+      <dd>雙連線實驗另用訂單 200，訂購數量為 10。連線 A 配置 7 件但尚未提交，連線 B 要配置 6 件就會等待。A 提交後，B 因剩餘數量不足被拒絕。實測兩邊都結束後，累計出貨與明細加總都是 7。</dd>
+    </dl>
+    <p>本例假設一個 SKU 由一家供應商履約。若同一個 SKU 要由多家供應商分攤，就要另外記錄每家獲配的數量。物流簽收與庫存扣減也各有自己的紀錄。</p>
+
+    <h2>相關詞條</h2>
+    <ul class="references">
+      <li>同一筆明細如何記錄已交數量？ <a href="../../#commerce/partial-shipment">分批出貨</a></li>
+      <li>為什麼跨表要一起比對訂單和供應商？ <a href="../../#foreign-key">外鍵</a></li>
+      <li>兩筆更新競爭剩餘數量時，要怎麼限制寫入？ <a href="../../#conditional-update">條件式更新</a></li>
+    </ul>
+    <h2>設計實驗來源</h2>
+    <p>改編自 research-schema-design 第 06 章。以上為該章的兩種設計；詞條中的 Saleor 專案實例可由「分批出貨」另行查閱。</p>
+    <ul class="references">
+      <li><a href="https://github.com/ge1123/research-schema-design/blob/1074f9176e7342880756c957f5d56860cd2defb9/06-split-shipments/README.md">第 06 章 · 完整 ER 圖、資料與設計取捨</a></li>
+      <li><a href="https://github.com/ge1123/research-schema-design/blob/1074f9176e7342880756c957f5d56860cd2defb9/06-split-shipments/lab.sql#L24-L85">PostgreSQL · 資料表、複合外鍵與 allocate 函式</a></li>
+      <li><a href="https://github.com/ge1123/research-schema-design/blob/1074f9176e7342880756c957f5d56860cd2defb9/06-split-shipments/lab.sql#L104-L173">PostgreSQL · 三批出貨與錯配、超量測試</a></li>
+    </ul>
+  </main>
+</body>
+</html>

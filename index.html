@@ -19,6 +19,10 @@
       </dl>
       <h2>{{ selected.sources ? "專案實例" : "使用情境" }}</h2>
       <p>{{ selected.example }}</p>
+      <section v-if="selected.modelCase" class="question-list">
+        <h2>資料模型案例</h2>
+        <a :href="'./cases/'+selected.modelCase.id+'/'">{{ selected.modelCase.title }}</a>
+      </section>
       <section v-if="comparison.length" class="comparison">
         <h2>容易混淆的詞</h2>
         <dl>
@@ -79,6 +83,10 @@
         <ul>
           <li v-for="term in questions" :key="term.id"><a :href="'#'+term.id">{{ term.lookupQuestion }}</a></li>
         </ul>
+      </section>
+      <section v-if="modelCases.length" class="question-list">
+        <h2>資料模型案例</h2>
+        <ul><li v-for="term in modelCases" :key="term.id"><a :href="'./cases/'+term.modelCase.id+'/'">{{ term.modelCase.title }}</a></li></ul>
       </section>
       <input type="search" v-model="query" aria-label="搜尋詞條" placeholder="搜尋英文名詞、中文名稱或關鍵字…">
       <nav aria-label="詞條分類">

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { domains, relations, relatedTerms, terms } from '../src/terms.js';
 const slug = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 assert.equal(new Set(domains.map(domain => domain.id)).size, domains.length);
@@ -9,6 +10,11 @@ for (const domain of domains) {
   const questions = new Set();
   const groupSizes = new Map();
   for (const term of domain.terms) {
+    if (term.modelCase) {
+      const { id, title } = term.modelCase;
+      assert.match(id, slug);
+      assert.ok(title.trim() && existsSync(new URL('../cases/' + id + '/index.html', import.meta.url)), term.id);
+    }
     if (term.lookupQuestion !== undefined) {
       const question = term.lookupQuestion.trim();
       assert.ok(question && !questions.has(question), term.id);

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 495" role="img" aria-labelledby="title desc">
+  <title id="title">分批出貨的四張核心資料表</title>
+  <desc id="desc">每張訂單可有多筆訂單明細及出貨單。每筆出貨明細對應一張出貨單及一筆訂單明細，兩端都需符合相同的訂單及供應商。</desc>
+  <style>
+    .box { fill:#fffef8; stroke:#83988c; }
+    .rule { fill:none; stroke:#426451; stroke-width:1.5; }
+    .heading { font: bold 17px monospace; fill:#254d3d; }
+    .field { font: 14px monospace; fill:#263b30; }
+    .key { font: bold 12px monospace; fill:#456b52; text-anchor:end; }
+    .number { font: bold 13px monospace; fill:#355a45; }
+  </style>
+  <g class="rule"><path d="M205 70 V90 H136 V125 M335 70 V90 H404 V125 M136 291 V326 H205 V355 M404 291 V326 H335 V355"/></g>
+  <g class="number">
+    <text x="186" y="85">1</text><text x="344" y="85">1</text>
+    <text x="94" y="119">0..N</text><text x="411" y="119">0..N</text>
+    <text x="118" y="311">1</text><text x="412" y="311">1</text>
+    <text x="163" y="350">0..N</text><text x="341" y="350">0..N</text>
+  </g>
+  <g transform="translate(151 5)">
+    <rect class="box" width="238" height="65" rx="5"/>
+    <text class="heading" x="12" y="24">orders</text><path class="rule" d="M0 33H238"/>
+    <text class="field" x="12" y="53">order_id</text><text class="key" x="226" y="53">PK</text>
+  </g>
+  <g transform="translate(10 125)">
+    <rect class="box" width="252" height="166" rx="5"/>
+    <text class="heading" x="12" y="23">order_line</text><path class="rule" d="M0 33H252"/>
+    <text class="field" x="12" y="54">line_id</text><text class="key" x="239" y="54">PK</text>
+    <text class="field" x="12" y="74">order_id</text><text class="key" x="239" y="74">FK</text>
+    <text class="field" x="12" y="94">sku_id, supplier_id</text>
+    <text class="field" x="12" y="120">ordered_qty</text>
+    <text class="field" x="12" y="142">shipped_qty</text>
+  </g>
+  <g transform="translate(278 125)">
+    <rect class="box" width="252" height="166" rx="5"/>
+    <text class="heading" x="12" y="23">shipment</text><path class="rule" d="M0 33H252"/>
+    <text class="field" x="12" y="54">shipment_id</text><text class="key" x="239" y="54">PK</text>
+    <text class="field" x="12" y="74">order_id</text><text class="key" x="239" y="74">FK</text>
+    <text class="field" x="12" y="94">supplier_id</text>
+    <text class="field" x="12" y="120">tracking_no</text><text class="key" x="239" y="120">UNIQUE</text>
+  </g>
+  <g transform="translate(138 355)">
+    <rect class="box" width="264" height="132" rx="5"/>
+    <text class="heading" x="12" y="23">shipment_item</text><path class="rule" d="M0 33H264"/>
+    <text class="field" x="12" y="54">shipment_id, line_id</text><text class="key" x="252" y="54">PK</text>
+    <text class="field" x="12" y="81">order_id, supplier_id</text>
+    <text class="field" x="12" y="109">qty</text>
+  </g>
+</svg>

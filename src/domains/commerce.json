@@ -478,7 +478,11 @@
           "Saleor · test_fulfillment_return_products.py",
           "https://github.com/saleor/saleor/blob/e1ccf4d580025b06c2ff01441a1e798dc4635f24/saleor/graphql/order/tests/mutations/test_fulfillment_return_products.py#L1094-L1117"
         ]
-      ]
+      ],
+      "modelCase": {
+        "id": "split-shipments",
+        "title": "一筆訂單明細分兩次寄，怎麼查每包寄了幾件？"
+      }
     },
     {
       "id": "return-authorization",

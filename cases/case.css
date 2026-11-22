@@ -1,0 +1,21 @@
+.model-case { max-width: 54rem; line-height: 1.7; padding-block: 1.5rem 3rem; }
+.model-case h1 { margin: .3rem 0 .8rem; font-size: clamp(1.45rem, 3vw, 2rem); line-height: 1.35; letter-spacing: normal; }
+.model-case h2 { margin: 2rem 0 .55rem; font: 700 1.15rem system-ui, sans-serif; }
+.model-case h3 { margin: 0 0 .35rem; font-size: 1rem; }
+.model-case p { margin: .55rem 0; }
+.model-case .case-kind { margin: 1.5rem 0 0; color: #37664d; font-size: .82rem; }
+.case-compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1rem; }
+.case-compare section { border-inline-start: 3px solid #97b19c; background: #edf2e9; padding: .75rem 1rem; }
+.model-case figure { margin: .75rem 0 1rem; }
+.er-scroll, .data-scroll, .model-case pre { overflow-x: auto; }
+.er-scroll { background: #fffef8; border: 1px solid #ced6ca; border-radius: 5px; padding: .5rem; }
+.er-scroll img { display: block; width: min(100%, 36rem); min-width: 28rem; height: auto; margin: auto; }
+.model-case figcaption { color: #44594c; font-size: .85rem; margin-top: .5rem; }
+.model-case table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.model-case th, .model-case td { text-align: start; border-bottom: 1px solid #ccd5ca; padding: .38rem .65rem; white-space: nowrap; }
+.model-case th { background: #eaf0e6; }
+.model-case caption { padding-block: .85rem .35rem; text-align: start; font-weight: 650; }
+.model-case details { margin-block: .9rem; }
+.model-case summary { color: #37664d; cursor: pointer; }
+.model-case pre { padding: .75rem; background: #edf0e9; }
+.model-case dd { overflow-wrap: anywhere; }

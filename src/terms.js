@@ -33,6 +33,15 @@ export const sections = {
     ['covering-index','Covering Index','涵蓋索引','對特定查詢而言，索引已含所需欄位，具備只從索引取得欄位值的條件。','SQL Server 的索引可用 INCLUDE (amount) 帶上報表要讀取的金額。']
   ]
 };
+const properties = {
+  acid: [
+    ['Atomicity · 原子性', '扣款與入帳放在同一筆交易。若入帳失敗，扣款也一併回滾。'],
+    ['Consistency · 一致性', '交易提交後，資料仍須滿足已定義的規則，例如訂單明細必須指向有效的訂單。'],
+    ['Isolation · 隔離性', '隔離等級決定並行交易能看到哪些變更。例如在 Read Committed 下，報表讀不到尚未提交的扣款。'],
+    ['Durability · 持久性', '在同步持久化設定下，一旦資料庫確認提交成功，當機後仍可復原該筆交易。']
+  ]
+};
+
 export const terms = Object.entries(sections).flatMap(([category, rows]) =>
-  rows.map(([id, en, zh, definition, example]) => ({ id, en, zh, definition, example, category }))
+  rows.map(([id, en, zh, definition, example]) => ({ id, en, zh, definition, example, category, ...(properties[id] && { properties: properties[id] }) }))
 );

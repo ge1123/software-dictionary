@@ -8,17 +8,32 @@
 <body>
   <header><b>Software Dictionary</b><a href="https://github.com/ge1123/software-dictionary">GitHub ↗</a></header>
   <main id="app" v-cloak>
-    <h1>SQL 詞典<span>.</span></h1>
-    <input type="search" v-model="query" aria-label="搜尋詞條" placeholder="搜尋英文名詞、中文名稱或關鍵字…">
-    <nav aria-label="詞條分類">
-      <button v-for="name in categories" :key="name" :aria-pressed="category === name" @click="category = name">{{ name }}</button>
-    </nav>
-    <div class="count" role="status">{{ filtered.length }} 個詞條</div>
-    <article v-for="term in filtered" :key="term.id" :id="term.id">
-      <div><small>{{ term.category }}</small><h2><a :href="'#'+term.id">{{ term.en }}</a></h2><strong>{{ term.zh }}</strong></div>
-      <div><p>{{ term.definition }}</p><p class="example"><b>例</b> {{ term.example }}</p></div>
-    </article>
-    <p v-if="!filtered.length">沒有符合的詞條。<button @click="reset">顯示全部</button></p>
+    <section v-if="selected" class="detail">
+      <a href="#" class="back">← 返回詞條清單</a>
+      <h1 tabindex="-1" ref="title">{{ selected.en }} <strong>{{ selected.zh }}</strong></h1>
+      <p>{{ selected.definition }}</p>
+      <dl v-if="selected.properties">
+        <template v-for="[name, meaning] in selected.properties" :key="name">
+          <dt>{{ name }}</dt><dd>{{ meaning }}</dd>
+        </template>
+      </dl>
+      <h2>使用情境</h2>
+      <p>{{ selected.example }}</p>
+    </section>
+    <section v-else>
+      <h1>SQL 詞典<span>.</span></h1>
+      <input type="search" v-model="query" aria-label="搜尋詞條" placeholder="搜尋英文名詞、中文名稱或關鍵字…">
+      <nav aria-label="詞條分類">
+        <button v-for="name in categories" :key="name" :aria-pressed="category === name" @click="category = name">{{ name }}</button>
+      </nav>
+      <div class="count" role="status">{{ filtered.length }} 個詞條</div>
+      <ul class="entries">
+        <li v-for="term in filtered" :key="term.id">
+          <a :id="term.id" :href="'#'+term.id">{{ term.en }} <strong>{{ term.zh }}</strong></a>
+        </li>
+      </ul>
+      <p v-if="!filtered.length">沒有符合的詞條。<button @click="reset">顯示全部</button></p>
+    </section>
   </main>
   <script type="module" src="./src/main.js"></script>
 </body>

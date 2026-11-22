@@ -1,4 +1,4 @@
-import { createApp, computed, nextTick, onMounted, ref } from 'vue/dist/vue.esm-bundler.js';
+import { createApp, computed, watch, onUnmounted, ref } from 'vue/dist/vue.esm-bundler.js';
 import { sections, terms } from './terms.js';
 import './style.css';
 
@@ -19,10 +19,23 @@ createApp({
       category.value = '全部';
       query.value = '';
     }
-    onMounted(async () => {
-      await nextTick();
-      document.getElementById(location.hash.slice(1))?.scrollIntoView();
-    });
-    return { query, category, categories, filtered, reset };
+    const slug = ref(location.hash.slice(1));
+    const title = ref(null);
+    const selected = computed(() => terms.find(term => term.id === slug.value));
+    function readHash() {
+      slug.value = location.hash.slice(1);
+    }
+    window.addEventListener('hashchange', readHash);
+    onUnmounted(() => window.removeEventListener('hashchange', readHash));
+    watch(selected, (term, previous) => {
+      document.title = term ? term.en + ' · SQL 詞典' : 'SQL 詞典 · Software Dictionary';
+      if (term) {
+        title.value?.focus({ preventScroll: true });
+        window.scrollTo(0, 0);
+      } else if (previous) {
+        document.getElementById(previous.id)?.focus();
+      }
+    }, { immediate: true, flush: 'post' });
+    return { query, category, categories, filtered, reset, selected, title };
   }
 }).mount('#app');

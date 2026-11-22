@@ -19,11 +19,22 @@
       </dl>
       <h2>使用情境</h2>
       <p>{{ selected.example }}</p>
+      <template v-if="selected.practice">
+        <h2>技術原理</h2><p>{{ selected.practice.principle }}</p>
+        <h2>調校步驟</h2>
+        <ol><li v-for="step in selected.practice.steps" :key="step">{{ step }}</li></ol>
+      </template>
       <template v-if="selected.sample">
         <h2>{{ selected.sample.language }} 範例</h2>
         <p>{{ selected.sample.setup }}</p>
         <pre tabindex="0" aria-label="範例程式碼"><code>{{ selected.sample.code }}</code></pre>
         <p><strong>預期結果</strong>　{{ selected.sample.result }}</p>
+      </template>
+      <template v-if="selected.practice">
+        <h2>怎麼驗證</h2><p>{{ selected.practice.verify }}</p>
+        <h2>適用限制與成本</h2><p>{{ selected.practice.tradeoff }}</p>
+        <h2>參考文件</h2>
+        <ul class="references"><li v-for="[name, url] in selected.practice.sources" :key="url"><a :href="url">{{ name }}</a></li></ul>
       </template>
       <template v-if="related.length">
         <h2>相關詞條</h2>

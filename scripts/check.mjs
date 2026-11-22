@@ -36,3 +36,9 @@ for (const [a, b] of relations) {
   assert.ok(relatedTerms(b).some(term => term.id === a), key);
 }
 console.log('Validated', pairs.size, 'bidirectional references.');
+for (const { id, practice, sample } of terms) {
+  if (!practice) continue;
+  for (const field of ['principle', 'verify', 'tradeoff']) assert.ok(practice[field]?.trim(), id);
+  assert.ok(sample && practice.steps.length && practice.steps.every(step => step.trim()), id);
+  assert.ok(practice.sources.length && practice.sources.every(([name, url]) => name.trim() && new URL(url).protocol === 'https:'), id);
+}

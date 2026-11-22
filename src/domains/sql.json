@@ -373,6 +373,100 @@
         "code": "WITH orders(channel) AS (SELECT 'A' UNION ALL SELECT 'A' UNION ALL SELECT 'B')\nSELECT DISTINCT channel FROM orders ORDER BY channel;",
         "result": "依序得到 A、B。"
       }
+    },
+    {
+      "id": "profile-slow-query",
+      "en": "Query Profiling",
+      "zh": "建立慢查詢基準",
+      "category": "技術實作",
+      "definition": "用相同的資料、參數與查詢結果建立基準，再決定下一步要改什麼。",
+      "example": "通路回報二月營收查詢慢。先隔離資料庫查詢耗時，避免把 API 等連線或網路傳輸的時間算進 SQL。",
+      "practice": {
+        "principle": "實際執行計畫顯示執行時各運算子的列數；logical reads 計算從資料快取讀取的頁數，重讀同一頁也會計入。耗時則會受等待與快取影響。",
+        "steps": [
+          "在 SQL Server Management Studio 開啟新的查詢視窗，啟用「包含實際執行計畫」。只執行一次建表與造資料的部分。",
+          "固定通路 7 與二月的日期條件，重跑 SELECT 三次。分別記下結果、logical reads、CPU 與經過時間。",
+          "在計畫中找到存取 #orders 的運算子，看讀了幾列、輸出了幾列。若大量列被日期條件排除，再測下一篇的範圍改寫。"
+        ],
+        "verify": "後續改寫都重算同一筆 67,200，並和基準比較讀頁數及耗時。若 API 仍慢而資料庫耗時很短，回頭拆分連線等待與回應傳輸時間。",
+        "tradeoff": "實際計畫會執行 SQL。示範使用連線內的暫存表；正式報表的分布與統計資訊可能產生不同計畫。",
+        "sources": [
+          [
+            "Microsoft Learn · STATISTICS IO",
+            "https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-io-transact-sql"
+          ],
+          [
+            "Microsoft Learn · 實際執行計畫",
+            "https://learn.microsoft.com/en-us/sql/relational-databases/performance/display-an-actual-execution-plan"
+          ]
+        ]
+      },
+      "sample": {
+        "language": "T-SQL",
+        "setup": "下列三篇共用同一個 SQL Server 連線及暫存表。切換查詢視窗時要重新建立測試資料。",
+        "code": "CREATE TABLE #orders (\n    order_id int PRIMARY KEY,\n    channel_id int NOT NULL,\n    created_at datetime2(0) NOT NULL,\n    amount int NOT NULL\n);\n\n-- 10 個通路，各有連續 10,000 小時的訂單\nWITH digits(n) AS (\n    SELECT n FROM (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) AS d(n)\n), numbers(n) AS (\n    SELECT a.n + 10*b.n + 100*c.n + 1000*d.n + 10000*e.n\n    FROM digits a CROSS JOIN digits b CROSS JOIN digits c\n    CROSS JOIN digits d CROSS JOIN digits e\n)\nINSERT INTO #orders (order_id, channel_id, created_at, amount)\nSELECT n, n % 10, DATEADD(hour, n / 10, CAST('20260101' AS datetime2)), 100\nFROM numbers;\n\nSET STATISTICS IO ON;\nSET STATISTICS TIME ON;\nSELECT SUM(amount) AS total\nFROM #orders\nWHERE channel_id = 7\n  AND YEAR(created_at) = 2026\n  AND MONTH(created_at) = 2;",
+        "result": "二月有 28 × 24 = 672 筆符合條件的訂單，每筆 100，合計 67,200。Messages 面板會另外顯示 I/O 與時間。"
+      }
+    },
+    {
+      "id": "rewrite-date-range",
+      "en": "Date Range Filtering",
+      "zh": "改寫日期篩選條件",
+      "category": "技術實作",
+      "definition": "用含起點、不含終點的區間表示月份，讓日期欄位可以直接和索引鍵比較。",
+      "example": "沿用通路 7 的二月營收報表。原查詢在每筆日期上計算 YEAR 與 MONTH。",
+      "practice": {
+        "principle": "按時間排序的索引中，同一個月份佔用一段連續範圍。直接比較原始鍵值，最佳化器便有機會定位該區間的起點及終點。",
+        "steps": [
+          "沿用基準篇的暫存表，先建立下方單欄日期索引。",
+          "在同一索引下分別跑原查詢與改寫查詢，比較計畫及讀頁數。這一輪只比較條件寫法。",
+          "核對二月一日零時會被納入、三月一日零時被排除。"
+        ],
+        "verify": "同時核對結果與 logical reads。若最佳化器仍選擇掃描，檢查符合比例和查回 amount 的成本，再嘗試下一篇的複合索引。",
+        "tradeoff": "日期以資料欄位的時區解讀。以台北月份查 UTC 資料時，先換算兩個 UTC 邊界；結束時間用下一月起點可涵蓋有小數秒的訂單。",
+        "sources": [
+          [
+            "Microsoft Learn · 索引設計",
+            "https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-index-design-guide"
+          ]
+        ]
+      },
+      "sample": {
+        "language": "T-SQL",
+        "setup": "先完成「建立慢查詢基準」，保持相同連線；CREATE INDEX 只執行一次。",
+        "code": "CREATE INDEX ix_orders_date ON #orders (created_at);\n\n-- 原條件\nSELECT SUM(amount) AS total\nFROM #orders\nWHERE channel_id = 7\n  AND YEAR(created_at) = 2026\n  AND MONTH(created_at) = 2;\n\n-- 改寫後\nSELECT SUM(amount) AS total\nFROM #orders\nWHERE channel_id = 7\n  AND created_at >= '20260201'\n  AND created_at <  '20260301';",
+        "result": "兩個結果都應是 67,200。若選用範圍搜尋，可在 Seek Predicates 看到日期上下界。"
+      }
+    },
+    {
+      "id": "design-report-index",
+      "en": "Composite Index Tuning",
+      "zh": "設計報表複合索引",
+      "category": "技術實作",
+      "definition": "依這支報表的等值條件、範圍條件及輸出欄位設計索引，再量測新增索引的收益。",
+      "example": "單欄日期索引即使能找出二月，也可能讀入所有通路的訂單。這張報表只需要通路 7 的 672 筆。",
+      "practice": {
+        "principle": "索引先依 channel_id、再依 created_at 排序，同一通路的二月訂單會排在一起。把 amount 放進葉節點後，可以直接從索引計算總額。",
+        "steps": [
+          "在上一階段先執行日期改寫版並記錄基準，保留既有索引。",
+          "建立下方索引，重跑完全相同的 SELECT，檢查實際選用哪個索引及是否仍有 Key Lookup。",
+          "另以跨通路或長期間報表測試，分開記錄查詢成本；正式採用前再量測寫入負擔。"
+        ],
+        "verify": "比較調整前後的 logical reads、CPU 和時間。只有在結果一致且代表性查詢改善時，才把索引列入正式環境候選。",
+        "tradeoff": "額外索引佔空間，每次新增訂單或修改索引涵蓋欄位也有維護成本。跨所有通路按日期查詢可能需要不同的鍵順序。",
+        "sources": [
+          [
+            "Microsoft Learn · 索引鍵與包含欄位",
+            "https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-index-design-guide"
+          ]
+        ]
+      },
+      "sample": {
+        "language": "T-SQL",
+        "setup": "沿用前兩篇的同一連線。建立索引一次，之後可多次執行 SELECT。",
+        "code": "CREATE INDEX ix_orders_channel_date\nON #orders (channel_id, created_at)\nINCLUDE (amount);\n\nSELECT SUM(amount) AS total\nFROM #orders\nWHERE channel_id = 7\n  AND created_at >= '20260201'\n  AND created_at <  '20260301';",
+        "result": "仍應得到 67,200。若選用新索引，計畫可同時使用通路與日期搜尋條件，並從索引取得 amount。"
+      }
     }
   ],
   "relations": [
@@ -503,6 +597,42 @@
     [
       "distinct",
       "group-by"
+    ],
+    [
+      "profile-slow-query",
+      "execution-plan"
+    ],
+    [
+      "profile-slow-query",
+      "blocking"
+    ],
+    [
+      "rewrite-date-range",
+      "profile-slow-query"
+    ],
+    [
+      "rewrite-date-range",
+      "where"
+    ],
+    [
+      "rewrite-date-range",
+      "index"
+    ],
+    [
+      "design-report-index",
+      "rewrite-date-range"
+    ],
+    [
+      "design-report-index",
+      "composite-index"
+    ],
+    [
+      "design-report-index",
+      "covering-index"
+    ],
+    [
+      "design-report-index",
+      "execution-plan"
     ]
   ]
 }

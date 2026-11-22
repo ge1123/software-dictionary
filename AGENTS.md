@@ -17,3 +17,7 @@
 - 主題清單使用 `#/topics/<domain>`。SQL 保留既有網址，例如 `#acid`。其他領域使用 `#領域/詞條`，例如 `#redis/ttl`。不同領域可以使用相同的本地詞條 id。
 - 新領域從 [可複製的 Redis 樣板](templates/domain.json) 開始，換成該領域的名稱、內容與分類，在 `src/terms.js` 匯入並加入 domains。範例區塊支援 SQL、程式碼、CLI、HTTP 與設定片段；純概念詞條只填必要欄位。
 - 發布前執行 `npm run check`、`npm run build`。檢查詳情網址、雙向連結及返回清單。範例若需要特定資料庫，區分已實測結果與預期結果。
+
+## 技術實作
+
+使用「技術實作」分類。每篇處理一個可觀察的問題，交代原理、操作步驟、可核對的結果，以及採用後的成本。practice 包含 principle、steps、verify、tradeoff 和 sources；sources 的每一項為文件名稱及 HTTPS 網址。範例沿用 sample，若依賴前一篇的資料或環境，請說明並建立雙向參照。量測數字標明引擎與環境，避免將預期改善寫成實測結果。

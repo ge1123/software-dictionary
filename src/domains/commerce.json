@@ -117,6 +117,132 @@
           "保留原付款、反向操作識別碼、金額及結果，讓對帳能同時追到兩筆。"
         ]
       ]
+    },
+    {
+      "id": "b2b2c",
+      "en": "Business-to-Business-to-Consumer (B2B2C)",
+      "zh": "企業透過合作企業服務消費者",
+      "category": "B2B2C 通路營運",
+      "definition": "一家企業與另一家企業合作，把商品或服務交付給最終消費者。釐清一筆交易時，先辨認誰供貨、誰接單、誰履約，以及消費者遇到問題要找誰。",
+      "example": "海港餐廳提供雙人餐券，旅遊通路在 App 接單收取 1,000 元，票券平台發券並彙整核銷紀錄，消費者最後到餐廳用餐。這個案例有三個企業角色；實務上一家公司也可以兼任平台與通路。",
+      "properties": [
+        [
+          "角色分工",
+          "消費者沒收到券，先找通路客服；通路用訂單號請平台查發券結果。若已領券但門市無法兌換，就要核對餐廳與門市的適用條件。"
+        ]
+      ]
+    },
+    {
+      "id": "supplier",
+      "en": "Supplier",
+      "zh": "供應商",
+      "category": "B2B2C 通路營運",
+      "definition": "提供商品或履約能力的合作方。合作資料通常需要標明能供應哪些品項、在哪些地點履約，以及如何與平台結算。",
+      "example": "海港餐廳提供雙人套餐，約定平日可在甲、乙兩家門市核銷。品牌旗下新開的丙店若尚未加入合作，就不能直接接受這張券。",
+      "properties": [
+        [
+          "合作範圍",
+          "同一供應商可以供應多個 SKU，每個 SKU 也可能有不同的適用門市與排除日期。"
+        ]
+      ]
+    },
+    {
+      "id": "sales-channel",
+      "en": "Sales Channel",
+      "zh": "銷售通路",
+      "category": "B2B2C 通路營運",
+      "definition": "消費者接觸商品並下單的銷售管道。B2B2C 平台須能辨認訂單來自哪個合作通路，以套用該通路的價格、客服與結算條件。",
+      "example": "同一張餐券可在旅遊 App 或員工福利網販售。兩邊都可能產生訂單 42，客服查單時要同時帶上通路與通路訂單號。",
+      "properties": [
+        [
+          "履約查詢",
+          "通路知道消費者買了哪一筆，平台保存該筆訂單對應的票券，餐廳以核銷紀錄確認哪家門市提供了服務。"
+        ]
+      ]
+    },
+    {
+      "id": "channel-listing",
+      "en": "Channel Listing",
+      "zh": "通路上架",
+      "category": "B2B2C 通路營運",
+      "definition": "把指定商品發布到某個通路銷售，約定販售期間、商品內容與適用條件。每個通路可有自己的上架狀態。",
+      "example": "雙人餐券在旅遊 App 販售到 6 月 30 日，已售券可使用到 8 月 31 日。7 月 1 日停止接新單，6 月買券的客人仍可依原條件到店。",
+      "properties": [
+        [
+          "兩個時間",
+          "販售期間決定能否建立新訂單；兌換期間決定已發出的券能否使用。通路下架時要分別處理。"
+        ]
+      ]
+    },
+    {
+      "id": "channel-pricing",
+      "en": "Channel Pricing",
+      "zh": "通路定價",
+      "category": "B2B2C 通路營運",
+      "definition": "依通路及生效期間決定商品的銷售價格。同一 SKU 可有多份價表，每筆訂單要能追溯成交時採用的價格。",
+      "example": "旅遊 App 的雙人餐券售價為 1,000 元，福利網為 950 元。下個月 App 改售 1,050 元，六月成交的那張仍依 1,000 元計算本例佣金。",
+      "properties": [
+        [
+          "兩種金額",
+          "消費者成交價用來核對客人實付多少。供應商可分得多少，還要看合作合約的拆分方式。"
+        ]
+      ]
+    },
+    {
+      "id": "voucher-issuance",
+      "en": "Voucher Issuance",
+      "zh": "發券",
+      "category": "B2B2C 通路營運",
+      "definition": "依訂單明細產生可供消費者使用的憑證，並保存券號、權益內容、適用條件與使用期限。",
+      "example": "旅遊 App 確認訂單 42 已付款，平台為其中一份雙人套餐發出券 V1。若通知信寄送失敗，客服可重寄 V1；多發一張新券會增加可兌換的權益。",
+      "properties": [
+        [
+          "查詢線索",
+          "訂單已付款、平台已發券、通知已送達是三個不同結果。客服可依序查看付款號、券號及通知紀錄。"
+        ]
+      ]
+    },
+    {
+      "id": "voucher-redemption",
+      "en": "Voucher Redemption",
+      "zh": "票券核銷",
+      "category": "B2B2C 通路營運",
+      "definition": "履約方接受票券、提供對應服務並留下使用紀錄。是否允許多次或部分使用，依票種而定。",
+      "example": "消費者持 V1 到甲店用餐。這是一次性餐券，第一次核銷留下門市與核銷編號；再掃同一張時，櫃台能查到先前結果。",
+      "properties": [
+        [
+          "撤銷與退款",
+          "掃錯券時，依規則建立連到原核銷的撤銷紀錄。是否退回消費者款項，要另外確認訂單及退款狀態。"
+        ]
+      ]
+    },
+    {
+      "id": "channel-commission",
+      "en": "Channel Commission",
+      "zh": "通路佣金",
+      "category": "B2B2C 通路營運",
+      "definition": "依通路合作條件計算的銷售報酬。要約定計算基礎、費率、何時取得佣金，以及退款或撤銷時如何調整。",
+      "example": "本例約定依有效核銷的成交價分配：每張 1,000 元餐券，通路取得 10% 即 100 元，平台服務費 50 元，供應商應得 850 元。案例略去稅費與金流手續費。",
+      "properties": [
+        [
+          "同樣售出一張",
+          "本例以核銷為條件，已付款但未使用的券尚未列入分潤。若另一份合約以售出為條件，就依付款或售出的約定日期計算。"
+        ]
+      ]
+    },
+    {
+      "id": "supplier-settlement",
+      "en": "Supplier Settlement",
+      "zh": "供應商結算",
+      "category": "B2B2C 通路營運",
+      "definition": "依合作合約與結算週期，逐筆彙整供應商應收金額及調整項目，產生可核對的結算明細。撥款後再記錄實際支付結果。",
+      "example": "六月售出 10 張千元券，月底有 8 張有效核銷。本例以核銷結算，合計 8,000 元，其中供應商 6,800 元、通路佣金 800 元、平台服務費 400 元。剩下 2 張留待符合條件時處理。",
+      "properties": [
+        [
+          "跨期調整",
+          "若七月核准撤銷六月其中一筆已結算核銷，且合約約定全額回沖，可在七月加列供應商 −850 元調整並引用原明細。六月已出具的結算單仍可追溯。"
+        ]
+      ]
     }
   ],
   "relations": [
@@ -183,6 +309,70 @@
     [
       "payment-reconciliation",
       "dotnet/background-service"
+    ],
+    [
+      "b2b2c",
+      "supplier"
+    ],
+    [
+      "b2b2c",
+      "sales-channel"
+    ],
+    [
+      "b2b2c",
+      "supplier-settlement"
+    ],
+    [
+      "supplier",
+      "channel-listing"
+    ],
+    [
+      "sales-channel",
+      "channel-listing"
+    ],
+    [
+      "channel-listing",
+      "channel-pricing"
+    ],
+    [
+      "channel-listing",
+      "sku"
+    ],
+    [
+      "channel-pricing",
+      "price-snapshot"
+    ],
+    [
+      "channel-pricing",
+      "channel-commission"
+    ],
+    [
+      "channel-listing",
+      "voucher-issuance"
+    ],
+    [
+      "voucher-issuance",
+      "order-state"
+    ],
+    [
+      "voucher-issuance",
+      "voucher-redemption"
+    ],
+    [
+      "voucher-redemption",
+      "refund"
+    ],
+    [
+      "voucher-redemption",
+      "supplier-settlement"
+    ],
+    [
+      "channel-commission",
+      "supplier-settlement"
+    ],
+    [
+      "supplier-settlement",
+      "payment-reconciliation"
     ]
   ]
 }

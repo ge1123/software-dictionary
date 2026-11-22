@@ -400,7 +400,52 @@
       "zh": "悲觀鎖定",
       "category": "API 與資料存取",
       "definition": "在交易中先鎖定要修改的資料，讓衝突操作等待。",
-      "example": "PostgreSQL 用 SELECT FOR UPDATE 鎖住庫存列，重查可用量再扣除；熱門商品會拉長等待。"
+      "example": "結帳要先讀取庫存，再依鎖住的庫存決定如何分配。兩個櫃台都要操作商品 42 時，第二個櫃台先等待。",
+      "properties": [
+        [
+          "選用時機",
+          "適合必須根據受保護資料做多步判斷的短交易。等使用者確認或呼叫金流應在持鎖區間外完成。多商品交易要以一致順序取鎖。"
+        ],
+        [
+          "SQL Server 對照",
+          "SQL Server 可在明確交易內用 SELECT available FROM stock_race_demo WITH (UPDLOCK) WHERE sku_id = 42，保留更新鎖到交易結束。此例鎖定已存在的商品；保護尚不存在的鍵涉及範圍鎖。"
+        ]
+      ],
+      "sample": {
+        "language": "PostgreSQL",
+        "setup": "開兩個 psql 視窗 A、B，連到同一個練習資料庫，使用預設自動提交。兩邊都結束前一輪交易後，依編號逐段貼到指定視窗。第一段會重設示範表中商品 42。",
+        "code": "-- 1 A｜建立並重設練習資料\nCREATE TABLE IF NOT EXISTS stock_race_demo (\n  sku_id integer PRIMARY KEY,\n  available integer NOT NULL CHECK (available >= 0),\n  version_no integer NOT NULL\n);\nINSERT INTO stock_race_demo VALUES (42, 1, 3)\nON CONFLICT (sku_id) DO UPDATE SET available = 1, version_no = 3;\n\n-- 2 A｜先鎖住庫存，讀到 1\nBEGIN ISOLATION LEVEL READ COMMITTED;\nSELECT available FROM stock_race_demo WHERE sku_id = 42 FOR UPDATE;\n\n-- 3 B｜嘗試鎖同一列，等待時切回 A\nBEGIN ISOLATION LEVEL READ COMMITTED;\nSELECT available FROM stock_race_demo WHERE sku_id = 42 FOR UPDATE;\n\n-- 4 A｜依剛讀到的庫存扣一件，再提交\nUPDATE stock_race_demo\nSET available = available - 1, version_no = version_no + 1\nWHERE sku_id = 42 AND available >= 1\nRETURNING available, version_no;\nCOMMIT;\n\n-- 5 B｜剛才的 SELECT 已回傳 0 件，跳過扣減並結束交易\nROLLBACK;\n\n-- 6 A｜核對最後庫存與版本\nSELECT available, version_no FROM stock_race_demo WHERE sku_id = 42;",
+        "result": "B 最後取得一列，available 為 0，所以不執行 UPDATE。最後庫存 0、版本 4。若 A 改為回滾，B 取得的庫存會是 1。"
+      },
+      "practice": {
+        "principle": "SELECT … FOR UPDATE 在交易內鎖住選到的列。另一個請求用相同方式讀取時會等待；在本例的 READ COMMITTED 下，等待結束後取得 A 提交的新值。",
+        "steps": [
+          "重設商品 42 為一件，版本為 3。",
+          "依範例交錯執行。B 等待時，切回 A 提交。",
+          "核對 B 的回傳結果及資料表的最後狀態。"
+        ],
+        "verify": "B 等待時可另開一個連線做普通 SELECT。在 READ COMMITTED 下可讀到先前提交的庫存，不必等待 A 的列鎖。",
+        "tradeoff": "等待取代了部分重算成本。若只有單列數量門檻，先鎖再更新會增加一次資料庫往返。",
+        "sources": [
+          [
+            "PostgreSQL · Row-Level Locks",
+            "https://www.postgresql.org/docs/current/explicit-locking.html"
+          ],
+          [
+            "PostgreSQL · Read Committed",
+            "https://www.postgresql.org/docs/current/transaction-iso.html"
+          ],
+          [
+            "SQL Server · UPDLOCK",
+            "https://learn.microsoft.com/en-us/sql/t-sql/queries/hints-transact-sql-table"
+          ]
+        ]
+      },
+      "scale": {
+        "benefit": "不同 SKU 可分別處理；同一商品競爭時，等待者取得鎖後能依最新庫存決策。",
+        "cost": "熱門列的等待時間隨持鎖時間增加；一次鎖多項商品還要處理死結。",
+        "measure": "固定 SKU 分布與併發數，量測交易持續時間、鎖等待毫秒數、死結次數及每秒完成數。"
+      }
     },
     {
       "id": "cache-aside",
@@ -1287,6 +1332,10 @@
     [
       "end-to-end-test",
       "acceptance-test"
+    ],
+    [
+      "pessimistic-lock",
+      "sql/conditional-update"
     ]
   ]
 }

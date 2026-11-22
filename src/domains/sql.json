@@ -206,13 +206,48 @@
       "en": "Conditional Update",
       "zh": "條件式更新",
       "definition": "在同一個 UPDATE 內檢查條件並更新符合的列。",
-      "example": "庫存只剩一件時，兩個櫃台同時結帳，系統必須判斷哪一筆成功保留商品。",
+      "example": "兩個櫃台各買最後一件商品。訂單服務只需知道此刻還能不能扣一件。",
       "category": "交易與併發",
       "sample": {
-        "language": "SQL",
-        "setup": "inventory 的 sku_id 是主鍵。假設商品 42 只剩 1 件，兩個櫃台各要買 1 件。",
-        "code": "UPDATE inventory\nSET available = available - 1\nWHERE sku_id = 42 AND available >= 1;",
-        "result": "在 SQL Server 的 READ COMMITTED 下，第一筆成功交易更新 1 列，庫存變成 0。第二筆更新 0 列。應用程式要檢查受影響列數，再決定是否接受訂單。"
+        "language": "PostgreSQL",
+        "setup": "開兩個 psql 視窗 A、B，連到同一個練習資料庫，使用預設自動提交。兩邊都結束前一輪交易後，依編號逐段貼到指定視窗。第一段會重設示範表中商品 42。",
+        "code": "-- 1 A｜建立並重設練習資料\nCREATE TABLE IF NOT EXISTS stock_race_demo (\n  sku_id integer PRIMARY KEY,\n  available integer NOT NULL CHECK (available >= 0),\n  version_no integer NOT NULL\n);\nINSERT INTO stock_race_demo VALUES (42, 1, 3)\nON CONFLICT (sku_id) DO UPDATE SET available = 1, version_no = 3;\n\n-- 2 A｜扣一件，先保留交易\nBEGIN ISOLATION LEVEL READ COMMITTED;\nUPDATE stock_race_demo\nSET available = available - 1, version_no = version_no + 1\nWHERE sku_id = 42 AND available >= 1\nRETURNING available, version_no;\n\n-- 3 B｜送出後停在 UPDATE，切回 A\nBEGIN ISOLATION LEVEL READ COMMITTED;\nUPDATE stock_race_demo\nSET available = available - 1, version_no = version_no + 1\nWHERE sku_id = 42 AND available >= 1\nRETURNING available, version_no;\n\n-- 4 A｜確認第一筆扣庫存\nCOMMIT;\n\n-- 5 B｜查看剛完成的 UPDATE，再結束交易\nCOMMIT;\n\n-- 6 A｜核對最後庫存與版本\nSELECT available, version_no FROM stock_race_demo WHERE sku_id = 42;",
+        "result": "A 回傳 (0, 4)，B 更新 0 列。最後庫存 0、版本 4。只有成功扣庫存的交易可以建立訂單，兩項寫入應在同一交易提交。"
+      },
+      "properties": [
+        [
+          "選用時機",
+          "規則能寫成單列條件時優先考慮。更新 0 列也可能是商品不存在，API 若要區分原因，需定義查詢與回應方式。"
+        ],
+        [
+          "SQL Server 對照",
+          "同樣可用 UPDATE … WHERE available >= 1。用 OUTPUT inserted.available 取得更新值，或在 UPDATE 後立刻讀 @@ROWCOUNT。"
+        ]
+      ],
+      "practice": {
+        "principle": "把庫存門檻與扣減寫進同一句 UPDATE。在 PostgreSQL READ COMMITTED 下，B 等 A 提交後，資料庫會用該列的新版本重查 WHERE。",
+        "steps": [
+          "重設商品 42 為一件，版本為 3。",
+          "依範例交錯執行。B 等待時，切回 A 提交。",
+          "核對 B 的回傳結果及資料表的最後狀態。"
+        ],
+        "verify": "將 A 的 COMMIT 改為 ROLLBACK 再跑一次。B 應能扣到一件，顯示它會依 A 的提交結果重新判斷。",
+        "tradeoff": "如果只需判斷餘額或庫存是否足夠，可以省去事前 SELECT。跨多列的不變條件需要額外的交易設計。",
+        "sources": [
+          [
+            "PostgreSQL · Read Committed",
+            "https://www.postgresql.org/docs/current/transaction-iso.html"
+          ],
+          [
+            "SQL Server · OUTPUT",
+            "https://learn.microsoft.com/en-us/sql/t-sql/queries/output-clause-transact-sql"
+          ]
+        ]
+      },
+      "scale": {
+        "benefit": "主鍵直接定位商品，庫存表成長時仍只需尋找目標列。",
+        "cost": "同時扣同一 SKU 仍會排隊；拖長交易會延後所有等待者。",
+        "measure": "固定總請求量，比較打同一 SKU 與分散到多個 SKU 的 p95 延遲（毫秒）、成功扣庫存數與零列數。"
       }
     },
     {
@@ -306,12 +341,47 @@
       "zh": "樂觀並行控制",
       "category": "交易與併發",
       "definition": "讀取時記下版本，寫回時檢查版本是否仍相同，以偵測期間發生的更新。",
-      "example": "兩人打開同一張訂單，第一人存檔後，第二人的舊版本更新會影響零列，介面可提示重新載入。",
+      "example": "兩個櫃台都看過版本 3 的庫存。若這段期間有人改過這列，服務要重新評估使用者看到的資料。兩人編輯同一張訂單也有相同需求。",
       "sample": {
-        "language": "SQL",
-        "setup": "假設 orders.id 是主鍵，訂單 7 的 version_no 為 3。兩位編輯者都讀到版本 3。",
-        "code": "UPDATE orders\nSET note = '更改配送日期', version_no = version_no + 1\nWHERE id = 7 AND version_no = 3;",
-        "result": "第一人更新 1 列，版本變成 4。第二人以相同條件寫回時更新 0 列。"
+        "language": "PostgreSQL",
+        "setup": "開兩個 psql 視窗 A、B，連到同一個練習資料庫，使用預設自動提交。兩邊都結束前一輪交易後，依編號逐段貼到指定視窗。第一段會重設示範表中商品 42。",
+        "code": "-- 1 A｜建立並重設練習資料\nCREATE TABLE IF NOT EXISTS stock_race_demo (\n  sku_id integer PRIMARY KEY,\n  available integer NOT NULL CHECK (available >= 0),\n  version_no integer NOT NULL\n);\nINSERT INTO stock_race_demo VALUES (42, 1, 3)\nON CONFLICT (sku_id) DO UPDATE SET available = 1, version_no = 3;\n\n-- 2 A｜讀出庫存 1、版本 3\nBEGIN ISOLATION LEVEL READ COMMITTED;\nSELECT available, version_no FROM stock_race_demo WHERE sku_id = 42;\n\n-- 3 B｜也讀到版本 3\nBEGIN ISOLATION LEVEL READ COMMITTED;\nSELECT available, version_no FROM stock_race_demo WHERE sku_id = 42;\n\n-- 4 A｜帶入先前讀到的版本 3\nUPDATE stock_race_demo\nSET available = available - 1, version_no = version_no + 1\nWHERE sku_id = 42 AND available >= 1 AND version_no = 3\nRETURNING available, version_no;\n\n-- 5 B｜同樣帶入舊版本，送出後切回 A\nUPDATE stock_race_demo\nSET available = available - 1, version_no = version_no + 1\nWHERE sku_id = 42 AND available >= 1 AND version_no = 3\nRETURNING available, version_no;\n\n-- 6 A｜提交新版\nCOMMIT;\n\n-- 7 B｜確認更新 0 列，再讀目前狀態\nSELECT available, version_no FROM stock_race_demo WHERE sku_id = 42;\nCOMMIT;\n\n-- 8 A｜核對最後庫存與版本\nSELECT available, version_no FROM stock_race_demo WHERE sku_id = 42;",
+        "result": "兩邊先讀到 (1, 3)。A 寫入 (0, 4)，B 更新 0 列，重新讀到 (0, 4)。若要單獨觀察版本衝突，可將初始庫存改為 2 再跑一次：B 仍更新 0 列，但庫存還有 1 件。"
+      },
+      "properties": [
+        [
+          "選用時機",
+          "適合要保護先前讀取結果的操作。零列代表至少一項條件不成立，應重讀並重算；售罄即可結束。"
+        ],
+        [
+          "SQL Server 對照",
+          "可沿用整數版本，或以 rowversion 欄位作為比對值。rowversion 由引擎在更新時產生，呼叫端保存上次讀到的值即可。"
+        ]
+      ],
+      "practice": {
+        "principle": "讀取時保存版本，寫回時同時檢查庫存與當時的版本。所有修改這列的寫入路徑都要推進版本，版本比對才可靠。",
+        "steps": [
+          "重設商品 42 為一件，版本為 3。",
+          "依範例交錯執行。B 等待時，切回 A 提交。",
+          "核對 B 的回傳結果及資料表的最後狀態。"
+        ],
+        "verify": "第二輪把 INSERT 及 ON CONFLICT 的庫存初值都改成 2。此時 B 的庫存條件成立，只有版本條件失敗。",
+        "tradeoff": "使用者可以先讀取再慢慢編輯。衝突後若直接換上最新版本重送舊內容，仍可能覆蓋別人的修改。",
+        "sources": [
+          [
+            "PostgreSQL · Read Committed",
+            "https://www.postgresql.org/docs/current/transaction-iso.html"
+          ],
+          [
+            "SQL Server · rowversion",
+            "https://learn.microsoft.com/en-us/sql/t-sql/data-types/rowversion-transact-sql"
+          ]
+        ]
+      },
+      "scale": {
+        "benefit": "衝突少時，讀取到使用者決定儲存的期間無須持有寫入鎖。",
+        "cost": "熱門列頻繁改版會令更多請求重讀；即使使用版本，實際更新仍可能等待寫入者。",
+        "measure": "固定庫存與併發數，比較每筆成功操作的資料庫往返數、版本衝突率與 p95 延遲（毫秒）。"
       }
     },
     {

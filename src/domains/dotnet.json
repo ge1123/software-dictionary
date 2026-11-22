@@ -101,6 +101,82 @@
         "code": "await using var scope = scopeFactory.CreateAsyncScope();\nvar batch = scope.ServiceProvider\n    .GetRequiredService<ReconciliationBatch>();\nawait batch.RunAsync(stoppingToken);",
         "result": "這一批完成並離開區塊時，scope 會釋放它建立的服務。並行執行多批時，各批要有自己的 scope。"
       }
+    },
+    {
+      "id": "middleware",
+      "en": "Middleware",
+      "zh": "中介軟體",
+      "category": "ASP.NET Core 請求處理",
+      "definition": "ASP.NET Core 依註冊順序把請求交給各個中介軟體。元件可以直接回應，也可以呼叫 next，等下游完成後再處理回程。",
+      "example": "POST /orders/42/payments 進來時，計時元件在 next 前啟動計時，回程記錄耗時。若授權階段已拒絕請求，計時仍可記錄這次回應，付款 Action 不會執行。",
+      "properties": [
+        [
+          "訂單 API 的順序",
+          "例外處理包住後續流程；路由先選端點，其後做身分驗證及授權，通過才執行 MVC 端點。"
+        ]
+      ]
+    },
+    {
+      "id": "routing",
+      "en": "Endpoint Routing",
+      "zh": "端點路由",
+      "category": "ASP.NET Core 請求處理",
+      "definition": "依 HTTP 方法、路徑樣板及路由限制，決定由哪個端點處理請求。",
+      "example": "付款 Action 標示 [HttpPost(\"/orders/{orderId:int}/payments\")]。POST /orders/42/payments 符合樣板；將 42 換成 abc 時，整數限制無法匹配，沒有其他候選端點就回 404。",
+      "properties": [
+        [
+          "路由匹配後",
+          "42 只代表路徑符合格式。接著仍要綁定參數、檢查存取權，並由應用程式判斷訂單是否存在。"
+        ]
+      ]
+    },
+    {
+      "id": "model-binding",
+      "en": "Model Binding",
+      "zh": "模型繫結",
+      "category": "ASP.NET Core 請求處理",
+      "definition": "ASP.NET Core MVC 依參數的資料來源取得輸入並轉成 Action 所需型別。標記 [FromBody] 的 JSON 內容由輸入格式器反序列化。",
+      "example": "POST /orders/42/payments 從路徑取得 orderId，從 JSON 取得付款方式。若 paymentMethodId 缺少必填值，採用 [ApiController] 與預設驗證行為時會在 Action 前回傳 400。",
+      "properties": [
+        [
+          "誰決定金額",
+          "結帳服務依訂單的成交價和幣別計算應付額。欄位格式正確也仍要檢查訂單是否可付款。"
+        ]
+      ],
+      "sample": {
+        "language": "C#",
+        "setup": "ASP.NET Core MVC，已呼叫 AddControllers 與 MapControllers。片段示範繫結與驗證，成功時回傳輸入值供核對。",
+        "code": "using Microsoft.AspNetCore.Mvc;\nusing System.ComponentModel.DataAnnotations;\n\npublic sealed class PaymentInput\n{\n    [Required] public string? PaymentMethodId { get; init; }\n}\n\n[ApiController]\npublic sealed class PaymentsController : ControllerBase\n{\n    [HttpPost(\"/orders/{orderId:int}/payments\")]\n    public IActionResult Create([FromRoute] int orderId, [FromBody] PaymentInput input)\n        => Ok(new { orderId, input.PaymentMethodId });\n}",
+        "result": "以 application/json 送 {\"paymentMethodId\":\"card-7\"} 到訂單 42 的路徑，回 200 並帶回 42 與 card-7；送空物件則回 400。"
+      }
+    },
+    {
+      "id": "mvc-filter",
+      "en": "MVC Filter",
+      "zh": "MVC 篩選器",
+      "category": "ASP.NET Core 請求處理",
+      "definition": "在 MVC 處理端點的特定階段插入共用行為。Action Filter 可在模型繫結之後讀取 Action 參數，也可以在執行 Action 前直接設定結果。",
+      "example": "只對付款 Action 套用篩選器，檢查 Idempotency-Key 是否存在。缺少就回 400；存在則讓付款服務比對內容、保存結果並處理併發重送。",
+      "properties": [
+        [
+          "適用範圍",
+          "MVC Filter 可套用到指定控制器或 Action。Minimal API 提供 Endpoint Filter；應依端點類型選用。"
+        ]
+      ]
+    },
+    {
+      "id": "exception-handler",
+      "en": "Exception Handler",
+      "zh": "例外處理器",
+      "category": "ASP.NET Core 請求處理",
+      "definition": "統一處理下游尚未攔截的例外。ASP.NET Core 可透過例外處理中介軟體搭配 Problem Details 產生一致的錯誤回應。",
+      "example": "付款 Action 在回應開始前發生未預期的程式錯誤，可回 500 並記錄追蹤識別碼。若只是送給金流後等不到結果，付款服務應先保存待確認狀態，供後續查單。",
+      "properties": [
+        [
+          "何時接不到",
+          "端點正常回傳的 400 或 409 不會觸發例外處理。若回應已送出標頭，處理器也無法重新指定 HTTP 狀態碼。"
+        ]
+      ]
     }
   ],
   "relations": [
@@ -159,6 +235,46 @@
     [
       "http-client-factory",
       "di-lifetime"
+    ],
+    [
+      "middleware",
+      "routing"
+    ],
+    [
+      "routing",
+      "model-binding"
+    ],
+    [
+      "model-binding",
+      "mvc-filter"
+    ],
+    [
+      "middleware",
+      "exception-handler"
+    ],
+    [
+      "middleware",
+      "backend/authentication"
+    ],
+    [
+      "routing",
+      "backend/authorization"
+    ],
+    [
+      "model-binding",
+      "backend/input-validation"
+    ],
+    [
+      "mvc-filter",
+      "backend/idempotency-key"
+    ],
+    [
+      "exception-handler",
+      "backend/error-handling"
+    ],
+    [
+      "exception-handler",
+      "commerce/payment-pending"
     ]
   ]
 }

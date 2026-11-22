@@ -49,6 +49,74 @@
       "category": "購物車與訂單",
       "definition": "用明確的狀態與轉移條件約束訂單生命週期。",
       "example": "取消與出貨同時送達時，兩個操作都檢查目前狀態，只有符合條件的更新能成功。"
+    },
+    {
+      "id": "payment-attempt",
+      "en": "Payment Attempt",
+      "zh": "付款嘗試",
+      "category": "付款與退款",
+      "definition": "記錄對某張訂單發起的一次付款操作，保存嘗試編號、金額、幣別、金流參考號與結果。同一張訂單可能有多次嘗試。",
+      "example": "訂單 42 應付 TWD 800。送出前先保存嘗試 A1 與冪等鍵；使用者連點付款時沿用 A1。只有在確認 A1 已失敗且允許重新付款後，才為新的付款操作建立 A2。",
+      "properties": [
+        [
+          "重送的邊界",
+          "同一操作要沿用相同鍵與內容。呼叫端須確認金流支援該端點的冪等語意與保留期限，本地唯一鍵只能防止本地重複建檔。"
+        ]
+      ]
+    },
+    {
+      "id": "payment-pending",
+      "en": "Payment Pending Confirmation",
+      "zh": "付款待確認",
+      "category": "付款與退款",
+      "definition": "商家已發起付款，目前證據仍不足以判定最終結果時使用的本地狀態。",
+      "example": "A1 送出後連線逾時，客人手機卻收到 800 元扣款通知。頁面顯示「確認中」，服務用原參考號查單，並接收及驗證金流通知。",
+      "properties": [
+        [
+          "何時重送",
+          "依金流契約確認可以安全重送時，使用原操作識別碼。若仍無法判定，維持待確認並交給對帳或人工查核。"
+        ],
+        [
+          "何時轉成功",
+          "收到可信的成功結果且核對訂單、金額與幣別後，才將 A1 更新為成功。查單與通知可能同時抵達，入帳須能去重。"
+        ]
+      ]
+    },
+    {
+      "id": "payment-reconciliation",
+      "en": "Payment Reconciliation",
+      "zh": "付款對帳",
+      "category": "付款與退款",
+      "definition": "依交易識別碼、金額、幣別與狀態比對內部付款紀錄與金流明細，找出漏記、重複或金額不符的交易。",
+      "example": "日結明細列出 A1 收款 TWD 800，本地仍待確認。核對商戶與金流交易號後，留下差異紀錄並補登一次。再次匯入同一份明細，補登筆數應為零。",
+      "properties": [
+        [
+          "先統一口徑",
+          "若交易總額為 800、手續費為 20、實際撥款為 780，應分別核對總額、費用與淨額，並確認結算日與幣別。"
+        ],
+        [
+          "兩筆扣款",
+          "若同一訂單有兩個不同且已收款的交易號，保留兩筆紀錄並查明原因。確認多收時，針對多收的那筆退款。"
+        ]
+      ]
+    },
+    {
+      "id": "payment-reversal",
+      "en": "Payment Reversal",
+      "zh": "付款沖正",
+      "category": "付款與退款",
+      "definition": "針對原交易建立有關聯的反向操作，以撤回原付款效果。支付服務商對 reversal 的適用階段、名稱與最終結果可能不同。",
+      "example": "訂單 42 取消時，先查 A1。若只有授權且尚未請款，依金流規約撤銷授權；若 800 元已收取且應退回，建立退款紀錄。若 A1 還在待確認，先查明原交易。",
+      "properties": [
+        [
+          "金流差異",
+          "例如 Adyen 的 reversal 會依原付款是否已請款決定取消或退款。送出請求後仍需核對後續通知的結果。"
+        ],
+        [
+          "帳務留痕",
+          "保留原付款、反向操作識別碼、金額及結果，讓對帳能同時追到兩筆。"
+        ]
+      ]
     }
   ],
   "relations": [
@@ -75,6 +143,46 @@
     [
       "order-state",
       "sql/conditional-update"
+    ],
+    [
+      "payment-attempt",
+      "payment-pending"
+    ],
+    [
+      "payment-attempt",
+      "backend/idempotency-key"
+    ],
+    [
+      "payment-attempt",
+      "order-state"
+    ],
+    [
+      "payment-pending",
+      "backend/timeout"
+    ],
+    [
+      "payment-pending",
+      "backend/retry"
+    ],
+    [
+      "payment-pending",
+      "payment-reconciliation"
+    ],
+    [
+      "payment-pending",
+      "payment-reversal"
+    ],
+    [
+      "payment-reconciliation",
+      "refund"
+    ],
+    [
+      "payment-reversal",
+      "refund"
+    ],
+    [
+      "payment-reconciliation",
+      "dotnet/background-service"
     ]
   ]
 }

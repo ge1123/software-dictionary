@@ -1,0 +1,56 @@
+{
+  "id": "mq",
+  "name": "MQ",
+  "terms": [
+    {
+      "id": "consumer-ack",
+      "en": "Consumer Acknowledgement",
+      "zh": "消費確認",
+      "category": "投遞與確認",
+      "definition": "消費端告訴 broker 某一筆投遞已處理完成，broker 可依規則移除待確認紀錄。",
+      "example": "入帳流程先 COMMIT，再 ACK。若兩步之間程序中止，訊息可再次投遞，因此要能安全重做。"
+    },
+    {
+      "id": "publisher-confirm",
+      "en": "Publisher Confirm",
+      "zh": "發布確認",
+      "category": "投遞與確認",
+      "definition": "RabbitMQ 向發布端確認它已按相應的佇列語意接管這次發布。是否有路由到預期佇列仍需另行處理。",
+      "example": "Outbox 收到 confirm 後才標記已發布；不可路由的訊息可搭配 mandatory 與 return 處理。下游是否完成入帳要看消費結果。"
+    },
+    {
+      "id": "idempotent-consumer",
+      "en": "Idempotent Consumer",
+      "zh": "冪等消費者",
+      "category": "投遞與確認",
+      "definition": "同一業務事件重複抵達時，讓持久化的業務效果與處理一次相同。",
+      "example": "用訊息 ID 的唯一約束登記已處理事件，把登記和增加餘額包進同一交易。提交後 ACK 遺失也能安全重送。"
+    },
+    {
+      "id": "dead-letter-queue",
+      "en": "Dead Letter Queue (DLQ)",
+      "zh": "死信佇列",
+      "category": "投遞與確認",
+      "definition": "接收符合死信條件、需要隔離或另行處理的訊息。重試次數與轉送策略由系統配置。",
+      "example": "消費者多次遇到無法解析的資料後，把訊息轉入 DLQ。修正原因再重播，重播仍沿用相同業務識別碼。"
+    }
+  ],
+  "relations": [
+    [
+      "publisher-confirm",
+      "consumer-ack"
+    ],
+    [
+      "consumer-ack",
+      "idempotent-consumer"
+    ],
+    [
+      "dead-letter-queue",
+      "idempotent-consumer"
+    ],
+    [
+      "idempotent-consumer",
+      "sql/unique"
+    ]
+  ]
+}

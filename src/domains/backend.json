@@ -1,0 +1,476 @@
+{
+  "id": "backend",
+  "name": "後端",
+  "terms": [
+    {
+      "id": "idempotency-key",
+      "en": "Idempotency Key",
+      "zh": "冪等鍵",
+      "category": "API 與資料存取",
+      "definition": "由呼叫端沿用同一個操作識別碼，讓服務辨認這是上次請求的重送。服務要定義識別碼的作用範圍與保存期限。",
+      "example": "建立 Todo 時，先比對請求內容。同鍵同內容回傳已保存的結果；同鍵換了內容則拒絕。兩個請求同時抵達時，還需要交易與併發控制。"
+    },
+    {
+      "id": "n-plus-one",
+      "en": "N+1 Query",
+      "zh": "逐筆查詢問題",
+      "category": "API 與資料存取",
+      "definition": "先查出一批主資料，再為每一筆分別查關聯資料，總查詢次數隨主資料筆數增加。",
+      "example": "查 50 位作者再各查一次書籍，會送出 51 次 SELECT。改用 LEFT JOIN 時，先對作者分頁，再接書籍，才能保留沒有出書的作者及每人的完整書單。"
+    },
+    {
+      "id": "connection-pool",
+      "en": "Connection Pool",
+      "zh": "連線池",
+      "category": "API 與資料存取",
+      "definition": "驅動程式保存可重用的實體連線；應用程式在需要時借用，完成後歸還。",
+      "example": "NpgsqlDataSource 可以共用。每次查詢各自借連線，用完就釋放；等待金流 HTTP 回應期間一直占著連線，尖峰時其他請求就得排隊。"
+    },
+    {
+      "id": "cache-invalidation",
+      "en": "Cache Invalidation",
+      "zh": "快取失效",
+      "category": "API 與資料存取",
+      "definition": "當來源資料改變，讓舊快取失效，使後續讀取重新取得資料。",
+      "example": "修改商品售價後清除對應快取。若讀者在清除前已讀到舊 DB 值，稍後仍可能把舊值填回，需依業務容許的陳舊時間處理。"
+    },
+    {
+      "id": "replication-lag",
+      "en": "Replication Lag",
+      "zh": "複寫延遲",
+      "category": "API 與資料存取",
+      "definition": "主庫提交變更到副本套用該變更之間存在落差。",
+      "example": "剛建立訂單就向副本查詢，可能暫時得到 404。觀察副本套用位置比單靠固定等待一秒更能判斷是否追上。"
+    },
+    {
+      "id": "read-your-writes",
+      "en": "Read Your Writes",
+      "zh": "讀己之寫",
+      "category": "API 與資料存取",
+      "definition": "對同一使用者提供可見性保證：後續讀取應該看得到自己已完成的寫入。",
+      "example": "下單確認頁讀主庫；也可記錄寫入位置，只讓已追上的副本承接後續查詢。"
+    },
+    {
+      "id": "timeout",
+      "en": "Timeout",
+      "zh": "逾時",
+      "category": "韌性與流量控制",
+      "definition": "限制呼叫端願意等待一次操作的時間。超過期限後，遠端仍可能已經完成工作。",
+      "example": "付款請求逾時時，訂單保留待確認；用同一付款識別碼查詢結果或安全重送，避免再次扣款。"
+    },
+    {
+      "id": "retry",
+      "en": "Retry",
+      "zh": "重試",
+      "category": "韌性與流量控制",
+      "definition": "暫時性故障後再次執行操作，並限制嘗試次數與整體等待時間。",
+      "example": "查通路庫存遇到暫時性錯誤可以重試；建立付款則先確認供應商支援冪等，且每次沿用相同識別碼。"
+    },
+    {
+      "id": "backoff",
+      "en": "Exponential Backoff",
+      "zh": "指數退避",
+      "category": "韌性與流量控制",
+      "definition": "持續失敗時，把等待上限逐次拉長，給系統恢復時間。指數退避依倍率增加，並設定上限。",
+      "example": "第一次重試等待上限 100 ms，第二次 200 ms，第三次 400 ms；所有等待與嘗試都要算入呼叫的總期限。"
+    },
+    {
+      "id": "jitter",
+      "en": "Jitter",
+      "zh": "重試抖動",
+      "category": "韌性與流量控制",
+      "definition": "讓每個請求等待不同時間，避免大家等完後又同時湧入。",
+      "example": "100 個 worker 同時遇到 503。採用 full jitter 時，每個 worker 在自己的退避上限內隨機抽取等待時間。"
+    },
+    {
+      "id": "circuit-breaker",
+      "en": "Circuit Breaker",
+      "zh": "斷路器",
+      "category": "韌性與流量控制",
+      "definition": "依近期失敗情況暫停對下游的呼叫；冷卻後放行少量探測，依結果恢復服務或再次斷開。",
+      "example": "Closed 允許呼叫，Open 快速回應。章節範例連續失敗 3 次後冷卻 2 秒，Half-open 只給一個探測名額；門檻可依服務調整。"
+    },
+    {
+      "id": "bulkhead",
+      "en": "Bulkhead",
+      "zh": "艙壁隔離",
+      "category": "韌性與流量控制",
+      "definition": "不同下游各有獨立的處理名額，互不搶用。隔離可以用並行名額、連線池或獨立程序實作。",
+      "example": "寄信服務變慢時，只占用寄信的名額。查庫存有自己的預算，仍可接收請求。"
+    },
+    {
+      "id": "backpressure",
+      "en": "Backpressure",
+      "zh": "背壓",
+      "category": "韌性與流量控制",
+      "definition": "下游將容量不足的訊號傳回上游，讓上游減慢送入工作的速度。",
+      "example": "搶票入口限制執行數與排隊數，滿載時回覆稍後再試。只有呼叫端也降低流量，拒絕訊號才能有效抑制輸入。"
+    },
+    {
+      "id": "distributed-lock",
+      "en": "Distributed Lock",
+      "zh": "分散式鎖",
+      "category": "韌性與流量控制",
+      "definition": "讓不同程序透過共同協調機制競爭同一資源的使用權。",
+      "example": "熱賣商品的快取同時失效，搶到鎖的實例再檢查一次快取才查 DB，其餘實例短暫等待並重讀。租約過期後可能有兩個工作仍在執行。"
+    },
+    {
+      "id": "fencing-token",
+      "en": "Fencing Token",
+      "zh": "隔離權杖",
+      "category": "韌性與流量控制",
+      "definition": "每次取得租約時分配遞增序號，由受保護資源核對新舊，拒絕來自過時持有者的操作。",
+      "example": "A 暫停到租約過期，B 接手後寫入新版商品。A 恢復時，寫入端要能拒絕它的舊序號；只在解鎖時比對擁有者，無法保護已送出的寫入。"
+    },
+    {
+      "id": "saga",
+      "en": "Saga",
+      "zh": "跨服務交易流程",
+      "category": "跨服務一致性",
+      "definition": "把一個業務流程拆成多筆可獨立提交的本地交易，保存進度，並在業務失敗時執行適用的補償。",
+      "example": "訂單先成為 Pending；付款成功才確認，明確拒絕則取消。此例用訂單 ID 串起流程，同一訂單若有多次獨立流程，就要區分各流程識別碼。"
+    },
+    {
+      "id": "compensation",
+      "en": "Compensating Transaction",
+      "zh": "補償交易",
+      "category": "跨服務一致性",
+      "definition": "執行新的業務操作，抵銷先前已提交步驟的影響。補償本身也可能失敗，需要能恢復或安全重試。",
+      "example": "明確拒絕付款後，在本地交易內補回預留庫存並標記已補償。付款結果未知時先查明結果，避免已扣款卻釋放庫存。"
+    },
+    {
+      "id": "outbox",
+      "en": "Transactional Outbox",
+      "zh": "交易式寄件匣",
+      "category": "跨服務一致性",
+      "definition": "將業務變更與待發事件一起寫進同一筆本地交易，再由獨立發送程序投遞事件。",
+      "example": "HTTP POST 負責寫入訂單和 outbox。Publisher 的順序是查待送事件、publish、收到確認後更新狀態；若發送成功後當機，重啟仍可能重送。"
+    },
+    {
+      "id": "strategy",
+      "en": "Strategy",
+      "zh": "策略模式",
+      "category": "架構與設計模式",
+      "definition": "讓一組算法遵守相同呼叫介面，使用者可依情境選擇不同實作。",
+      "example": "結帳服務取得會員等級對應的折扣策略，再用同一個方法算金額。新增會員方案時可加入新策略。"
+    },
+    {
+      "id": "state",
+      "en": "State",
+      "zh": "狀態模式",
+      "category": "架構與設計模式",
+      "definition": "把不同狀態下允許的行為放進對應的狀態物件，讓物件依目前狀態處理操作。",
+      "example": "待付款訂單可接受付款，已取消訂單收到相同操作則拒絕。狀態轉移由訂單行為控制。"
+    },
+    {
+      "id": "adapter",
+      "en": "Adapter",
+      "zh": "轉接器模式",
+      "category": "架構與設計模式",
+      "definition": "在呼叫端需要的介面與既有元件的介面之間轉換輸入、輸出及錯誤語意。",
+      "example": "兩家金流用不同欄位表示扣款結果。各自的轉接器映射成系統共用的付款結果，保留待確認狀態。"
+    },
+    {
+      "id": "decorator",
+      "en": "Decorator",
+      "zh": "裝飾者模式",
+      "category": "架構與設計模式",
+      "definition": "用實作相同介面的物件包住原服務，在委派前後加入可組合的行為。",
+      "example": "商品來源外包一層快取，再包一層計時；計時放在快取內外，量到的命中請求範圍會不同。"
+    },
+    {
+      "id": "clean-architecture",
+      "en": "Clean Architecture",
+      "zh": "整潔架構",
+      "category": "架構與設計模式",
+      "definition": "讓核心用例定義需要的能力，基礎設施透過介面提供實作，程式碼的依賴朝向核心。",
+      "example": "下單用例描述訂單保存與交易需求，由 PostgreSQL 配接程式實作。規則測試可替換持久化元件。"
+    },
+    {
+      "id": "bounded-context",
+      "en": "Bounded Context",
+      "zh": "限界上下文",
+      "category": "架構與設計模式",
+      "definition": "在明確的業務邊界內，維持一套一致的語言與模型。",
+      "example": "銷售關心成交時的商品售價，倉儲關心可揀貨數量。同一個 SKU 可連結兩套模型，各自保留所需規則。"
+    },
+    {
+      "id": "strangler",
+      "en": "Strangler Fig",
+      "zh": "漸進式系統替換",
+      "category": "架構與設計模式",
+      "definition": "先在舊系統外建立可切換的入口，逐項把業務能力交給新實作。",
+      "example": "保留下單流程，先把通知查詢導向新服務。比對新舊結果、確認資料歸屬後，再切換下一項能力。"
+    },
+    {
+      "id": "binary-search",
+      "en": "Binary Search",
+      "zh": "二分搜尋",
+      "category": "資料結構與演算法",
+      "definition": "利用已排序資料或單調條件，每次排除一半候選範圍。",
+      "example": "在已按時間排序的事件陣列找報表區間，分別定位起點與終點。定位為對數成本，輸出命中的 K 筆仍要走訪 K 筆。"
+    },
+    {
+      "id": "priority-queue",
+      "en": "Priority Queue",
+      "zh": "優先佇列",
+      "category": "資料結構與演算法",
+      "definition": "讓最高優先級的元素先被取出；相同優先級的順序取決於實作與比較規則。",
+      "example": "計算銷量前 K 名時維護容量 K 的最小堆積，堆頂是目前入選門檻。銷量相同時用商品 ID 決定名次。"
+    },
+    {
+      "id": "graceful-shutdown",
+      "en": "Graceful Shutdown",
+      "zh": "優雅關機",
+      "category": "可觀測性與部署",
+      "definition": "關機時先停止接新工作，給已接受的工作一段時間完成，再釋放資源並退出。",
+      "example": "部署新版時讓已開始的下單交易有機會完成。超過期限仍可能中止，所以需要持久化狀態與重試機制。"
+    },
+    {
+      "id": "tracing",
+      "en": "Distributed Tracing",
+      "zh": "分散式追蹤",
+      "category": "可觀測性與部署",
+      "definition": "用 Trace ID 串聯同一次操作的多個 span，利用父子關係與時間定位延遲。",
+      "example": "從下單 API 回應取得 Trace ID，可查看 HTTP span 下哪個 DB span 花最多時間；每個 span 都有自己的識別碼。"
+    },
+    {
+      "id": "structured-logging",
+      "en": "Structured Logging",
+      "zh": "結構化日誌",
+      "category": "可觀測性與部署",
+      "definition": "把事件名稱、屬性值與時間等資訊記成獨立欄位，方便篩選和彙總。",
+      "example": "排查一筆失敗訂單時，用 RequestId 找齊紀錄，再按 InstanceId 比較問題是否集中在某個副本。"
+    },
+    {
+      "id": "expand-contract",
+      "en": "Expand and Contract",
+      "zh": "相容式資料遷移",
+      "category": "可觀測性與部署",
+      "definition": "先擴充新舊版本可共用的資料結構，搬移資料與切換讀寫後，再移除舊結構。",
+      "example": "某筆搬完後，使用者仍可能再修改它。欄位更名時要在過渡期同步新舊值，再驗證回填完整與舊版退場。"
+    },
+    {
+      "id": "saga-orchestration",
+      "en": "Saga Orchestration",
+      "zh": "協調式 Saga",
+      "category": "跨服務一致性",
+      "definition": "由協調器記錄流程進度，決定下一個操作、重試或補償。",
+      "example": "預留庫存、付款、配送依序執行。配送明確拒絕時，協調器記下已完成步驟並安排退款和釋放庫存。"
+    },
+    {
+      "id": "saga-choreography",
+      "en": "Saga Choreography",
+      "zh": "事件協作式 Saga",
+      "category": "跨服務一致性",
+      "definition": "各服務依事件完成自己的本地交易，再發出事件推進同一業務流程。",
+      "example": "訂單成立後庫存服務發出已預留，付款服務才開始扣款。要追查整段流程，可把同一訂單的事件用關聯 ID 串起來。"
+    },
+    {
+      "id": "cdc",
+      "en": "Change Data Capture (CDC)",
+      "zh": "資料變更擷取",
+      "category": "跨服務一致性",
+      "definition": "擷取來源資料的新增、修改及刪除，交給下游增量同步。常見做法是讀取交易日誌。",
+      "example": "管理後台、批次匯入與人工 SQL 都會改商品。從 PostgreSQL 的已提交變更更新搜尋索引，可涵蓋這三個寫入入口。"
+    },
+    {
+      "id": "sku",
+      "en": "Stock Keeping Unit (SKU)",
+      "zh": "庫存單位",
+      "category": "訂單與庫存",
+      "definition": "用來識別可獨立管理庫存的商品單位。只有單一規格的商品也可以有自己的 SKU。",
+      "example": "同一件衣服是 Product，紅色 M 與藍色 L 是不同 SKU，可有不同價格。每種規格各有一列，找低庫存商品就能共用同一個數量條件。"
+    },
+    {
+      "id": "price-snapshot",
+      "en": "Price Snapshot",
+      "zh": "成交價快照",
+      "category": "訂單與庫存",
+      "definition": "建立訂單時保存本次交易採用的價格，讓歷史明細能重現成交時的金額。",
+      "example": "紅色 M 以 100 元成交，明天目錄調到 120 元，昨天的訂單仍用 100 元對帳。"
+    },
+    {
+      "id": "inventory-reservation",
+      "en": "Inventory Reservation",
+      "zh": "庫存預留",
+      "category": "訂單與庫存",
+      "definition": "替特定訂單暫時占用可售數量，並追蹤預留的確認、取消或到期。",
+      "example": "下單先占用 SKU 可售數量，付款確認才扣除實體帳面庫存；取消或逾期只解除占用。這個模型中，可售量等於帳面量減有效預留量。"
+    },
+    {
+      "id": "simple-factory",
+      "en": "Simple Factory",
+      "zh": "簡單工廠",
+      "category": "架構與設計模式",
+      "definition": "集中依輸入選擇並建立具體物件的邏輯，讓呼叫端依共同介面使用物件。",
+      "example": "結帳依付款方式取得處理器：信用卡送出扣款，銀行轉帳建立待付款交易。建立處理器與執行付款可分開測試。"
+    },
+    {
+      "id": "chain-of-responsibility",
+      "en": "Chain of Responsibility",
+      "zh": "責任鏈",
+      "category": "架構與設計模式",
+      "definition": "讓請求依序交給多個處理者，每一關決定繼續傳遞或結束處理。",
+      "example": "下單先驗輸入，再查會員、風險與庫存。若會員已停用，責任鏈立刻回傳原因，後面的服務不用呼叫。"
+    },
+    {
+      "id": "value-object",
+      "en": "Value Object",
+      "zh": "值物件",
+      "category": "架構與設計模式",
+      "definition": "用屬性值表達領域概念，具相同值的物件可彼此替代；建立時可一併驗證規則。",
+      "example": "Money 包含幣別與金額。兩筆相同數字但不同幣別的金額不能直接加總，這個規則可集中在 Money。"
+    },
+    {
+      "id": "aggregate",
+      "en": "Aggregate",
+      "zh": "聚合",
+      "category": "架構與設計模式",
+      "definition": "由聚合根維護一組領域物件的一致性邊界，外部透過聚合根執行變更。",
+      "example": "建立訂單時讓 Order 統一檢查明細與計算總額；不同 API 建立訂單時都會經過同一組規則。"
+    }
+  ],
+  "relations": [
+    [
+      "idempotency-key",
+      "sql/pg-conflict-insert"
+    ],
+    [
+      "idempotency-key",
+      "timeout"
+    ],
+    [
+      "idempotency-key",
+      "mq/idempotent-consumer"
+    ],
+    [
+      "n-plus-one",
+      "sql/left-join"
+    ],
+    [
+      "connection-pool",
+      "bulkhead"
+    ],
+    [
+      "cache-invalidation",
+      "redis/ttl"
+    ],
+    [
+      "replication-lag",
+      "read-your-writes"
+    ],
+    [
+      "timeout",
+      "retry"
+    ],
+    [
+      "retry",
+      "backoff"
+    ],
+    [
+      "backoff",
+      "jitter"
+    ],
+    [
+      "circuit-breaker",
+      "retry"
+    ],
+    [
+      "bulkhead",
+      "backpressure"
+    ],
+    [
+      "distributed-lock",
+      "fencing-token"
+    ],
+    [
+      "distributed-lock",
+      "redis/ttl"
+    ],
+    [
+      "saga",
+      "compensation"
+    ],
+    [
+      "saga",
+      "saga-choreography"
+    ],
+    [
+      "saga",
+      "saga-orchestration"
+    ],
+    [
+      "saga-orchestration",
+      "saga-choreography"
+    ],
+    [
+      "outbox",
+      "mq/publisher-confirm"
+    ],
+    [
+      "outbox",
+      "mq/idempotent-consumer"
+    ],
+    [
+      "outbox",
+      "sql/transaction"
+    ],
+    [
+      "outbox",
+      "cdc"
+    ],
+    [
+      "simple-factory",
+      "strategy"
+    ],
+    [
+      "clean-architecture",
+      "adapter"
+    ],
+    [
+      "bounded-context",
+      "aggregate"
+    ],
+    [
+      "aggregate",
+      "value-object"
+    ],
+    [
+      "sku",
+      "price-snapshot"
+    ],
+    [
+      "sku",
+      "inventory-reservation"
+    ],
+    [
+      "inventory-reservation",
+      "compensation"
+    ],
+    [
+      "tracing",
+      "structured-logging"
+    ],
+    [
+      "graceful-shutdown",
+      "timeout"
+    ],
+    [
+      "expand-contract",
+      "strangler"
+    ],
+    [
+      "state",
+      "saga"
+    ],
+    [
+      "connection-pool",
+      "n-plus-one"
+    ],
+    [
+      "backpressure",
+      "mq/dead-letter-queue"
+    ]
+  ]
+}

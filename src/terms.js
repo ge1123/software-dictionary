@@ -5,7 +5,9 @@ import redis from './domains/redis.json' with { type: 'json' };
 import backend from './domains/backend.json' with { type: 'json' };
 import mq from './domains/mq.json' with { type: 'json' };
 
-export const domains = [sql, backend, redis, mq];
+import dotnet from './domains/dotnet.json' with { type: 'json' };
+
+export const domains = [sql, backend, dotnet, redis, mq];
 
 export const plannedTopics = Object.entries({
   backend: '後端', mq: 'MQ', infra: 'Infra', fae: 'FAE',

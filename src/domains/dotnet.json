@@ -1,0 +1,164 @@
+{
+  "id": "dotnet",
+  "name": ".NET 後端",
+  "terms": [
+    {
+      "id": "async-await",
+      "en": "async / await",
+      "zh": "非同步等待",
+      "category": "非同步與取消",
+      "definition": "async 方法可以用 await 等待工作完成。遇到尚未完成的 Task 時，方法先交回控制權，等結果可用再繼續執行。",
+      "example": "訂單 API 等資料庫回應時，請求仍在進行，但執行緒可以處理其他工作。把同步查詢包進 Task.Run 仍會占用執行緒。",
+      "sample": {
+        "language": "C#",
+        "setup": "在啟用隱含 using 的 .NET 主控台專案中執行。",
+        "code": "var ready = new TaskCompletionSource<int>();\nvar receipt = ReadReceiptAsync(ready.Task);\nConsole.WriteLine(receipt.IsCompleted);\nready.SetResult(42);\nConsole.WriteLine(await receipt);\n\nstatic async Task<int> ReadReceiptAsync(Task<int> pending)\n{\n    return await pending;\n}",
+        "result": "先印出 False，再印出 42。外層可在收據尚未就緒時繼續工作。"
+      }
+    },
+    {
+      "id": "cancellation-token",
+      "en": "CancellationToken",
+      "zh": "取消權杖",
+      "category": "非同步與取消",
+      "definition": "呼叫端透過權杖傳遞取消要求，工作端在支援取消的等待點或自行檢查時結束工作。",
+      "example": "在 ASP.NET Core Minimal API，端點參數 CancellationToken 對應 RequestAborted。把它傳給 EF Core 查詢可通知提供者取消；已提交的付款仍須依交易紀錄確認。",
+      "sample": {
+        "language": "C#",
+        "setup": "在啟用隱含 using 的 .NET 主控台專案中執行。",
+        "code": "using var source = new CancellationTokenSource();\nvar waiting = Task.Delay(Timeout.Infinite, source.Token);\nsource.Cancel();\ntry\n{\n    await waiting;\n}\ncatch (OperationCanceledException) when (source.IsCancellationRequested)\n{\n    Console.WriteLine(\"查詢已取消\");\n}",
+        "result": "等待結束，印出「查詢已取消」。實際資料庫何時停止執行取決於提供者。"
+      }
+    },
+    {
+      "id": "di-lifetime",
+      "en": "Dependency Injection Lifetime",
+      "zh": "相依性注入生命週期",
+      "category": "相依性注入與背景工作",
+      "definition": "生命週期決定 DI 容器解析某個服務時，會建立新實例或重用既有實例。",
+      "example": "訂單處理器與庫存處理器若在同一次 HTTP 請求內解析同一個 scoped DbContext，預設會拿到同一個實例。下一個請求會有自己的 scope。",
+      "properties": [
+        [
+          "Transient",
+          "每次向容器解析時建立新實例。"
+        ],
+        [
+          "Scoped",
+          "同一個 scope 內重用實例。ASP.NET Core 通常為每個 HTTP 請求建立一個 scope。"
+        ],
+        [
+          "Singleton",
+          "同一個根容器共用實例。若服務持有可變狀態，需處理多個請求同時存取。"
+        ]
+      ]
+    },
+    {
+      "id": "db-context",
+      "en": "DbContext",
+      "zh": "EF Core 資料庫內容物件",
+      "category": "資料存取",
+      "definition": "DbContext 代表一次工作單元，負責查詢、追蹤實體變更，並在 SaveChanges 時將變更寫入資料庫。",
+      "example": "查到訂單後修改狀態，再呼叫 SaveChangesAsync。若要同時查詢兩份報表，應為平行操作各自建立 DbContext；同一個實例上的資料庫操作要依序等待。",
+      "sample": {
+        "language": "C#",
+        "setup": "在已設定 EF Core 的非同步方法中執行。db 為訂單 DbContext，Orders 有 Id 與 Status 欄位，ct 為取消權杖。",
+        "code": "var order = await db.Orders.SingleAsync(o => o.Id == 42, ct);\norder.Status = \"Paid\";\nawait db.SaveChangesAsync(ct);",
+        "result": "預設追蹤查詢讀到訂單 42 後，SaveChangesAsync 將狀態變更寫回。若還要偵測其他人同時修改，需另設併發權杖。"
+      }
+    },
+    {
+      "id": "http-client",
+      "en": "HttpClient",
+      "zh": "HTTP 用戶端",
+      "category": "服務間通訊",
+      "definition": "HttpClient 負責送出 HTTP 請求，底層處理常式管理可重用的連線。",
+      "example": "付款 API 每次向金流查狀態時，可以使用工廠建立用戶端並重用底層處理常式。另一種做法是重用長生命週期的 HttpClient，為其連線設定 PooledConnectionLifetime。"
+    },
+    {
+      "id": "http-client-factory",
+      "en": "IHttpClientFactory",
+      "zh": "HTTP 用戶端工廠",
+      "category": "服務間通訊",
+      "definition": "由 DI 管理的工廠，可以依名稱設定 HttpClient。每次建立用戶端時，工廠依生命週期管理並重用底層處理常式。",
+      "example": "金流與物流有各自的基底網址及逾時。將它們登記為具名用戶端，查付款狀態時即可套用金流的設定。",
+      "sample": {
+        "language": "C#",
+        "setup": "ASP.NET Core 的 Program.cs，放在 builder.Build() 前。網址為示意值。",
+        "code": "builder.Services.AddHttpClient(\"payments\", client =>\n{\n    client.BaseAddress = new Uri(\"https://payments.example/\");\n    client.Timeout = TimeSpan.FromSeconds(3);\n});",
+        "result": "注入 IHttpClientFactory 後呼叫 CreateClient(\"payments\")，新用戶端會套用這組設定。註冊本身不會發送請求。"
+      }
+    },
+    {
+      "id": "background-service",
+      "en": "BackgroundService",
+      "zh": "常駐背景服務",
+      "category": "相依性注入與背景工作",
+      "definition": "由 .NET Host 管理的背景工作基底類別。ExecuteAsync 代表工作生命週期，Host 關閉時會透過 stoppingToken 要求停止。",
+      "example": "對帳 Worker 用 AddHostedService 註冊後以 singleton 執行。每批建立自己的 scope，再從中取用 scoped 處理器與 DbContext，該批結束就釋放。",
+      "sample": {
+        "language": "C#",
+        "setup": "在 BackgroundService 的 ExecuteAsync 迴圈內執行這一段。scopeFactory 是注入的 IServiceScopeFactory，ReconciliationBatch 已註冊為 scoped。",
+        "code": "await using var scope = scopeFactory.CreateAsyncScope();\nvar batch = scope.ServiceProvider\n    .GetRequiredService<ReconciliationBatch>();\nawait batch.RunAsync(stoppingToken);",
+        "result": "這一批完成並離開區塊時，scope 會釋放它建立的服務。並行執行多批時，各批要有自己的 scope。"
+      }
+    }
+  ],
+  "relations": [
+    [
+      "async-await",
+      "cancellation-token"
+    ],
+    [
+      "async-await",
+      "db-context"
+    ],
+    [
+      "cancellation-token",
+      "backend/timeout"
+    ],
+    [
+      "cancellation-token",
+      "background-service"
+    ],
+    [
+      "di-lifetime",
+      "db-context"
+    ],
+    [
+      "di-lifetime",
+      "background-service"
+    ],
+    [
+      "background-service",
+      "db-context"
+    ],
+    [
+      "background-service",
+      "backend/graceful-shutdown"
+    ],
+    [
+      "background-service",
+      "backend/background-job"
+    ],
+    [
+      "db-context",
+      "sql/optimistic-concurrency"
+    ],
+    [
+      "db-context",
+      "backend/n-plus-one"
+    ],
+    [
+      "http-client",
+      "http-client-factory"
+    ],
+    [
+      "http-client",
+      "backend/timeout"
+    ],
+    [
+      "http-client-factory",
+      "di-lifetime"
+    ]
+  ]
+}

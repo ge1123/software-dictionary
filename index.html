@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SQL 詞典 · Software Dictionary</title>
+  <title>主題索引 · Software Dictionary</title>
 </head>
 <body>
-  <header><b>Software Dictionary</b><a href="https://github.com/ge1123/software-dictionary">GitHub ↗</a></header>
+  <header><a href="#"><b>Software Dictionary</b></a><a href="https://github.com/ge1123/software-dictionary">GitHub ↗</a></header>
   <main id="app" v-cloak>
     <section v-if="selected" class="detail">
-      <a href="#" class="back">← 返回詞條清單</a>
+      <a :href="'#/topics/'+domain.id" class="back">← {{ domain.name }} 詞條清單</a>
       <h1 tabindex="-1" ref="title">{{ selected.en }} <strong>{{ selected.zh }}</strong></h1>
       <p>{{ selected.definition }}</p>
       <dl v-if="selected.properties">
@@ -32,9 +32,9 @@
         </ul>
       </template>
     </section>
-    <section v-else>
-      <label v-if="domains.length > 1">領域 <select v-model="domainId" @change="reset"><option v-for="domain in domains" :value="domain.id" :key="domain.id">{{ domain.name }}</option></select></label>
-      <h1>{{ domainName }} 詞典<span>.</span></h1>
+    <section v-else-if="domain" class="term-list">
+      <a href="#" class="back">← 主題索引</a>
+      <h1 ref="title" tabindex="-1">{{ domain.name }} 詞典<span>.</span></h1>
       <input type="search" v-model="query" aria-label="搜尋詞條" placeholder="搜尋英文名詞、中文名稱或關鍵字…">
       <nav aria-label="詞條分類">
         <button v-for="name in categories" :key="name" :aria-pressed="category === name" @click="category = name">{{ name }}</button>
@@ -46,6 +46,21 @@
         </li>
       </ul>
       <p v-if="!filtered.length">沒有符合的詞條。<button @click="reset">顯示全部</button></p>
+    </section>
+    <section v-else class="topic-index">
+      <h1 ref="title" tabindex="-1">主題索引<span>.</span></h1>
+      <div class="topic-grid">
+        <a v-for="topic in domains" :key="topic.id" :id="'/topics/'+topic.id"
+           :href="'#/topics/'+topic.id" class="topic-card">
+          <h2>{{ topic.name }}</h2>
+          <p>{{ [...new Set(topic.terms.map(term => term.category))].join(' · ') }}</p>
+          <div class="card-foot"><span>{{ topic.terms.length }} 個詞條</span><span aria-hidden="true">↗</span></div>
+        </a>
+      </div>
+      <section v-if="plannedTopics.length" class="planned">
+        <h2>規劃中的主題</h2>
+        <ul><li v-for="[id, name] in plannedTopics" :key="id">{{ name }}</li></ul>
+      </section>
     </section>
   </main>
   <script type="module" src="./src/main.js"></script>

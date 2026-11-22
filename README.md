@@ -12,7 +12,7 @@
 | 確認用詞、版面、範例及關係的寫法 | [詞條維護規範](AGENTS.md) |
 | 新增領域 | 複製 [領域樣板](templates/domain.json) 到 src/domains，再加入 [領域清單](src/terms.js) |
 
-目前上線 SQL。後續的後端、Redis、MQ、Infra、FAE、Frontend、Browser、資安都能使用同一個樣板；加入第二個領域後，首頁會顯示領域選單。只有已登錄的領域會發布。
+首頁以主題索引卡進入 SQL 與 Redis 詞庫。後端、MQ、Infra、FAE、Frontend、Browser、資安列在規劃區；領域加入 domains 後，自動顯示可開啟的索引卡及實際詞條數。
 
 ## 開發與部署
 

@@ -1,6 +1,13 @@
 import sql from './domains/sql.json' with { type: 'json' };
 
-export const domains = [sql];
+import redis from './domains/redis.json' with { type: 'json' };
+
+export const domains = [sql, redis];
+
+export const plannedTopics = Object.entries({
+  backend: '後端', mq: 'MQ', infra: 'Infra', fae: 'FAE',
+  frontend: 'Frontend', browser: 'Browser', security: '資安'
+}).filter(([id]) => !domains.some(domain => domain.id === id));
 
 // SQL keeps its original public URLs. Other domains get their own namespace.
 function entryId(domain, slug) {

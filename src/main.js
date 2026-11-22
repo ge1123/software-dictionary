@@ -1,5 +1,5 @@
 import { createApp, computed, watch, onUnmounted, ref } from 'vue/dist/vue.esm-bundler.js';
-import { relatedTerms, domains, terms } from './terms.js';
+import { relatedTerms, domains, plannedTopics, terms } from './terms.js';
 import './style.css';
 
 const sorted = [...terms].sort((a, b) => a.en.localeCompare(b.en, 'en'));
@@ -7,9 +7,13 @@ createApp({
   setup() {
     const query = ref('');
     const category = ref('全部');
-    const domainId = ref(domains[0].id);
-    const domainName = computed(() => domains.find(domain => domain.id === domainId.value).name);
-    const domainTerms = computed(() => sorted.filter(term => term.domain === domainId.value));
+    const slug = ref(location.hash.slice(1));
+    const title = ref(null);
+    const selected = computed(() => terms.find(term => term.id === slug.value));
+    const domain = computed(() => domains.find(item =>
+      selected.value?.domain === item.id || slug.value === '/topics/' + item.id
+    ));
+    const domainTerms = computed(() => sorted.filter(term => term.domain === domain.value?.id));
     const categories = computed(() => ['全部', ...new Set(domainTerms.value.map(term => term.category))]);
     const filtered = computed(() => {
       const text = query.value.trim().toLowerCase();
@@ -22,30 +26,24 @@ createApp({
       category.value = '全部';
       query.value = '';
     }
-    const slug = ref(location.hash.slice(1));
-    const title = ref(null);
-    const selected = computed(() => terms.find(term => term.id === slug.value));
     function readHash() {
       slug.value = location.hash.slice(1);
     }
     window.addEventListener('hashchange', readHash);
     onUnmounted(() => window.removeEventListener('hashchange', readHash));
-    watch(selected, (term, previous) => {
-      if (term && term.domain !== domainId.value) {
-        domainId.value = term.domain;
-        reset();
-      }
-      if (term) {
+    watch(domain, reset);
+    watch(slug, (_, previous) => {
+      const previousLink = document.getElementById(previous);
+      if (previousLink) previousLink.focus();
+      else {
         title.value?.focus({ preventScroll: true });
         window.scrollTo(0, 0);
-      } else if (previous) {
-        document.getElementById(previous.id)?.focus();
       }
-    }, { immediate: true, flush: 'post' });
-    watch([selected, domainName], ([term, name]) => {
-      document.title = (term ? term.en : name + ' 詞典') + ' · Software Dictionary';
+    }, { flush: 'post' });
+    watch([selected, domain], ([term, topic]) => {
+      document.title = (term?.en ?? topic?.name ?? '主題索引') + ' · Software Dictionary';
     }, { immediate: true });
     const related = computed(() => relatedTerms(slug.value));
-    return { domains, domainId, domainName, related, query, category, categories, filtered, reset, selected, title };
+    return { domains, plannedTopics, domain, related, query, category, categories, filtered, reset, selected, title };
   }
 }).mount('#app');

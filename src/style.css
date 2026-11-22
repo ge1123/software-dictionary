@@ -32,3 +32,15 @@ dd { margin: 2px 0 0; }
 .detail pre { background: #edf0e9; padding: 1rem; overflow-x: auto; border-radius: 5px; font: .875rem/1.65 monospace; }
 .references { margin: 0; padding-inline-start: 1.2rem; }
 .references a { color: #37664d; text-decoration: underline; }
+.topic-index, .term-list { padding-block: 28px 48px; }
+.topic-index h1 { margin: 0 0 32px; }
+.topic-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,240px),1fr)); gap: 24px; }
+.topic-card { position: relative; display: flex; flex-direction: column; padding: 20px; border: 1px solid #a7b6a9; border-top: 3px solid #397359; background: #fffef8; border-radius: 0 5px 5px 5px; box-shadow: 0 3px 0 #e2e7dc; }
+.topic-card::before { content: ''; position: absolute; left: -1px; top: -10px; width: 52px; height: 8px; border-radius: 5px 5px 0 0; background: #397359; }
+.topic-card:hover, .topic-card:focus-visible { background: #edf4e9; text-decoration: none; }
+.topic-card h2 { font-size: 1.45rem; margin: 0; }
+.topic-card p { color: #4a5e53; line-height: 1.65; margin: 8px 0 20px; }
+.card-foot { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 10px; border-top: 1px solid #d8dfd4; font-size: .85rem; }
+.planned { margin-top: 36px; }
+.planned h2 { font: 600 .95rem system-ui,sans-serif; }
+.planned ul { display: flex; flex-wrap: wrap; gap: 8px 25px; list-style: square; padding-left: 1.2em; color: #526256; }

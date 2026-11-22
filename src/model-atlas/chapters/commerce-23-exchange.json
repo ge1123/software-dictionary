@@ -1,0 +1,368 @@
+{
+  "intro": "白色 M 號換 L 號；若換更貴款式需補差額。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 退貨加新訂單",
+      "使用現有退貨與建單流程。",
+      "重新計價可能改變原優惠，需要明訂採原價或現價。"
+    ],
+    [
+      "B 換貨單與品項對應",
+      "直接記錄 M 換 L。",
+      "需接收貨與履約關聯，才能追蹤先寄後收。"
+    ],
+    [
+      "C 補差額與退差額",
+      "500 元上衣換 600 元款式。",
+      "差額方向與加總需交易檢查；原優惠、點數分攤需延續到替換品。"
+    ]
+  ],
+  "labSha256": "4196049c532e13a69675941e9b712836c6d95257e04d442cb08f877164ea1213",
+  "plans": [
+    {
+      "code": "A",
+      "title": "退貨加新訂單",
+      "line": 19,
+      "tables": [
+        "ec_23_a.exchange_link"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "換貨單與品項對應",
+      "line": 63,
+      "tables": [
+        "ec_23_b.exchange_case",
+        "ec_23_b.exchange_line"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "補差額與退差額",
+      "line": 127,
+      "tables": [
+        "ec_23_c.exchange_adjustment",
+        "ec_23_c.exchange_case"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_23_a",
+      "name": "exchange_link",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "return_id",
+          "bigint",
+          true
+        ],
+        [
+          "replacement_order_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (replacement_order_id)",
+          "cols": [
+            "replacement_order_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (return_id)",
+          "cols": [
+            "return_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX exchange_link_pkey ON ec_23_a.exchange_link USING btree (id)",
+        "CREATE UNIQUE INDEX exchange_link_return_id_key ON ec_23_a.exchange_link USING btree (return_id)",
+        "CREATE UNIQUE INDEX exchange_link_replacement_order_id_key ON ec_23_a.exchange_link USING btree (replacement_order_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "201",
+          "102"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_23_b",
+      "name": "exchange_case",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX exchange_case_pkey ON ec_23_b.exchange_case USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_23_b",
+      "name": "exchange_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "case_id",
+          "bigint",
+          true
+        ],
+        [
+          "original_line_id",
+          "bigint",
+          true
+        ],
+        [
+          "replacement_sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (case_id) REFERENCES ec_23_b.exchange_case(id)",
+          "cols": [
+            "case_id"
+          ],
+          "target": "exchange_case",
+          "targetSchema": "ec_23_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX exchange_line_pkey ON ec_23_b.exchange_line USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "1001",
+          "12",
+          1
+        ]
+      ]
+    },
+    {
+      "schema": "ec_23_c",
+      "name": "exchange_adjustment",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "case_id",
+          "bigint",
+          true
+        ],
+        [
+          "direction",
+          "text",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ],
+        [
+          "operation_key",
+          "text",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (case_id) REFERENCES exchange_case(id)",
+          "cols": [
+            "case_id"
+          ],
+          "target": "exchange_case",
+          "targetSchema": "ec_23_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((direction = ANY (ARRAY['collect'::text, 'refund'::text])))",
+          "cols": [
+            "direction"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (operation_key)",
+          "cols": [
+            "operation_key"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX exchange_adjustment_pkey ON ec_23_c.exchange_adjustment USING btree (id)",
+        "CREATE UNIQUE INDEX exchange_adjustment_operation_key_key ON ec_23_c.exchange_adjustment USING btree (operation_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "collect",
+          "100",
+          "exchange-1-pay",
+          "pending"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_23_c",
+      "name": "exchange_case",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "original_value",
+          "bigint",
+          true
+        ],
+        [
+          "replacement_value",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((original_value >= 0))",
+          "cols": [
+            "original_value"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((replacement_value >= 0))",
+          "cols": [
+            "replacement_value"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX exchange_case_pkey ON ec_23_c.exchange_case USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "500",
+          "600"
+        ]
+      ]
+    }
+  ]
+}

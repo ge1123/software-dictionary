@@ -1,0 +1,502 @@
+{
+  "intro": "下單占兩件衣服，十五分鐘未付款就釋放。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 下單直接扣量",
+      "扣掉的數量代表不可再售。",
+      "available 無法區分現有庫存與未出貨占用。"
+    ],
+    [
+      "B 有期限的保留單",
+      "付款前保留，逾期釋放。",
+      "committed 仍占庫，不能讓逾期工作釋放；出貨完成需額外消耗狀態或出貨關聯。"
+    ],
+    [
+      "C 跨倉分配與待補",
+      "兩件衣服只有一件現貨。",
+      "request-SUM(allocation) 是待補量；跨列上限與扣庫需同交易鎖 demand 及 stock。"
+    ]
+  ],
+  "labSha256": "968219c6387eae38cd89dfb218d93c618f0711e3cbc099f2cec8ee40ebf889de",
+  "plans": [
+    {
+      "code": "A",
+      "title": "下單直接扣量",
+      "line": 19,
+      "tables": [
+        "ec_16_a.order_hold",
+        "ec_16_a.stock"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "有期限的保留單",
+      "line": 80,
+      "tables": [
+        "ec_16_b.reservation",
+        "ec_16_b.stock"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "跨倉分配與待補",
+      "line": 148,
+      "tables": [
+        "ec_16_c.allocation",
+        "ec_16_c.demand",
+        "ec_16_c.stock"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_16_a",
+      "name": "order_hold",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id, sku_id)",
+          "cols": [
+            "order_id",
+            "sku_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (sku_id) REFERENCES ec_16_a.stock(sku_id)",
+          "cols": [
+            "sku_id"
+          ],
+          "target": "stock",
+          "targetSchema": "ec_16_a",
+          "refs": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_hold_pkey ON ec_16_a.order_hold USING btree (order_id, sku_id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "11",
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "ec_16_a",
+      "name": "stock",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "available",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((available >= 0))",
+          "cols": [
+            "available"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX stock_pkey ON ec_16_a.stock USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          8
+        ]
+      ]
+    },
+    {
+      "schema": "ec_16_b",
+      "name": "reservation",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_line_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ],
+        [
+          "expires_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_line_id)",
+          "cols": [
+            "order_line_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (sku_id) REFERENCES ec_16_b.stock(sku_id)",
+          "cols": [
+            "sku_id"
+          ],
+          "target": "stock",
+          "targetSchema": "ec_16_b",
+          "refs": [
+            "sku_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((state = ANY (ARRAY['held'::text, 'committed'::text, 'released'::text])))",
+          "cols": [
+            "state"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX reservation_pkey ON ec_16_b.reservation USING btree (id)",
+        "CREATE UNIQUE INDEX reservation_order_line_id_key ON ec_16_b.reservation USING btree (order_line_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "11",
+          "1001",
+          2,
+          "held",
+          "2026-11-18T09:15:00.000Z"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_16_b",
+      "name": "stock",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "on_hand",
+          "integer",
+          true
+        ],
+        [
+          "held",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((held >= 0) AND (held <= on_hand)))",
+          "cols": [
+            "held",
+            "on_hand"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((on_hand >= 0))",
+          "cols": [
+            "on_hand"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX stock_pkey ON ec_16_b.stock USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          10,
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "ec_16_c",
+      "name": "allocation",
+      "kind": "r",
+      "columns": [
+        [
+          "demand_id",
+          "bigint",
+          true
+        ],
+        [
+          "stock_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (demand_id) REFERENCES demand(id)",
+          "cols": [
+            "demand_id"
+          ],
+          "target": "demand",
+          "targetSchema": "ec_16_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (demand_id, stock_id)",
+          "cols": [
+            "demand_id",
+            "stock_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (stock_id) REFERENCES stock(id)",
+          "cols": [
+            "stock_id"
+          ],
+          "target": "stock",
+          "targetSchema": "ec_16_c",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX allocation_pkey ON ec_16_c.allocation USING btree (demand_id, stock_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          1
+        ]
+      ]
+    },
+    {
+      "schema": "ec_16_c",
+      "name": "demand",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_line_id",
+          "bigint",
+          true
+        ],
+        [
+          "requested",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_line_id)",
+          "cols": [
+            "order_line_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((requested > 0))",
+          "cols": [
+            "requested"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX demand_pkey ON ec_16_c.demand USING btree (id)",
+        "CREATE UNIQUE INDEX demand_order_line_id_key ON ec_16_c.demand USING btree (order_line_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1001",
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "ec_16_c",
+      "name": "stock",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "warehouse_id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "available",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((available >= 0))",
+          "cols": [
+            "available"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (warehouse_id, sku_id)",
+          "cols": [
+            "warehouse_id",
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX stock_pkey ON ec_16_c.stock USING btree (id)",
+        "CREATE UNIQUE INDEX stock_warehouse_id_sku_id_key ON ec_16_c.stock USING btree (warehouse_id, sku_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "11",
+          0
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,345 @@
+{
+  "intro": "同張訂單在官網是 O101，在 ERP 是 E900，在物流是 T001。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 固定外部欄位",
+      "只串接一套 ERP。",
+      "新增系統需增加欄位。"
+    ],
+    [
+      "B 映射表",
+      "同一訂單串接多個系統。",
+      "編號會重用時需加來源帳戶與有效期。"
+    ],
+    [
+      "C 收件事件與同步版本",
+      "ERP 狀態事件可能重送或亂序。",
+      "來源版本只適用全量狀態；增量事件缺號應補齊後依序執行。"
+    ]
+  ],
+  "labSha256": "0d2f21d4e9519ccf9de7868d84f0925acd3cbd3a0ea4275f5d7fa1530132f03d",
+  "plans": [
+    {
+      "code": "A",
+      "title": "固定外部欄位",
+      "line": 19,
+      "tables": [
+        "ec_28_a.sales_order"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "映射表",
+      "line": 63,
+      "tables": [
+        "ec_28_b.order_reference",
+        "ec_28_b.sales_order"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "收件事件與同步版本",
+      "line": 125,
+      "tables": [
+        "ec_28_c.external_event",
+        "ec_28_c.sales_order"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_28_a",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_no",
+          "text",
+          true
+        ],
+        [
+          "erp_no",
+          "text",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (erp_no)",
+          "cols": [
+            "erp_no"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_no)",
+          "cols": [
+            "order_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_28_a.sales_order USING btree (id)",
+        "CREATE UNIQUE INDEX sales_order_order_no_key ON ec_28_a.sales_order USING btree (order_no)",
+        "CREATE UNIQUE INDEX sales_order_erp_no_key ON ec_28_a.sales_order USING btree (erp_no)"
+      ],
+      "samples": [
+        [
+          "101",
+          "O101",
+          "E900"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_28_b",
+      "name": "order_reference",
+      "kind": "r",
+      "columns": [
+        [
+          "system_code",
+          "text",
+          true
+        ],
+        [
+          "external_id",
+          "text",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES ec_28_b.sales_order(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "sales_order",
+          "targetSchema": "ec_28_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (system_code, external_id)",
+          "cols": [
+            "system_code",
+            "external_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_reference_pkey ON ec_28_b.order_reference USING btree (system_code, external_id)"
+      ],
+      "samples": [
+        [
+          "ERP",
+          "E900",
+          "101"
+        ],
+        [
+          "WMS",
+          "W300",
+          "101"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_28_b",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_no",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_no)",
+          "cols": [
+            "order_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_28_b.sales_order USING btree (id)",
+        "CREATE UNIQUE INDEX sales_order_order_no_key ON ec_28_b.sales_order USING btree (order_no)"
+      ],
+      "samples": [
+        [
+          "101",
+          "O101"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_28_c",
+      "name": "external_event",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "system_code",
+          "text",
+          true
+        ],
+        [
+          "event_key",
+          "text",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "source_version",
+          "bigint",
+          true
+        ],
+        [
+          "payload",
+          "jsonb",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES sales_order(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "sales_order",
+          "targetSchema": "ec_28_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (system_code, event_key)",
+          "cols": [
+            "system_code",
+            "event_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX external_event_pkey ON ec_28_c.external_event USING btree (id)",
+        "CREATE UNIQUE INDEX external_event_system_code_event_key_key ON ec_28_c.external_event USING btree (system_code, event_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "ERP",
+          "E3",
+          "101",
+          "3",
+          {
+            "status": "accepted"
+          },
+          "applied"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_28_c",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "source_version",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((source_version >= 0))",
+          "cols": [
+            "source_version"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_28_c.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "3"
+        ]
+      ]
+    }
+  ]
+}

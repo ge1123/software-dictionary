@@ -1,0 +1,362 @@
+{
+  "intro": "衣服由台北倉出一件，供應商直送另一件。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 訂單單一履約",
+      "整單由一個倉庫處理。",
+      "不能分批或多倉。"
+    ],
+    [
+      "B 履約主明細",
+      "同訂單分倉處理。",
+      "需連到訂單明細並檢查同訂單與總分配上限。"
+    ],
+    [
+      "C 供應商直送與部分完成",
+      "倉庫與供應商共同履約。",
+      "source_kind+source_id 無法直接加跨表 FK；正式落地可改共用 fulfillment_source 主表。"
+    ]
+  ],
+  "labSha256": "c8d66d61e892bde24b647a504cd57af4655dbd6a05289a19124abdb4e29755d1",
+  "plans": [
+    {
+      "code": "A",
+      "title": "訂單單一履約",
+      "line": 19,
+      "tables": [
+        "ec_19_a.fulfillment"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "履約主明細",
+      "line": 63,
+      "tables": [
+        "ec_19_b.fulfillment",
+        "ec_19_b.fulfillment_line"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "供應商直送與部分完成",
+      "line": 129,
+      "tables": [
+        "ec_19_c.fulfillment",
+        "ec_19_c.fulfillment_line"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_19_a",
+      "name": "fulfillment",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "warehouse_id",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX fulfillment_pkey ON ec_19_a.fulfillment USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "1",
+          "picking"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_19_b",
+      "name": "fulfillment",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "warehouse_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX fulfillment_pkey ON ec_19_b.fulfillment USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101",
+          "1"
+        ],
+        [
+          "2",
+          "101",
+          "2"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_19_b",
+      "name": "fulfillment_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "fulfillment_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_line_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (fulfillment_id) REFERENCES ec_19_b.fulfillment(id)",
+          "cols": [
+            "fulfillment_id"
+          ],
+          "target": "fulfillment",
+          "targetSchema": "ec_19_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX fulfillment_line_pkey ON ec_19_b.fulfillment_line USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "1001",
+          1
+        ],
+        [
+          "2",
+          "2",
+          "1001",
+          1
+        ]
+      ]
+    },
+    {
+      "schema": "ec_19_c",
+      "name": "fulfillment",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "source_kind",
+          "text",
+          true
+        ],
+        [
+          "source_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((source_kind = ANY (ARRAY['warehouse'::text, 'supplier'::text])))",
+          "cols": [
+            "source_kind"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX fulfillment_pkey ON ec_19_c.fulfillment USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101",
+          "warehouse",
+          "1"
+        ],
+        [
+          "2",
+          "101",
+          "supplier",
+          "8"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_19_c",
+      "name": "fulfillment_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "fulfillment_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_line_id",
+          "bigint",
+          true
+        ],
+        [
+          "assigned",
+          "integer",
+          true
+        ],
+        [
+          "shipped",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((assigned > 0))",
+          "cols": [
+            "assigned"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((shipped >= 0) AND (shipped <= assigned)))",
+          "cols": [
+            "shipped",
+            "assigned"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (fulfillment_id) REFERENCES fulfillment(id)",
+          "cols": [
+            "fulfillment_id"
+          ],
+          "target": "fulfillment",
+          "targetSchema": "ec_19_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX fulfillment_line_pkey ON ec_19_c.fulfillment_line USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "1001",
+          1,
+          1
+        ],
+        [
+          "2",
+          "2",
+          "1001",
+          1,
+          0
+        ]
+      ]
+    }
+  ]
+}

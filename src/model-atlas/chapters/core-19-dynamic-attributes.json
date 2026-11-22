@@ -1,0 +1,383 @@
+{
+  "intro": "不同供應商要求不同商品欄位。",
+  "comparison": [
+    [
+      "面向",
+      "A 固定欄位",
+      "B JSONB 契約",
+      "C 型別化 EAV"
+    ],
+    [
+      "平台必填規則",
+      "NOT NULL 直接保證",
+      "CHECK 明確保證",
+      "單列可驗證，缺列要另查"
+    ],
+    [
+      "新增低頻描述",
+      "需 migration",
+      "新增 key",
+      "新增字典與值"
+    ],
+    [
+      "兩屬性條件查詢",
+      "直接 WHERE",
+      "JSON 抽值",
+      "多次 JOIN／EXISTS"
+    ],
+    [
+      "單一屬性更新",
+      "欄位 UPDATE",
+      "jsonb_set",
+      "更新一列"
+    ],
+    [
+      "欄位治理",
+      "schema",
+      "JSON 契約版本",
+      "字典與驗證流程"
+    ]
+  ],
+  "labSha256": "1c1f9b37ebd5c79232636ff1c46480bf0c4d7611fa7c682d974002f3d37e0229",
+  "plans": [
+    {
+      "code": "A",
+      "title": "固定欄位",
+      "line": 11,
+      "tables": [
+        "lab19_a.product"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "JSONB＋明確驗證契約",
+      "line": 41,
+      "tables": [
+        "lab19_b.product"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "EAV 字典＋型別化值",
+      "line": 71,
+      "tables": [
+        "lab19_c.attribute_def",
+        "lab19_c.attribute_value",
+        "lab19_c.product"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab19_a",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "material",
+          "text",
+          true
+        ],
+        [
+          "warranty_months",
+          "integer",
+          true
+        ],
+        [
+          "packaging_note",
+          "text",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(material) <> ''::text))",
+          "cols": [
+            "material"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id)",
+          "cols": [
+            "product_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((warranty_months >= 0))",
+          "cols": [
+            "warranty_months"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab19_a.product USING btree (product_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "steel",
+          24,
+          null
+        ],
+        [
+          "2",
+          "glass",
+          6,
+          null
+        ]
+      ]
+    },
+    {
+      "schema": "lab19_b",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "attributes",
+          "jsonb",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (COALESCE(((jsonb_typeof(attributes) = 'object'::text) AND (jsonb_typeof((attributes -> 'material'::text)) = 'string'::text) AND (btrim((attributes ->> 'material'::text)) <> ''::text) AND\nCASE\n    WHEN (jsonb_typeof((attributes -> 'warranty_months'::text)) = 'number'::text) THEN ((((attributes ->> 'warranty_months'::text))::numeric >= (0)::numeric) AND (((attributes ->> 'warranty_months'::text))::numeric = trunc(((attributes ->> 'warranty_months'::text))::numeric)))\n    ELSE false\nEND), false))",
+          "cols": [
+            "attributes"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id)",
+          "cols": [
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab19_b.product USING btree (product_id)"
+      ],
+      "samples": [
+        [
+          "2",
+          {
+            "material": "glass",
+            "warranty_months": 6
+          }
+        ],
+        [
+          "1",
+          {
+            "material": "steel",
+            "packaging_note": "recyclable",
+            "warranty_months": 24
+          }
+        ]
+      ]
+    },
+    {
+      "schema": "lab19_c",
+      "name": "attribute_def",
+      "kind": "r",
+      "columns": [
+        [
+          "code",
+          "text",
+          true
+        ],
+        [
+          "kind",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (code, kind)",
+          "cols": [
+            "code",
+            "kind"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((kind = ANY (ARRAY['text'::text, 'number'::text])))",
+          "cols": [
+            "kind"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (code)",
+          "cols": [
+            "code"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX attribute_def_pkey ON lab19_c.attribute_def USING btree (code)",
+        "CREATE UNIQUE INDEX attribute_def_code_kind_key ON lab19_c.attribute_def USING btree (code, kind)"
+      ],
+      "samples": [
+        [
+          "material",
+          "text"
+        ],
+        [
+          "warranty_months",
+          "number"
+        ]
+      ]
+    },
+    {
+      "schema": "lab19_c",
+      "name": "attribute_value",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "code",
+          "text",
+          true
+        ],
+        [
+          "kind",
+          "text",
+          true
+        ],
+        [
+          "text_value",
+          "text",
+          false
+        ],
+        [
+          "number_value",
+          "numeric",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((((kind = 'text'::text) AND (text_value IS NOT NULL) AND (btrim(text_value) <> ''::text) AND (number_value IS NULL)) OR ((kind = 'number'::text) AND (number_value IS NOT NULL) AND (text_value IS NULL))))",
+          "cols": [
+            "kind",
+            "text_value",
+            "number_value"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((code <> 'warranty_months'::text) OR ((number_value IS NOT NULL) AND (number_value >= (0)::numeric) AND (number_value = trunc(number_value)))))",
+          "cols": [
+            "code",
+            "number_value"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (code, kind) REFERENCES lab19_c.attribute_def(code, kind)",
+          "cols": [
+            "code",
+            "kind"
+          ],
+          "target": "attribute_def",
+          "targetSchema": "lab19_c",
+          "refs": [
+            "code",
+            "kind"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id, code)",
+          "cols": [
+            "product_id",
+            "code"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES lab19_c.product(product_id)",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "lab19_c",
+          "refs": [
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX attribute_value_pkey ON lab19_c.attribute_value USING btree (product_id, code)"
+      ],
+      "samples": [
+        [
+          "1",
+          "material",
+          "text",
+          "steel",
+          null
+        ],
+        [
+          "1",
+          "warranty_months",
+          "number",
+          null,
+          "24"
+        ]
+      ]
+    },
+    {
+      "schema": "lab19_c",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id)",
+          "cols": [
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab19_c.product USING btree (product_id)"
+      ],
+      "samples": [
+        [
+          "1"
+        ],
+        [
+          "2"
+        ]
+      ]
+    }
+  ]
+}

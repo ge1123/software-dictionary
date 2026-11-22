@@ -1,0 +1,750 @@
+{
+  "intro": "兩件衣服共 1,000 元，用 100 點折 100 元，信用卡付 900 元。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 帳戶與異動流水",
+      "點數無效期，扣點立即完成。",
+      "balance 與 SUM(delta) 的一致性由受控交易維護。"
+    ],
+    [
+      "B 批次效期與消耗來源",
+      "生日點先到期，購物點後到期。",
+      "累計消耗與退點上限需鎖批次或消耗列後檢查；到期點退回需選擇原效期或新補發批次。"
+    ],
+    [
+      "C 保留、確認與贈點追回",
+      "付款等待先占點，退貨要追回原贈點。",
+      "C 展示生命週期，正式整合需接 A 流水及 B 批次；追回不足保留 requested-collected 待處理，避免默默丟失欠點。"
+    ]
+  ],
+  "labSha256": "b2bfe95a9d2e9f0703e1b9a870e9d9c4c62313e1d89802e93f48662c278fbd2d",
+  "plans": [
+    {
+      "code": "A",
+      "title": "帳戶與異動流水",
+      "line": 19,
+      "tables": [
+        "ec_08_a.point_account",
+        "ec_08_a.point_ledger"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "批次效期與消耗來源",
+      "line": 108,
+      "tables": [
+        "ec_08_b.point_consumption",
+        "ec_08_b.point_lot",
+        "ec_08_b.point_return"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "保留、確認與贈點追回",
+      "line": 198,
+      "tables": [
+        "ec_08_c.point_account",
+        "ec_08_c.point_recovery",
+        "ec_08_c.point_reservation",
+        "ec_08_c.point_reward"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_08_a",
+      "name": "point_account",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ],
+        [
+          "balance",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((balance >= 0))",
+          "cols": [
+            "balance"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (customer_id)",
+          "cols": [
+            "customer_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX point_account_pkey ON ec_08_a.point_account USING btree (id)",
+        "CREATE UNIQUE INDEX point_account_customer_id_key ON ec_08_a.point_account USING btree (customer_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "7",
+          "200"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_08_a",
+      "name": "point_ledger",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "account_id",
+          "bigint",
+          true
+        ],
+        [
+          "event_key",
+          "text",
+          true
+        ],
+        [
+          "delta",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (account_id) REFERENCES ec_08_a.point_account(id)",
+          "cols": [
+            "account_id"
+          ],
+          "target": "point_account",
+          "targetSchema": "ec_08_a",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((delta <> 0))",
+          "cols": [
+            "delta"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (event_key)",
+          "cols": [
+            "event_key"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX point_ledger_pkey ON ec_08_a.point_ledger USING btree (id)",
+        "CREATE UNIQUE INDEX point_ledger_event_key_key ON ec_08_a.point_ledger USING btree (event_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "grant-1",
+          "300",
+          null
+        ],
+        [
+          "2",
+          "1",
+          "redeem-101",
+          "-100",
+          "101"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_08_b",
+      "name": "point_consumption",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "lot_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "points",
+          "bigint",
+          true
+        ],
+        [
+          "money_amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (lot_id) REFERENCES ec_08_b.point_lot(id)",
+          "cols": [
+            "lot_id"
+          ],
+          "target": "point_lot",
+          "targetSchema": "ec_08_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (lot_id, order_id)",
+          "cols": [
+            "lot_id",
+            "order_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((money_amount >= 0))",
+          "cols": [
+            "money_amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((points > 0))",
+          "cols": [
+            "points"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX point_consumption_pkey ON ec_08_b.point_consumption USING btree (id)",
+        "CREATE UNIQUE INDEX point_consumption_lot_id_order_id_key ON ec_08_b.point_consumption USING btree (lot_id, order_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "101",
+          "100",
+          "100"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_08_b",
+      "name": "point_lot",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ],
+        [
+          "granted",
+          "bigint",
+          true
+        ],
+        [
+          "expires_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((granted > 0))",
+          "cols": [
+            "granted"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX point_lot_pkey ON ec_08_b.point_lot USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "7",
+          "100",
+          "2026-12-01T00:00:00.000Z"
+        ],
+        [
+          "2",
+          "7",
+          "200",
+          "2027-01-01T00:00:00.000Z"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_08_b",
+      "name": "point_return",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "consumption_id",
+          "bigint",
+          true
+        ],
+        [
+          "event_key",
+          "text",
+          true
+        ],
+        [
+          "points",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (consumption_id) REFERENCES ec_08_b.point_consumption(id)",
+          "cols": [
+            "consumption_id"
+          ],
+          "target": "point_consumption",
+          "targetSchema": "ec_08_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (event_key)",
+          "cols": [
+            "event_key"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((points > 0))",
+          "cols": [
+            "points"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX point_return_pkey ON ec_08_b.point_return USING btree (id)",
+        "CREATE UNIQUE INDEX point_return_event_key_key ON ec_08_b.point_return USING btree (event_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "return-201",
+          "50"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_08_c",
+      "name": "point_account",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "balance",
+          "bigint",
+          true
+        ],
+        [
+          "held",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((balance >= 0))",
+          "cols": [
+            "balance"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((held >= 0) AND (held <= balance)))",
+          "cols": [
+            "held",
+            "balance"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX point_account_pkey ON ec_08_c.point_account USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "300",
+          "100"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_08_c",
+      "name": "point_recovery",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "reward_id",
+          "bigint",
+          true
+        ],
+        [
+          "event_key",
+          "text",
+          true
+        ],
+        [
+          "requested",
+          "bigint",
+          true
+        ],
+        [
+          "collected",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((collected >= 0) AND (collected <= requested)))",
+          "cols": [
+            "collected",
+            "requested"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (event_key)",
+          "cols": [
+            "event_key"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((requested > 0))",
+          "cols": [
+            "requested"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (reward_id) REFERENCES point_reward(id)",
+          "cols": [
+            "reward_id"
+          ],
+          "target": "point_reward",
+          "targetSchema": "ec_08_c",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX point_recovery_pkey ON ec_08_c.point_recovery USING btree (id)",
+        "CREATE UNIQUE INDEX point_recovery_event_key_key ON ec_08_c.point_recovery USING btree (event_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "return-200",
+          "5",
+          "5"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_08_c",
+      "name": "point_reservation",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "account_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "points",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ],
+        [
+          "expires_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (account_id) REFERENCES point_account(id)",
+          "cols": [
+            "account_id"
+          ],
+          "target": "point_account",
+          "targetSchema": "ec_08_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((points > 0))",
+          "cols": [
+            "points"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((state = ANY (ARRAY['held'::text, 'committed'::text, 'released'::text])))",
+          "cols": [
+            "state"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX point_reservation_pkey ON ec_08_c.point_reservation USING btree (id)",
+        "CREATE UNIQUE INDEX point_reservation_order_id_key ON ec_08_c.point_reservation USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "101",
+          "100",
+          "held",
+          "2026-11-18T09:15:00.000Z"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_08_c",
+      "name": "point_reward",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "account_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "granted",
+          "bigint",
+          true
+        ],
+        [
+          "recovered",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (account_id) REFERENCES point_account(id)",
+          "cols": [
+            "account_id"
+          ],
+          "target": "point_account",
+          "targetSchema": "ec_08_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((recovered >= 0) AND (recovered <= granted)))",
+          "cols": [
+            "recovered",
+            "granted"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((granted > 0))",
+          "cols": [
+            "granted"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX point_reward_pkey ON ec_08_c.point_reward USING btree (id)",
+        "CREATE UNIQUE INDEX point_reward_order_id_key ON ec_08_c.point_reward USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "100",
+          "10",
+          "5"
+        ]
+      ]
+    }
+  ]
+}

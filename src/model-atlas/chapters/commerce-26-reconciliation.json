@@ -1,0 +1,549 @@
+{
+  "intro": "內部收 900 元，金流商扣 18 元手續費後匯 882 元。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 逐筆配對",
+      "一筆內部交易對一筆外部交易。",
+      "此模型只覆蓋單支付商；金額相等需程式檢查。"
+    ],
+    [
+      "B 結算批次與費用",
+      "外部一次匯款含多筆收退款。",
+      "退款使用負 gross；批次加總與銀行配對另以交易檢查。"
+    ],
+    [
+      "C 配對配置與差異案件",
+      "一筆入帳涵蓋多筆交易，且可能跨日。",
+      "多對多配對需鎖兩邊額度；配對金額符號需按收款與退款類型分開處理。"
+    ]
+  ],
+  "labSha256": "234b81d77ed3f6c47fd345e0ff34875f53b2bed2753fde74974f6c0459389d19",
+  "plans": [
+    {
+      "code": "A",
+      "title": "逐筆配對",
+      "line": 19,
+      "tables": [
+        "ec_26_a.payment",
+        "ec_26_a.statement_line"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "結算批次與費用",
+      "line": 83,
+      "tables": [
+        "ec_26_b.statement_batch",
+        "ec_26_b.statement_line"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "配對配置與差異案件",
+      "line": 149,
+      "tables": [
+        "ec_26_c.external_entry",
+        "ec_26_c.internal_entry",
+        "ec_26_c.reconciliation_issue",
+        "ec_26_c.reconciliation_match"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_26_a",
+      "name": "payment",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "provider_ref",
+          "text",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (provider_ref)",
+          "cols": [
+            "provider_ref"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX payment_pkey ON ec_26_a.payment USING btree (id)",
+        "CREATE UNIQUE INDEX payment_provider_ref_key ON ec_26_a.payment USING btree (provider_ref)"
+      ],
+      "samples": [
+        [
+          "1",
+          "P001",
+          "900"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_26_a",
+      "name": "statement_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "provider_ref",
+          "text",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ],
+        [
+          "payment_id",
+          "bigint",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (payment_id) REFERENCES ec_26_a.payment(id)",
+          "cols": [
+            "payment_id"
+          ],
+          "target": "payment",
+          "targetSchema": "ec_26_a",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (payment_id)",
+          "cols": [
+            "payment_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (provider_ref)",
+          "cols": [
+            "provider_ref"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX statement_line_pkey ON ec_26_a.statement_line USING btree (id)",
+        "CREATE UNIQUE INDEX statement_line_provider_ref_key ON ec_26_a.statement_line USING btree (provider_ref)",
+        "CREATE UNIQUE INDEX statement_line_payment_id_key ON ec_26_a.statement_line USING btree (payment_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "P001",
+          "900",
+          "1"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_26_b",
+      "name": "statement_batch",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "external_key",
+          "text",
+          true
+        ],
+        [
+          "net_amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (external_key)",
+          "cols": [
+            "external_key"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX statement_batch_pkey ON ec_26_b.statement_batch USING btree (id)",
+        "CREATE UNIQUE INDEX statement_batch_external_key_key ON ec_26_b.statement_batch USING btree (external_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "B001",
+          "882"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_26_b",
+      "name": "statement_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "batch_id",
+          "bigint",
+          true
+        ],
+        [
+          "external_key",
+          "text",
+          true
+        ],
+        [
+          "gross",
+          "bigint",
+          true
+        ],
+        [
+          "fee",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (batch_id) REFERENCES ec_26_b.statement_batch(id)",
+          "cols": [
+            "batch_id"
+          ],
+          "target": "statement_batch",
+          "targetSchema": "ec_26_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (external_key)",
+          "cols": [
+            "external_key"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((fee >= 0))",
+          "cols": [
+            "fee"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX statement_line_pkey ON ec_26_b.statement_line USING btree (id)",
+        "CREATE UNIQUE INDEX statement_line_external_key_key ON ec_26_b.statement_line USING btree (external_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "P001",
+          "900",
+          "18"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_26_c",
+      "name": "external_entry",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "provider",
+          "text",
+          true
+        ],
+        [
+          "external_key",
+          "text",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (provider, external_key)",
+          "cols": [
+            "provider",
+            "external_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX external_entry_pkey ON ec_26_c.external_entry USING btree (id)",
+        "CREATE UNIQUE INDEX external_entry_provider_external_key_key ON ec_26_c.external_entry USING btree (provider, external_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "psp",
+          "P001",
+          "899"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_26_c",
+      "name": "internal_entry",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX internal_entry_pkey ON ec_26_c.internal_entry USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "900"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_26_c",
+      "name": "reconciliation_issue",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "internal_id",
+          "bigint",
+          true
+        ],
+        [
+          "difference",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((difference <> 0))",
+          "cols": [
+            "difference"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (internal_id) REFERENCES internal_entry(id)",
+          "cols": [
+            "internal_id"
+          ],
+          "target": "internal_entry",
+          "targetSchema": "ec_26_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX reconciliation_issue_pkey ON ec_26_c.reconciliation_issue USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "1",
+          "open"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_26_c",
+      "name": "reconciliation_match",
+      "kind": "r",
+      "columns": [
+        [
+          "internal_id",
+          "bigint",
+          true
+        ],
+        [
+          "external_id",
+          "bigint",
+          true
+        ],
+        [
+          "matched_amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (external_id) REFERENCES external_entry(id)",
+          "cols": [
+            "external_id"
+          ],
+          "target": "external_entry",
+          "targetSchema": "ec_26_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (internal_id) REFERENCES internal_entry(id)",
+          "cols": [
+            "internal_id"
+          ],
+          "target": "internal_entry",
+          "targetSchema": "ec_26_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((matched_amount > 0))",
+          "cols": [
+            "matched_amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (internal_id, external_id)",
+          "cols": [
+            "internal_id",
+            "external_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX reconciliation_match_pkey ON ec_26_c.reconciliation_match USING btree (internal_id, external_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "899"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,554 @@
+{
+  "intro": "同一平台服務多家公司，資料需隔離。",
+  "comparison": [
+    [
+      "面向",
+      "A 只加欄位",
+      "B 複合關聯",
+      "C 分schema"
+    ],
+    [
+      "跨租戶錯接",
+      "仍可能",
+      "複合外鍵拒絕",
+      "各schema內外鍵"
+    ],
+    [
+      "單租戶單號唯一",
+      "需另加",
+      "範圍唯一鍵",
+      "各表唯一鍵"
+    ],
+    [
+      "漏WHERE洩漏",
+      "可能",
+      "無RLS仍可能",
+      "共用role有權限仍可能"
+    ],
+    [
+      "Migration",
+      "一份",
+      "一份",
+      "多份需追蹤"
+    ],
+    [
+      "租戶獨立維護",
+      "較難",
+      "較難",
+      "較容易但非獨立database"
+    ]
+  ],
+  "labSha256": "3beb330f4a32529871564c56b294f4e6dcb798e63e9e7f44170e595ac4785845",
+  "plans": [
+    {
+      "code": "A",
+      "title": "共用表有TenantId，但外鍵只看全域ID",
+      "line": 11,
+      "tables": [
+        "lab13_a.customer",
+        "lab13_a.orders"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "共用表＋租戶範圍複合鍵",
+      "line": 50,
+      "tables": [
+        "lab13_b.customer",
+        "lab13_b.orders",
+        "lab13_b.tenant"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "每租戶一個schema",
+      "line": 102,
+      "tables": [
+        "lab13_tenant_a.customer",
+        "lab13_tenant_a.orders",
+        "lab13_tenant_b.customer",
+        "lab13_tenant_b.orders"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab13_a",
+      "name": "customer",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "tenant_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX customer_pkey ON lab13_a.customer USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "10",
+          "A公司客戶"
+        ],
+        [
+          "2",
+          "20",
+          "B公司客戶"
+        ]
+      ]
+    },
+    {
+      "schema": "lab13_a",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "tenant_id",
+          "bigint",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (customer_id) REFERENCES lab13_a.customer(id)",
+          "cols": [
+            "customer_id"
+          ],
+          "target": "customer",
+          "targetSchema": "lab13_a",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab13_a.orders USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "10",
+          "2"
+        ]
+      ]
+    },
+    {
+      "schema": "lab13_b",
+      "name": "customer",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "bigint",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, customer_id)",
+          "cols": [
+            "tenant_id",
+            "customer_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id) REFERENCES lab13_b.tenant(id)",
+          "cols": [
+            "tenant_id"
+          ],
+          "target": "tenant",
+          "targetSchema": "lab13_b",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX customer_pkey ON lab13_b.customer USING btree (tenant_id, customer_id)"
+      ],
+      "samples": [
+        [
+          "10",
+          "1",
+          "A公司客戶"
+        ],
+        [
+          "20",
+          "2",
+          "B公司客戶"
+        ]
+      ]
+    },
+    {
+      "schema": "lab13_b",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "external_no",
+          "text",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, order_id)",
+          "cols": [
+            "tenant_id",
+            "order_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, customer_id) REFERENCES lab13_b.customer(tenant_id, customer_id)",
+          "cols": [
+            "tenant_id",
+            "customer_id"
+          ],
+          "target": "customer",
+          "targetSchema": "lab13_b",
+          "refs": [
+            "tenant_id",
+            "customer_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (tenant_id, external_no)",
+          "cols": [
+            "tenant_id",
+            "external_no"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id) REFERENCES lab13_b.tenant(id)",
+          "cols": [
+            "tenant_id"
+          ],
+          "target": "tenant",
+          "targetSchema": "lab13_b",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab13_b.orders USING btree (tenant_id, order_id)",
+        "CREATE UNIQUE INDEX orders_tenant_id_external_no_key ON lab13_b.orders USING btree (tenant_id, external_no)"
+      ],
+      "samples": [
+        [
+          "10",
+          "1",
+          "ORD-1",
+          "1"
+        ],
+        [
+          "20",
+          "1",
+          "ORD-1",
+          "2"
+        ]
+      ]
+    },
+    {
+      "schema": "lab13_b",
+      "name": "tenant",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX tenant_pkey ON lab13_b.tenant USING btree (id)"
+      ],
+      "samples": [
+        [
+          "10",
+          "A公司"
+        ],
+        [
+          "20",
+          "B公司"
+        ]
+      ]
+    },
+    {
+      "schema": "lab13_tenant_a",
+      "name": "customer",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX customer_pkey ON lab13_tenant_a.customer USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "A公司客戶"
+        ]
+      ]
+    },
+    {
+      "schema": "lab13_tenant_a",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "external_no",
+          "text",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (customer_id) REFERENCES lab13_tenant_a.customer(id)",
+          "cols": [
+            "customer_id"
+          ],
+          "target": "customer",
+          "targetSchema": "lab13_tenant_a",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (external_no)",
+          "cols": [
+            "external_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab13_tenant_a.orders USING btree (id)",
+        "CREATE UNIQUE INDEX orders_external_no_key ON lab13_tenant_a.orders USING btree (external_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          "ORD-1",
+          "1"
+        ]
+      ]
+    },
+    {
+      "schema": "lab13_tenant_b",
+      "name": "customer",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX customer_pkey ON lab13_tenant_b.customer USING btree (id)"
+      ],
+      "samples": [
+        [
+          "2",
+          "B公司客戶"
+        ]
+      ]
+    },
+    {
+      "schema": "lab13_tenant_b",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "external_no",
+          "text",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (customer_id) REFERENCES lab13_tenant_b.customer(id)",
+          "cols": [
+            "customer_id"
+          ],
+          "target": "customer",
+          "targetSchema": "lab13_tenant_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (external_no)",
+          "cols": [
+            "external_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab13_tenant_b.orders USING btree (id)",
+        "CREATE UNIQUE INDEX orders_external_no_key ON lab13_tenant_b.orders USING btree (external_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          "ORD-1",
+          "2"
+        ]
+      ]
+    }
+  ]
+}

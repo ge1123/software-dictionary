@@ -1,0 +1,408 @@
+{
+  "intro": "一張訂單的衣服寄家裡，牙刷寄公司。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 訂單內嵌地址",
+      "一張訂單寄一個地方。",
+      "多個配送地點需拆單或改表。"
+    ],
+    [
+      "B 帳單與配送地址",
+      "公司付錢、門市收貨。",
+      "主鍵只允許每用途一筆。"
+    ],
+    [
+      "C 多地址分配",
+      "同明細兩件分送兩地。",
+      "分配總量需交易檢查；配送中改址另存變更紀錄。"
+    ]
+  ],
+  "labSha256": "e6bdb436a1805a631a25f953dbe052e2e2721d28bd9b5c1167799ba46deebd39",
+  "plans": [
+    {
+      "code": "A",
+      "title": "訂單內嵌地址",
+      "line": 19,
+      "tables": [
+        "ec_13_a.sales_order"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "帳單與配送地址",
+      "line": 63,
+      "tables": [
+        "ec_13_b.order_address",
+        "ec_13_b.sales_order"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "多地址分配",
+      "line": 125,
+      "tables": [
+        "ec_13_c.address_allocation",
+        "ec_13_c.order_address",
+        "ec_13_c.order_line"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_13_a",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "recipient",
+          "text",
+          true
+        ],
+        [
+          "address_text",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_13_a.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "小芸",
+          "板橋示範路 1 號"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_13_b",
+      "name": "order_address",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "address_kind",
+          "text",
+          true
+        ],
+        [
+          "recipient",
+          "text",
+          true
+        ],
+        [
+          "address_text",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((address_kind = ANY (ARRAY['billing'::text, 'shipping'::text])))",
+          "cols": [
+            "address_kind"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES ec_13_b.sales_order(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "sales_order",
+          "targetSchema": "ec_13_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id, address_kind)",
+          "cols": [
+            "order_id",
+            "address_kind"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_address_pkey ON ec_13_b.order_address USING btree (order_id, address_kind)"
+      ],
+      "samples": [
+        [
+          "101",
+          "billing",
+          "青山公司",
+          "板橋示範路 1 號"
+        ],
+        [
+          "101",
+          "shipping",
+          "林店長",
+          "新莊示範路 2 號"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_13_b",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_13_b.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_13_c",
+      "name": "address_allocation",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "line_id",
+          "bigint",
+          true
+        ],
+        [
+          "address_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id, address_id) REFERENCES order_address(order_id, id)",
+          "cols": [
+            "order_id",
+            "address_id"
+          ],
+          "target": "order_address",
+          "targetSchema": "ec_13_c",
+          "refs": [
+            "order_id",
+            "id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id, line_id) REFERENCES order_line(order_id, id)",
+          "cols": [
+            "order_id",
+            "line_id"
+          ],
+          "target": "order_line",
+          "targetSchema": "ec_13_c",
+          "refs": [
+            "order_id",
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (line_id, address_id)",
+          "cols": [
+            "line_id",
+            "address_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX address_allocation_pkey ON ec_13_c.address_allocation USING btree (line_id, address_id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "1001",
+          "1",
+          1
+        ],
+        [
+          "101",
+          "1001",
+          "2",
+          1
+        ]
+      ]
+    },
+    {
+      "schema": "ec_13_c",
+      "name": "order_address",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "recipient",
+          "text",
+          true
+        ],
+        [
+          "address_text",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_id, id)",
+          "cols": [
+            "order_id",
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_address_pkey ON ec_13_c.order_address USING btree (id)",
+        "CREATE UNIQUE INDEX order_address_order_id_id_key ON ec_13_c.order_address USING btree (order_id, id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101",
+          "小芸",
+          "板橋示範路 1 號"
+        ],
+        [
+          "2",
+          "101",
+          "林店長",
+          "新莊示範路 2 號"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_13_c",
+      "name": "order_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_id, id)",
+          "cols": [
+            "order_id",
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_line_pkey ON ec_13_c.order_line USING btree (id)",
+        "CREATE UNIQUE INDEX order_line_order_id_id_key ON ec_13_c.order_line USING btree (order_id, id)"
+      ],
+      "samples": [
+        [
+          "1001",
+          "101",
+          2
+        ]
+      ]
+    }
+  ]
+}

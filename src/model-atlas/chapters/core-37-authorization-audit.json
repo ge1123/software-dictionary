@@ -1,0 +1,461 @@
+{
+  "intro": "要追查某人當時為什麼可讀取訂單。",
+  "comparison": [
+    [
+      "問題",
+      "A 存取紀錄＋現況",
+      "B 決策證據"
+    ],
+    [
+      "誰何時存取",
+      "可以",
+      "可以"
+    ],
+    [
+      "當時為何允許／拒絕",
+      "資訊不足",
+      "保存判斷必要輸入"
+    ],
+    [
+      "政策修改後調查",
+      "可能誤導",
+      "可追到版本與評估器"
+    ],
+    [
+      "成本",
+      "小",
+      "儲存量與隱私責任較高"
+    ],
+    [
+      "防竄改",
+      "沒有",
+      "單純資料表同樣沒有"
+    ]
+  ],
+  "labSha256": "2e1992af88015938d02cb45c05ebd7cd4da12e827279accfafe96bd232e4f667",
+  "plans": [
+    {
+      "code": "A",
+      "title": "存存取紀錄，查詢時 JOIN 目前權限",
+      "line": 11,
+      "tables": [
+        "lab37_a.access_log",
+        "lab37_a.current_permission"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "政策版本＋決策輸入快照＋結果",
+      "line": 51,
+      "tables": [
+        "lab37_b.decision",
+        "lab37_b.policy_version",
+        "lab37_b.resource",
+        "lab37_b.subject"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab37_a",
+      "name": "access_log",
+      "kind": "r",
+      "columns": [
+        [
+          "event_id",
+          "integer",
+          true
+        ],
+        [
+          "user_id",
+          "integer",
+          true
+        ],
+        [
+          "resource_id",
+          "integer",
+          true
+        ],
+        [
+          "occurred_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (event_id)",
+          "cols": [
+            "event_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (user_id) REFERENCES lab37_a.current_permission(user_id)",
+          "cols": [
+            "user_id"
+          ],
+          "target": "current_permission",
+          "targetSchema": "lab37_a",
+          "refs": [
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX access_log_pkey ON lab37_a.access_log USING btree (event_id)"
+      ],
+      "samples": [
+        [
+          1,
+          7,
+          100,
+          "2026-10-22T09:00:00.000Z"
+        ]
+      ]
+    },
+    {
+      "schema": "lab37_a",
+      "name": "current_permission",
+      "kind": "r",
+      "columns": [
+        [
+          "user_id",
+          "integer",
+          true
+        ],
+        [
+          "can_read",
+          "boolean",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (user_id)",
+          "cols": [
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX current_permission_pkey ON lab37_a.current_permission USING btree (user_id)"
+      ],
+      "samples": [
+        [
+          7,
+          false
+        ]
+      ]
+    },
+    {
+      "schema": "lab37_b",
+      "name": "decision",
+      "kind": "r",
+      "columns": [
+        [
+          "decision_id",
+          "integer",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "user_id",
+          "integer",
+          true
+        ],
+        [
+          "resource_id",
+          "integer",
+          true
+        ],
+        [
+          "action",
+          "text",
+          true
+        ],
+        [
+          "policy_id",
+          "integer",
+          true
+        ],
+        [
+          "policy_version",
+          "integer",
+          true
+        ],
+        [
+          "evaluator_version",
+          "text",
+          true
+        ],
+        [
+          "evaluated_at",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "subject_department",
+          "integer",
+          true
+        ],
+        [
+          "resource_department",
+          "integer",
+          true
+        ],
+        [
+          "subject_can_read",
+          "boolean",
+          true
+        ],
+        [
+          "allowed",
+          "boolean",
+          true
+        ],
+        [
+          "reason_code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((action = 'order.read'::text))",
+          "cols": [
+            "action"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (decision_id)",
+          "cols": [
+            "decision_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (policy_id, policy_version) REFERENCES lab37_b.policy_version(policy_id, version)",
+          "cols": [
+            "policy_id",
+            "policy_version"
+          ],
+          "target": "policy_version",
+          "targetSchema": "lab37_b",
+          "refs": [
+            "policy_id",
+            "version"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((reason_code = ANY (ARRAY['allow'::text, 'no_permission'::text, 'department_mismatch'::text])))",
+          "cols": [
+            "reason_code"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX decision_pkey ON lab37_b.decision USING btree (decision_id)",
+        "CREATE UNIQUE INDEX decision_request_key_key ON lab37_b.decision USING btree (request_key)"
+      ],
+      "samples": [
+        [
+          200,
+          "req-200",
+          7,
+          200,
+          "order.read",
+          1,
+          1,
+          "sql-v1",
+          "2026-10-22T09:00:00.000Z",
+          10,
+          20,
+          true,
+          false,
+          "department_mismatch"
+        ],
+        [
+          100,
+          "req-100",
+          7,
+          100,
+          "order.read",
+          1,
+          1,
+          "sql-v1",
+          "2026-10-22T09:00:00.000Z",
+          99,
+          10,
+          true,
+          true,
+          "allow"
+        ]
+      ]
+    },
+    {
+      "schema": "lab37_b",
+      "name": "policy_version",
+      "kind": "r",
+      "columns": [
+        [
+          "policy_id",
+          "integer",
+          true
+        ],
+        [
+          "version",
+          "integer",
+          true
+        ],
+        [
+          "rule_code",
+          "text",
+          true
+        ],
+        [
+          "rule_document",
+          "jsonb",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (policy_id, version)",
+          "cols": [
+            "policy_id",
+            "version"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((jsonb_typeof(rule_document) = 'object'::text))",
+          "cols": [
+            "rule_document"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX policy_version_pkey ON lab37_b.policy_version USING btree (policy_id, version)"
+      ],
+      "samples": [
+        [
+          1,
+          1,
+          "same_department",
+          {
+            "action": "order.read",
+            "same_department": true,
+            "require_permission": true
+          }
+        ],
+        [
+          1,
+          2,
+          "permission_only",
+          {
+            "action": "order.read",
+            "require_permission": true
+          }
+        ]
+      ]
+    },
+    {
+      "schema": "lab37_b",
+      "name": "resource",
+      "kind": "r",
+      "columns": [
+        [
+          "resource_id",
+          "integer",
+          true
+        ],
+        [
+          "department_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (resource_id)",
+          "cols": [
+            "resource_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX resource_pkey ON lab37_b.resource USING btree (resource_id)"
+      ],
+      "samples": [
+        [
+          100,
+          10
+        ],
+        [
+          200,
+          20
+        ]
+      ]
+    },
+    {
+      "schema": "lab37_b",
+      "name": "subject",
+      "kind": "r",
+      "columns": [
+        [
+          "user_id",
+          "integer",
+          true
+        ],
+        [
+          "department_id",
+          "integer",
+          true
+        ],
+        [
+          "can_read",
+          "boolean",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (user_id)",
+          "cols": [
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX subject_pkey ON lab37_b.subject USING btree (user_id)"
+      ],
+      "samples": [
+        [
+          7,
+          20,
+          false
+        ]
+      ]
+    }
+  ]
+}

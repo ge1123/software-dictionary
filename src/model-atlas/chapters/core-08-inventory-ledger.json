@@ -1,0 +1,333 @@
+{
+  "intro": "庫存數字有差異時要查出原因。",
+  "comparison": [
+    [
+      "面向",
+      "A 餘額",
+      "B 流水",
+      "C 兩者並存"
+    ],
+    [
+      "查目前量",
+      "直接",
+      "聚合",
+      "直接"
+    ],
+    [
+      "查原因",
+      "沒有",
+      "完整異動",
+      "完整異動"
+    ],
+    [
+      "重送辨識",
+      "缺少操作鍵",
+      "唯一操作鍵",
+      "操作鍵＋內容比對"
+    ],
+    [
+      "維持非負",
+      "可用條件更新",
+      "需共同鎖定與聚合",
+      "鎖定餘額列"
+    ],
+    [
+      "寫入複雜度",
+      "低",
+      "中",
+      "較高，兩處同交易"
+    ]
+  ],
+  "labSha256": "b6c25e6fd842ab4f302776fe472e5a5ec8b386882bfb32cc5483951c50dc65c4",
+  "plans": [
+    {
+      "code": "A",
+      "title": "只存餘額",
+      "line": 11,
+      "tables": [
+        "lab08_a.stock"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "只存流水，餘額 SUM(delta)",
+      "line": 32,
+      "tables": [
+        "lab08_b.movement",
+        "lab08_b.sku"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "餘額＋流水，同一交易維護",
+      "line": 68,
+      "tables": [
+        "lab08_c.movement",
+        "lab08_c.stock"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab08_a",
+      "name": "stock",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "balance",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((balance >= 0))",
+          "cols": [
+            "balance"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX stock_pkey ON lab08_a.stock USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          3
+        ]
+      ]
+    },
+    {
+      "schema": "lab08_b",
+      "name": "movement",
+      "kind": "r",
+      "columns": [
+        [
+          "operation_id",
+          "text",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "delta",
+          "integer",
+          true
+        ],
+        [
+          "reason",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((delta <> 0))",
+          "cols": [
+            "delta"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (operation_id)",
+          "cols": [
+            "operation_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (sku_id) REFERENCES lab08_b.sku(sku_id)",
+          "cols": [
+            "sku_id"
+          ],
+          "target": "sku",
+          "targetSchema": "lab08_b",
+          "refs": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX movement_pkey ON lab08_b.movement USING btree (operation_id)"
+      ],
+      "samples": [
+        [
+          "opening",
+          "11",
+          10,
+          "opening"
+        ],
+        [
+          "ship1",
+          "11",
+          -7,
+          "shipment"
+        ]
+      ]
+    },
+    {
+      "schema": "lab08_b",
+      "name": "sku",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sku_pkey ON lab08_b.sku USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "11"
+        ]
+      ]
+    },
+    {
+      "schema": "lab08_c",
+      "name": "movement",
+      "kind": "r",
+      "columns": [
+        [
+          "operation_id",
+          "text",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "delta",
+          "integer",
+          true
+        ],
+        [
+          "reason",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((delta <> 0))",
+          "cols": [
+            "delta"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (operation_id)",
+          "cols": [
+            "operation_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (sku_id) REFERENCES lab08_c.stock(sku_id)",
+          "cols": [
+            "sku_id"
+          ],
+          "target": "stock",
+          "targetSchema": "lab08_c",
+          "refs": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX movement_pkey ON lab08_c.movement USING btree (operation_id)"
+      ],
+      "samples": [
+        [
+          "opening",
+          "11",
+          10,
+          "opening"
+        ],
+        [
+          "ship1",
+          "11",
+          -7,
+          "shipment"
+        ]
+      ]
+    },
+    {
+      "schema": "lab08_c",
+      "name": "stock",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "balance",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((balance >= 0))",
+          "cols": [
+            "balance"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX stock_pkey ON lab08_c.stock USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          3
+        ],
+        [
+          "12",
+          10
+        ]
+      ]
+    }
+  ]
+}

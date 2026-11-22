@@ -1,0 +1,374 @@
+{
+  "intro": "一萬筆商品有兩百筆錯誤，需要修正重試。",
+  "comparison": [
+    [
+      "面向",
+      "A 直接寫",
+      "B 暫存與結果"
+    ],
+    [
+      "原始錯誤資料",
+      "未保留",
+      "RawRow保留"
+    ],
+    [
+      "部分成功",
+      "本例整批回滾",
+      "逐列成功或拒絕"
+    ],
+    [
+      "重試線索",
+      "沒有批次模型",
+      "批次及列結果"
+    ],
+    [
+      "資料容量",
+      "少",
+      "原始與結果需保留策略"
+    ],
+    [
+      "修正追查",
+      "較難",
+      "新列＋舊拒絕結果"
+    ]
+  ],
+  "labSha256": "c3bc19f04871d2db9aece3a5b0412aaa2812e706980038aa46344352325f4760",
+  "plans": [
+    {
+      "code": "A",
+      "title": "直接寫入正式表",
+      "line": 11,
+      "tables": [
+        "lab27_a.product"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "原始列、結果與正式資料分離",
+      "line": 36,
+      "tables": [
+        "lab27_b.batch",
+        "lab27_b.product",
+        "lab27_b.raw_row",
+        "lab27_b.result"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab27_a",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "code",
+          "text",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "price",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (code)",
+          "cols": [
+            "code"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((price >= (0)::numeric))",
+          "cols": [
+            "price"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab27_a.product USING btree (code)"
+      ],
+      "samples": []
+    },
+    {
+      "schema": "lab27_b",
+      "name": "batch",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "source",
+          "text",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (source, request_key)",
+          "cols": [
+            "source",
+            "request_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX batch_pkey ON lab27_b.batch USING btree (id)",
+        "CREATE UNIQUE INDEX batch_source_request_key_key ON lab27_b.batch USING btree (source, request_key)"
+      ],
+      "samples": [
+        [
+          1,
+          "supplier-A",
+          "FILE-001"
+        ],
+        [
+          2,
+          "supplier-A",
+          "FILE-001-CORRECTION"
+        ]
+      ]
+    },
+    {
+      "schema": "lab27_b",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "source",
+          "text",
+          true
+        ],
+        [
+          "code",
+          "text",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "price",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (source, code)",
+          "cols": [
+            "source",
+            "code"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((price >= (0)::numeric))",
+          "cols": [
+            "price"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab27_b.product USING btree (source, code)"
+      ],
+      "samples": [
+        [
+          "supplier-A",
+          "A",
+          "上衣",
+          "100.00"
+        ],
+        [
+          "supplier-A",
+          "C",
+          "帽子",
+          "50.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab27_b",
+      "name": "raw_row",
+      "kind": "r",
+      "columns": [
+        [
+          "batch_id",
+          "integer",
+          true
+        ],
+        [
+          "row_no",
+          "integer",
+          true
+        ],
+        [
+          "payload",
+          "jsonb",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (batch_id) REFERENCES lab27_b.batch(id)",
+          "cols": [
+            "batch_id"
+          ],
+          "target": "batch",
+          "targetSchema": "lab27_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (batch_id, row_no)",
+          "cols": [
+            "batch_id",
+            "row_no"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((row_no > 0))",
+          "cols": [
+            "row_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX raw_row_pkey ON lab27_b.raw_row USING btree (batch_id, row_no)"
+      ],
+      "samples": [
+        [
+          1,
+          1,
+          {
+            "code": "A",
+            "name": "上衣",
+            "price": "100"
+          }
+        ],
+        [
+          1,
+          2,
+          {
+            "code": "B",
+            "name": "提袋",
+            "price": "-1"
+          }
+        ]
+      ]
+    },
+    {
+      "schema": "lab27_b",
+      "name": "result",
+      "kind": "r",
+      "columns": [
+        [
+          "batch_id",
+          "integer",
+          true
+        ],
+        [
+          "row_no",
+          "integer",
+          true
+        ],
+        [
+          "status",
+          "text",
+          true
+        ],
+        [
+          "error_code",
+          "text",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (batch_id, row_no) REFERENCES lab27_b.raw_row(batch_id, row_no)",
+          "cols": [
+            "batch_id",
+            "row_no"
+          ],
+          "target": "raw_row",
+          "targetSchema": "lab27_b",
+          "refs": [
+            "batch_id",
+            "row_no"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((((status = 'accepted'::text) AND (error_code IS NULL)) OR ((status = 'rejected'::text) AND (error_code IS NOT NULL))))",
+          "cols": [
+            "status",
+            "error_code"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (batch_id, row_no)",
+          "cols": [
+            "batch_id",
+            "row_no"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((status = ANY (ARRAY['accepted'::text, 'rejected'::text])))",
+          "cols": [
+            "status"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX result_pkey ON lab27_b.result USING btree (batch_id, row_no)"
+      ],
+      "samples": [
+        [
+          1,
+          1,
+          "accepted",
+          null
+        ],
+        [
+          1,
+          2,
+          "rejected",
+          "INVALID_PRICE"
+        ]
+      ]
+    }
+  ]
+}

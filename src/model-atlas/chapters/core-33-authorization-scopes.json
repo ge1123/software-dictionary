@@ -1,0 +1,547 @@
+{
+  "intro": "主管只能管理所屬部門與門市。",
+  "comparison": [
+    [
+      "問題",
+      "A 每門市角色",
+      "B 範圍指派"
+    ],
+    [
+      "小量固定門市",
+      "清楚易懂",
+      "需要理解四個關係"
+    ],
+    [
+      "新門市",
+      "複製角色及權限",
+      "重用角色、增加範圍"
+    ],
+    [
+      "一種職務改權限",
+      "可能多角色同步",
+      "改角色權限一次"
+    ],
+    [
+      "特例追查",
+      "從角色看門市",
+      "JOIN 指派與門市"
+    ],
+    [
+      "撤銷單一門市",
+      "刪該角色指派",
+      "刪該範圍指派"
+    ]
+  ],
+  "labSha256": "7968d9831f7a47d8f0361e1dd5b7cf34392644b09015c202120aa103242589ce",
+  "plans": [
+    {
+      "code": "A",
+      "title": "每門市、每操作建立角色",
+      "line": 11,
+      "tables": [
+        "lab33_a.assignment",
+        "lab33_a.member",
+        "lab33_a.role",
+        "lab33_a.store"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "角色權限＋有範圍的角色指派",
+      "line": 59,
+      "tables": [
+        "lab33_b.member",
+        "lab33_b.permission",
+        "lab33_b.role",
+        "lab33_b.scoped_grant",
+        "lab33_b.store"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab33_a",
+      "name": "assignment",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "user_id",
+          "integer",
+          true
+        ],
+        [
+          "role_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, user_id, role_id)",
+          "cols": [
+            "tenant_id",
+            "user_id",
+            "role_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, role_id) REFERENCES lab33_a.role(tenant_id, role_id)",
+          "cols": [
+            "tenant_id",
+            "role_id"
+          ],
+          "target": "role",
+          "targetSchema": "lab33_a",
+          "refs": [
+            "tenant_id",
+            "role_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, user_id) REFERENCES lab33_a.member(tenant_id, user_id)",
+          "cols": [
+            "tenant_id",
+            "user_id"
+          ],
+          "target": "member",
+          "targetSchema": "lab33_a",
+          "refs": [
+            "tenant_id",
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX assignment_pkey ON lab33_a.assignment USING btree (tenant_id, user_id, role_id)"
+      ],
+      "samples": [
+        [
+          1,
+          7,
+          100
+        ]
+      ]
+    },
+    {
+      "schema": "lab33_a",
+      "name": "member",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "user_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, user_id)",
+          "cols": [
+            "tenant_id",
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX member_pkey ON lab33_a.member USING btree (tenant_id, user_id)"
+      ],
+      "samples": [
+        [
+          1,
+          7
+        ],
+        [
+          2,
+          7
+        ]
+      ]
+    },
+    {
+      "schema": "lab33_a",
+      "name": "role",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "role_id",
+          "integer",
+          true
+        ],
+        [
+          "store_id",
+          "integer",
+          true
+        ],
+        [
+          "action",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, role_id)",
+          "cols": [
+            "tenant_id",
+            "role_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, store_id) REFERENCES lab33_a.store(tenant_id, store_id)",
+          "cols": [
+            "tenant_id",
+            "store_id"
+          ],
+          "target": "store",
+          "targetSchema": "lab33_a",
+          "refs": [
+            "tenant_id",
+            "store_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX role_pkey ON lab33_a.role USING btree (tenant_id, role_id)"
+      ],
+      "samples": [
+        [
+          1,
+          100,
+          10,
+          "order.read"
+        ],
+        [
+          1,
+          200,
+          20,
+          "order.read"
+        ]
+      ]
+    },
+    {
+      "schema": "lab33_a",
+      "name": "store",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "store_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, store_id)",
+          "cols": [
+            "tenant_id",
+            "store_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX store_pkey ON lab33_a.store USING btree (tenant_id, store_id)"
+      ],
+      "samples": [
+        [
+          1,
+          10
+        ],
+        [
+          1,
+          20
+        ]
+      ]
+    },
+    {
+      "schema": "lab33_b",
+      "name": "member",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "user_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, user_id)",
+          "cols": [
+            "tenant_id",
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX member_pkey ON lab33_b.member USING btree (tenant_id, user_id)"
+      ],
+      "samples": [
+        [
+          1,
+          7
+        ],
+        [
+          2,
+          7
+        ]
+      ]
+    },
+    {
+      "schema": "lab33_b",
+      "name": "permission",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "role_id",
+          "integer",
+          true
+        ],
+        [
+          "action",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, role_id, action)",
+          "cols": [
+            "tenant_id",
+            "role_id",
+            "action"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, role_id) REFERENCES lab33_b.role(tenant_id, role_id)",
+          "cols": [
+            "tenant_id",
+            "role_id"
+          ],
+          "target": "role",
+          "targetSchema": "lab33_b",
+          "refs": [
+            "tenant_id",
+            "role_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX permission_pkey ON lab33_b.permission USING btree (tenant_id, role_id, action)"
+      ],
+      "samples": [
+        [
+          1,
+          1,
+          "order.read"
+        ]
+      ]
+    },
+    {
+      "schema": "lab33_b",
+      "name": "role",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "role_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, role_id)",
+          "cols": [
+            "tenant_id",
+            "role_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX role_pkey ON lab33_b.role USING btree (tenant_id, role_id)"
+      ],
+      "samples": [
+        [
+          1,
+          1
+        ]
+      ]
+    },
+    {
+      "schema": "lab33_b",
+      "name": "scoped_grant",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "user_id",
+          "integer",
+          true
+        ],
+        [
+          "role_id",
+          "integer",
+          true
+        ],
+        [
+          "store_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, user_id, role_id, store_id)",
+          "cols": [
+            "tenant_id",
+            "user_id",
+            "role_id",
+            "store_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, role_id) REFERENCES lab33_b.role(tenant_id, role_id)",
+          "cols": [
+            "tenant_id",
+            "role_id"
+          ],
+          "target": "role",
+          "targetSchema": "lab33_b",
+          "refs": [
+            "tenant_id",
+            "role_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, store_id) REFERENCES lab33_b.store(tenant_id, store_id)",
+          "cols": [
+            "tenant_id",
+            "store_id"
+          ],
+          "target": "store",
+          "targetSchema": "lab33_b",
+          "refs": [
+            "tenant_id",
+            "store_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, user_id) REFERENCES lab33_b.member(tenant_id, user_id)",
+          "cols": [
+            "tenant_id",
+            "user_id"
+          ],
+          "target": "member",
+          "targetSchema": "lab33_b",
+          "refs": [
+            "tenant_id",
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX scoped_grant_pkey ON lab33_b.scoped_grant USING btree (tenant_id, user_id, role_id, store_id)"
+      ],
+      "samples": [
+        [
+          1,
+          7,
+          1,
+          10
+        ]
+      ]
+    },
+    {
+      "schema": "lab33_b",
+      "name": "store",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "store_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, store_id)",
+          "cols": [
+            "tenant_id",
+            "store_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX store_pkey ON lab33_b.store USING btree (tenant_id, store_id)"
+      ],
+      "samples": [
+        [
+          1,
+          10
+        ],
+        [
+          1,
+          20
+        ]
+      ]
+    }
+  ]
+}

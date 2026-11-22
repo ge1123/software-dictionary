@@ -1,0 +1,410 @@
+{
+  "intro": "多幣別交易，折扣分攤後總額必須吻合。",
+  "comparison": [
+    [
+      "面向",
+      "A 各列獨立 round",
+      "B 定案分攤"
+    ],
+    [
+      "折扣總和",
+      "0.99",
+      "1.00"
+    ],
+    [
+      "金額單位",
+      "未表達",
+      "訂單幣別＋最小單位"
+    ],
+    [
+      "對帳",
+      "容易差一分",
+      "明確指定餘數歸屬"
+    ],
+    [
+      "查詢總額",
+      "加總仍可能不符要求",
+      "從定案明細推導"
+    ],
+    [
+      "歷史換匯",
+      "未保存",
+      "保存匯率與時點"
+    ]
+  ],
+  "labSha256": "c4d84a35589ab56ea7d90ceb0eebf0f9c1f530af7ce5cccdad246ac6d90c14e9",
+  "plans": [
+    {
+      "code": "A",
+      "title": "各列獨立四捨五入",
+      "line": 11,
+      "tables": [
+        "lab25_a.line"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "保存最小單位結果、幣別與匯率快照",
+      "line": 36,
+      "tables": [
+        "lab25_b.currency",
+        "lab25_b.line",
+        "lab25_b.order_total",
+        "lab25_b.sales_order"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab25_a",
+      "name": "line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "gross",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "discount",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX line_pkey ON lab25_a.line USING btree (id)"
+      ],
+      "samples": [
+        [
+          1,
+          "1.00",
+          "0.33"
+        ],
+        [
+          2,
+          "1.00",
+          "0.33"
+        ]
+      ]
+    },
+    {
+      "schema": "lab25_b",
+      "name": "currency",
+      "kind": "r",
+      "columns": [
+        [
+          "code",
+          "text",
+          true
+        ],
+        [
+          "minor_digits",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((minor_digits >= 0) AND (minor_digits <= 4)))",
+          "cols": [
+            "minor_digits"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (code)",
+          "cols": [
+            "code"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX currency_pkey ON lab25_b.currency USING btree (code)"
+      ],
+      "samples": [
+        [
+          "USD",
+          2
+        ],
+        [
+          "JPY",
+          0
+        ]
+      ]
+    },
+    {
+      "schema": "lab25_b",
+      "name": "line",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "integer",
+          true
+        ],
+        [
+          "line_no",
+          "integer",
+          true
+        ],
+        [
+          "gross_minor",
+          "bigint",
+          true
+        ],
+        [
+          "discount_minor",
+          "bigint",
+          true
+        ],
+        [
+          "net_minor",
+          "bigint",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((discount_minor <= gross_minor))",
+          "cols": [
+            "discount_minor",
+            "gross_minor"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((discount_minor >= 0))",
+          "cols": [
+            "discount_minor"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((gross_minor >= 0))",
+          "cols": [
+            "gross_minor"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES lab25_b.sales_order(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "sales_order",
+          "targetSchema": "lab25_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id, line_no)",
+          "cols": [
+            "order_id",
+            "line_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX line_pkey ON lab25_b.line USING btree (order_id, line_no)"
+      ],
+      "samples": [
+        [
+          1,
+          1,
+          "100",
+          "33",
+          "67"
+        ],
+        [
+          1,
+          2,
+          "100",
+          "33",
+          "67"
+        ]
+      ]
+    },
+    {
+      "schema": "lab25_b",
+      "name": "order_total",
+      "kind": "v",
+      "columns": [
+        [
+          "id",
+          "integer",
+          false
+        ],
+        [
+          "currency",
+          "text",
+          false
+        ],
+        [
+          "rate_to_twd",
+          "numeric(18,8)",
+          false
+        ],
+        [
+          "discount_minor",
+          "numeric",
+          false
+        ],
+        [
+          "net_minor",
+          "numeric",
+          false
+        ],
+        [
+          "amount",
+          "numeric",
+          false
+        ],
+        [
+          "twd_amount",
+          "numeric",
+          false
+        ]
+      ],
+      "constraints": [],
+      "indexes": [],
+      "depends": [
+        {
+          "schema": "lab25_b",
+          "name": "currency"
+        },
+        {
+          "schema": "lab25_b",
+          "name": "line"
+        },
+        {
+          "schema": "lab25_b",
+          "name": "sales_order"
+        }
+      ],
+      "samples": [
+        [
+          1,
+          "USD",
+          "32.50000000",
+          "100",
+          "200",
+          "2.0000000000000000",
+          "65.00"
+        ],
+        [
+          2,
+          "USD",
+          "33.00000000",
+          "0",
+          "200",
+          "2.0000000000000000",
+          "66.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab25_b",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "currency",
+          "text",
+          true
+        ],
+        [
+          "rate_to_twd",
+          "numeric(18,8)",
+          true
+        ],
+        [
+          "rate_as_of",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "allocation_rule",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((allocation_rule = 'equal-last-remainder-v1'::text))",
+          "cols": [
+            "allocation_rule"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (currency) REFERENCES lab25_b.currency(code)",
+          "cols": [
+            "currency"
+          ],
+          "target": "currency",
+          "targetSchema": "lab25_b",
+          "refs": [
+            "code"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((rate_to_twd > (0)::numeric))",
+          "cols": [
+            "rate_to_twd"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON lab25_b.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          1,
+          "USD",
+          "32.50000000",
+          "2026-10-01T00:00:00.000Z",
+          "equal-last-remainder-v1"
+        ],
+        [
+          2,
+          "USD",
+          "33.00000000",
+          "2026-10-02T00:00:00.000Z",
+          "equal-last-remainder-v1"
+        ]
+      ]
+    }
+  ]
+}

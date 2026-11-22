@@ -1,0 +1,306 @@
+{
+  "intro": "申請人不得核准自己的採購單。",
+  "comparison": [
+    [
+      "面向",
+      "A 靜態互斥",
+      "B 動態分離"
+    ],
+    [
+      "同一人提出與核准他人單",
+      "不允許",
+      "允許"
+    ],
+    [
+      "同單自審",
+      "需執行層結合角色判斷",
+      "同列 CHECK＋操作條件"
+    ],
+    [
+      "調動職務",
+      "改角色可能影響舊單",
+      "按每張單的參與者判斷"
+    ],
+    [
+      "多關核准",
+      "角色管理更複雜",
+      "需另存關卡與參與歷史"
+    ]
+  ],
+  "labSha256": "ba924ff1852d87db3d808b67090c5dafbe087a0ecb15ac46bd08683a5c6edfb0",
+  "plans": [
+    {
+      "code": "A",
+      "title": "靜態角色互斥",
+      "line": 11,
+      "tables": [
+        "lab36_a.member",
+        "lab36_a.request"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "操作能力＋單據內動態限制",
+      "line": 46,
+      "tables": [
+        "lab36_b.member",
+        "lab36_b.request"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab36_a",
+      "name": "member",
+      "kind": "r",
+      "columns": [
+        [
+          "user_id",
+          "integer",
+          true
+        ],
+        [
+          "role",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (user_id)",
+          "cols": [
+            "user_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((role = ANY (ARRAY['requester'::text, 'approver'::text])))",
+          "cols": [
+            "role"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX member_pkey ON lab36_a.member USING btree (user_id)"
+      ],
+      "samples": [
+        [
+          7,
+          "requester"
+        ],
+        [
+          8,
+          "approver"
+        ]
+      ]
+    },
+    {
+      "schema": "lab36_a",
+      "name": "request",
+      "kind": "r",
+      "columns": [
+        [
+          "request_id",
+          "integer",
+          true
+        ],
+        [
+          "requester_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (request_id)",
+          "cols": [
+            "request_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (requester_id) REFERENCES lab36_a.member(user_id)",
+          "cols": [
+            "requester_id"
+          ],
+          "target": "member",
+          "targetSchema": "lab36_a",
+          "refs": [
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX request_pkey ON lab36_a.request USING btree (request_id)"
+      ],
+      "samples": [
+        [
+          1,
+          7
+        ]
+      ]
+    },
+    {
+      "schema": "lab36_b",
+      "name": "member",
+      "kind": "r",
+      "columns": [
+        [
+          "user_id",
+          "integer",
+          true
+        ],
+        [
+          "can_request",
+          "boolean",
+          true
+        ],
+        [
+          "can_approve",
+          "boolean",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (user_id)",
+          "cols": [
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX member_pkey ON lab36_b.member USING btree (user_id)"
+      ],
+      "samples": [
+        [
+          7,
+          true,
+          true
+        ],
+        [
+          8,
+          true,
+          true
+        ]
+      ]
+    },
+    {
+      "schema": "lab36_b",
+      "name": "request",
+      "kind": "r",
+      "columns": [
+        [
+          "request_id",
+          "integer",
+          true
+        ],
+        [
+          "requester_id",
+          "integer",
+          true
+        ],
+        [
+          "amount",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "status",
+          "text",
+          true
+        ],
+        [
+          "approved_by",
+          "integer",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= (0)::numeric))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (approved_by) REFERENCES lab36_b.member(user_id)",
+          "cols": [
+            "approved_by"
+          ],
+          "target": "member",
+          "targetSchema": "lab36_b",
+          "refs": [
+            "user_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((approved_by IS NULL) OR (approved_by <> requester_id)))",
+          "cols": [
+            "approved_by",
+            "requester_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((((status = 'pending'::text) AND (approved_by IS NULL)) OR ((status = 'approved'::text) AND (approved_by IS NOT NULL))))",
+          "cols": [
+            "status",
+            "approved_by"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (request_id)",
+          "cols": [
+            "request_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (requester_id) REFERENCES lab36_b.member(user_id)",
+          "cols": [
+            "requester_id"
+          ],
+          "target": "member",
+          "targetSchema": "lab36_b",
+          "refs": [
+            "user_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text])))",
+          "cols": [
+            "status"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX request_pkey ON lab36_b.request USING btree (request_id)"
+      ],
+      "samples": [
+        [
+          1,
+          7,
+          "100.00",
+          "approved",
+          8
+        ],
+        [
+          2,
+          8,
+          "200.00",
+          "approved",
+          7
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,632 @@
+{
+  "intro": "同商品有顏色、尺寸與不同條碼。",
+  "comparison": [
+    [
+      "面向",
+      "A 變體單表",
+      "B 固定規格",
+      "C 動態規格"
+    ],
+    [
+      "改共同名稱",
+      "多列更新",
+      "一列更新",
+      "一列更新"
+    ],
+    [
+      "組合唯一",
+      "固定欄位可約束",
+      "固定欄位可約束",
+      "需額外完整集合驗證"
+    ],
+    [
+      "增加維度",
+      "改表",
+      "改表",
+      "增加資料"
+    ],
+    [
+      "類型驗證",
+      "欄位直接限制",
+      "欄位直接限制",
+      "須依屬性定義處理"
+    ],
+    [
+      "查詢成本形態",
+      "單表",
+      "主明細 JOIN",
+      "多表與多列彙整"
+    ],
+    [
+      "適用情境",
+      "各品項獨立",
+      "規格固定且少",
+      "類別多、規格變化多"
+    ]
+  ],
+  "labSha256": "f2369912d683a8e4bfeed47df5f196161ea04cf971fccd46d47f603be3a4ea0d",
+  "plans": [
+    {
+      "code": "A",
+      "title": "每個變體都是一列商品",
+      "line": 13,
+      "tables": [
+        "lab02_a.item"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "Product＋固定規格 SKU",
+      "line": 56,
+      "tables": [
+        "lab02_b.product",
+        "lab02_b.sku"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "規格名稱與值關聯化",
+      "line": 103,
+      "tables": [
+        "lab02_c.option_value",
+        "lab02_c.product",
+        "lab02_c.product_option",
+        "lab02_c.sku",
+        "lab02_c.sku_value"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab02_a",
+      "name": "item",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "product_code",
+          "text",
+          true
+        ],
+        [
+          "product_name",
+          "text",
+          true
+        ],
+        [
+          "color",
+          "text",
+          true
+        ],
+        [
+          "size",
+          "text",
+          true
+        ],
+        [
+          "barcode",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (barcode)",
+          "cols": [
+            "barcode"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (product_code, color, size)",
+          "cols": [
+            "product_code",
+            "color",
+            "size"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX item_pkey ON lab02_a.item USING btree (sku_id)",
+        "CREATE UNIQUE INDEX item_barcode_key ON lab02_a.item USING btree (barcode)",
+        "CREATE UNIQUE INDEX item_product_code_color_size_key ON lab02_a.item USING btree (product_code, color, size)"
+      ],
+      "samples": [
+        [
+          "12",
+          "TEE",
+          "基本款上衣",
+          "blue",
+          "M",
+          "DEMO-BLUE-M"
+        ],
+        [
+          "11",
+          "TEE",
+          "舒適基本款上衣",
+          "red",
+          "M",
+          "DEMO-RED-M"
+        ]
+      ]
+    },
+    {
+      "schema": "lab02_b",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "product_code",
+          "text",
+          true
+        ],
+        [
+          "product_name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id)",
+          "cols": [
+            "product_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (product_code)",
+          "cols": [
+            "product_code"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab02_b.product USING btree (product_id)",
+        "CREATE UNIQUE INDEX product_product_code_key ON lab02_b.product USING btree (product_code)"
+      ],
+      "samples": [
+        [
+          "1",
+          "TEE",
+          "舒適基本款上衣"
+        ]
+      ]
+    },
+    {
+      "schema": "lab02_b",
+      "name": "sku",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "color",
+          "text",
+          true
+        ],
+        [
+          "size",
+          "text",
+          true
+        ],
+        [
+          "barcode",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (barcode)",
+          "cols": [
+            "barcode"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (product_id, color, size)",
+          "cols": [
+            "product_id",
+            "color",
+            "size"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES lab02_b.product(product_id)",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "lab02_b",
+          "refs": [
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sku_pkey ON lab02_b.sku USING btree (sku_id)",
+        "CREATE UNIQUE INDEX sku_barcode_key ON lab02_b.sku USING btree (barcode)",
+        "CREATE UNIQUE INDEX sku_product_id_color_size_key ON lab02_b.sku USING btree (product_id, color, size)"
+      ],
+      "samples": [
+        [
+          "11",
+          "1",
+          "red",
+          "M",
+          "DEMO-RED-M"
+        ],
+        [
+          "12",
+          "1",
+          "blue",
+          "M",
+          "DEMO-BLUE-M"
+        ]
+      ]
+    },
+    {
+      "schema": "lab02_c",
+      "name": "option_value",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "option_code",
+          "text",
+          true
+        ],
+        [
+          "value_code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id, option_code, value_code)",
+          "cols": [
+            "product_id",
+            "option_code",
+            "value_code"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id, option_code) REFERENCES lab02_c.product_option(product_id, option_code)",
+          "cols": [
+            "product_id",
+            "option_code"
+          ],
+          "target": "product_option",
+          "targetSchema": "lab02_c",
+          "refs": [
+            "product_id",
+            "option_code"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX option_value_pkey ON lab02_c.option_value USING btree (product_id, option_code, value_code)"
+      ],
+      "samples": [
+        [
+          "1",
+          "color",
+          "red"
+        ],
+        [
+          "1",
+          "color",
+          "blue"
+        ]
+      ]
+    },
+    {
+      "schema": "lab02_c",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "product_code",
+          "text",
+          true
+        ],
+        [
+          "product_name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id)",
+          "cols": [
+            "product_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (product_code)",
+          "cols": [
+            "product_code"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab02_c.product USING btree (product_id)",
+        "CREATE UNIQUE INDEX product_product_code_key ON lab02_c.product USING btree (product_code)"
+      ],
+      "samples": [
+        [
+          "2",
+          "BAG",
+          "提袋"
+        ],
+        [
+          "1",
+          "TEE",
+          "舒適基本款上衣"
+        ]
+      ]
+    },
+    {
+      "schema": "lab02_c",
+      "name": "product_option",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "option_code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id, option_code)",
+          "cols": [
+            "product_id",
+            "option_code"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES lab02_c.product(product_id)",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "lab02_c",
+          "refs": [
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_option_pkey ON lab02_c.product_option USING btree (product_id, option_code)"
+      ],
+      "samples": [
+        [
+          "1",
+          "color"
+        ],
+        [
+          "1",
+          "size"
+        ]
+      ]
+    },
+    {
+      "schema": "lab02_c",
+      "name": "sku",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "barcode",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (barcode)",
+          "cols": [
+            "barcode"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES lab02_c.product(product_id)",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "lab02_c",
+          "refs": [
+            "product_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (sku_id, product_id)",
+          "cols": [
+            "sku_id",
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sku_pkey ON lab02_c.sku USING btree (sku_id)",
+        "CREATE UNIQUE INDEX sku_barcode_key ON lab02_c.sku USING btree (barcode)",
+        "CREATE UNIQUE INDEX sku_sku_id_product_id_key ON lab02_c.sku USING btree (sku_id, product_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          "1",
+          "DEMO-RED-M"
+        ],
+        [
+          "12",
+          "1",
+          "DEMO-BLUE-M"
+        ]
+      ]
+    },
+    {
+      "schema": "lab02_c",
+      "name": "sku_value",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "option_code",
+          "text",
+          true
+        ],
+        [
+          "value_code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id, option_code)",
+          "cols": [
+            "sku_id",
+            "option_code"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id, option_code, value_code) REFERENCES lab02_c.option_value(product_id, option_code, value_code)",
+          "cols": [
+            "product_id",
+            "option_code",
+            "value_code"
+          ],
+          "target": "option_value",
+          "targetSchema": "lab02_c",
+          "refs": [
+            "product_id",
+            "option_code",
+            "value_code"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (sku_id, product_id) REFERENCES lab02_c.sku(sku_id, product_id)",
+          "cols": [
+            "sku_id",
+            "product_id"
+          ],
+          "target": "sku",
+          "targetSchema": "lab02_c",
+          "refs": [
+            "sku_id",
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sku_value_pkey ON lab02_c.sku_value USING btree (sku_id, option_code)"
+      ],
+      "samples": [
+        [
+          "11",
+          "1",
+          "color",
+          "red"
+        ],
+        [
+          "11",
+          "1",
+          "size",
+          "M"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,618 @@
+{
+  "intro": "一張訂單可分次、分項出貨。",
+  "comparison": [
+    [
+      "面向",
+      "A 累計摘要",
+      "B 出貨主明細"
+    ],
+    [
+      "衣服與牙刷由不同供應商分寄",
+      "可記每個明細的最後物流號",
+      "每張出貨單明確綁訂單及供應商"
+    ],
+    [
+      "衣服分兩次寄出",
+      "只保留第二次物流號",
+      "CLOTH-01 的 2 件與 CLOTH-02 的 1 件都保留"
+    ],
+    [
+      "查詢剩餘數量",
+      "直接相減",
+      "本例可用摘要直接相減"
+    ],
+    [
+      "防止跨訂單／跨供應商錯配",
+      "沒有出貨批次關聯可驗證",
+      "複合 FK 檢查兩者一致"
+    ],
+    [
+      "寫入成本",
+      "UPDATE 摘要",
+      "UPDATE 摘要＋INSERT 明細"
+    ],
+    [
+      "取消與退貨",
+      "原始出貨難追查",
+      "可延伸狀態或反向紀錄"
+    ]
+  ],
+  "labSha256": "b722bacf590d4e300a4da257337f264785592c7e3af7cef031ade08e2242ebbf",
+  "plans": [
+    {
+      "code": "A",
+      "title": "訂單明細只保存累計數量與最後物流號",
+      "line": 22,
+      "tables": [
+        "lab06_a.order_line"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "訂單明細＋出貨主檔＋出貨明細",
+      "line": 57,
+      "tables": [
+        "lab06_b.order_line",
+        "lab06_b.orders",
+        "lab06_b.shipment",
+        "lab06_b.shipment_item",
+        "lab06_b.sku",
+        "lab06_b.supplier"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab06_a",
+      "name": "order_line",
+      "kind": "r",
+      "columns": [
+        [
+          "line_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "product_name",
+          "text",
+          true
+        ],
+        [
+          "supplier_name",
+          "text",
+          true
+        ],
+        [
+          "ordered_qty",
+          "integer",
+          true
+        ],
+        [
+          "shipped_qty",
+          "integer",
+          true
+        ],
+        [
+          "last_tracking_no",
+          "text",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((shipped_qty >= 0) AND (shipped_qty <= ordered_qty)))",
+          "cols": [
+            "shipped_qty",
+            "ordered_qty"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((ordered_qty > 0))",
+          "cols": [
+            "ordered_qty"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (line_id)",
+          "cols": [
+            "line_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_line_pkey ON lab06_a.order_line USING btree (line_id)"
+      ],
+      "samples": [
+        [
+          "2",
+          "100",
+          "牙刷",
+          "日用品供應商 B",
+          2,
+          2,
+          "BRUSH-01"
+        ],
+        [
+          "1",
+          "100",
+          "衣服",
+          "服飾供應商 A",
+          3,
+          3,
+          "CLOTH-02"
+        ]
+      ]
+    },
+    {
+      "schema": "lab06_b",
+      "name": "order_line",
+      "kind": "r",
+      "columns": [
+        [
+          "line_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "supplier_id",
+          "bigint",
+          true
+        ],
+        [
+          "ordered_qty",
+          "integer",
+          true
+        ],
+        [
+          "shipped_qty",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((shipped_qty >= 0) AND (shipped_qty <= ordered_qty)))",
+          "cols": [
+            "shipped_qty",
+            "ordered_qty"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (line_id, order_id, supplier_id)",
+          "cols": [
+            "line_id",
+            "order_id",
+            "supplier_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES lab06_b.orders(order_id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "orders",
+          "targetSchema": "lab06_b",
+          "refs": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((ordered_qty > 0))",
+          "cols": [
+            "ordered_qty"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (line_id)",
+          "cols": [
+            "line_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (sku_id, supplier_id) REFERENCES lab06_b.sku(sku_id, supplier_id)",
+          "cols": [
+            "sku_id",
+            "supplier_id"
+          ],
+          "target": "sku",
+          "targetSchema": "lab06_b",
+          "refs": [
+            "sku_id",
+            "supplier_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (supplier_id) REFERENCES lab06_b.supplier(supplier_id)",
+          "cols": [
+            "supplier_id"
+          ],
+          "target": "supplier",
+          "targetSchema": "lab06_b",
+          "refs": [
+            "supplier_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_line_pkey ON lab06_b.order_line USING btree (line_id)",
+        "CREATE UNIQUE INDEX order_line_line_id_order_id_supplier_id_key ON lab06_b.order_line USING btree (line_id, order_id, supplier_id)"
+      ],
+      "samples": [
+        [
+          "3",
+          "200",
+          "11",
+          "1",
+          10,
+          0
+        ],
+        [
+          "2",
+          "100",
+          "22",
+          "2",
+          2,
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "lab06_b",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab06_b.orders USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "100"
+        ],
+        [
+          "200"
+        ]
+      ]
+    },
+    {
+      "schema": "lab06_b",
+      "name": "shipment",
+      "kind": "r",
+      "columns": [
+        [
+          "shipment_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "supplier_id",
+          "bigint",
+          true
+        ],
+        [
+          "tracking_no",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES lab06_b.orders(order_id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "orders",
+          "targetSchema": "lab06_b",
+          "refs": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (shipment_id)",
+          "cols": [
+            "shipment_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (shipment_id, order_id, supplier_id)",
+          "cols": [
+            "shipment_id",
+            "order_id",
+            "supplier_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (supplier_id) REFERENCES lab06_b.supplier(supplier_id)",
+          "cols": [
+            "supplier_id"
+          ],
+          "target": "supplier",
+          "targetSchema": "lab06_b",
+          "refs": [
+            "supplier_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (tracking_no)",
+          "cols": [
+            "tracking_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX shipment_pkey ON lab06_b.shipment USING btree (shipment_id)",
+        "CREATE UNIQUE INDEX shipment_tracking_no_key ON lab06_b.shipment USING btree (tracking_no)",
+        "CREATE UNIQUE INDEX shipment_shipment_id_order_id_supplier_id_key ON lab06_b.shipment USING btree (shipment_id, order_id, supplier_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "100",
+          "1",
+          "CLOTH-01"
+        ],
+        [
+          "2",
+          "100",
+          "2",
+          "BRUSH-01"
+        ]
+      ]
+    },
+    {
+      "schema": "lab06_b",
+      "name": "shipment_item",
+      "kind": "r",
+      "columns": [
+        [
+          "shipment_id",
+          "bigint",
+          true
+        ],
+        [
+          "line_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "supplier_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (line_id, order_id, supplier_id) REFERENCES lab06_b.order_line(line_id, order_id, supplier_id)",
+          "cols": [
+            "line_id",
+            "order_id",
+            "supplier_id"
+          ],
+          "target": "order_line",
+          "targetSchema": "lab06_b",
+          "refs": [
+            "line_id",
+            "order_id",
+            "supplier_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (shipment_id, line_id)",
+          "cols": [
+            "shipment_id",
+            "line_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (shipment_id, order_id, supplier_id) REFERENCES lab06_b.shipment(shipment_id, order_id, supplier_id)",
+          "cols": [
+            "shipment_id",
+            "order_id",
+            "supplier_id"
+          ],
+          "target": "shipment",
+          "targetSchema": "lab06_b",
+          "refs": [
+            "shipment_id",
+            "order_id",
+            "supplier_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX shipment_item_pkey ON lab06_b.shipment_item USING btree (shipment_id, line_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "100",
+          "1",
+          2
+        ],
+        [
+          "2",
+          "2",
+          "100",
+          "2",
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "lab06_b",
+      "name": "sku",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "supplier_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (sku_id, supplier_id)",
+          "cols": [
+            "sku_id",
+            "supplier_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (supplier_id) REFERENCES lab06_b.supplier(supplier_id)",
+          "cols": [
+            "supplier_id"
+          ],
+          "target": "supplier",
+          "targetSchema": "lab06_b",
+          "refs": [
+            "supplier_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sku_pkey ON lab06_b.sku USING btree (sku_id)",
+        "CREATE UNIQUE INDEX sku_sku_id_supplier_id_key ON lab06_b.sku USING btree (sku_id, supplier_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          "衣服",
+          "1"
+        ],
+        [
+          "22",
+          "牙刷",
+          "2"
+        ]
+      ]
+    },
+    {
+      "schema": "lab06_b",
+      "name": "supplier",
+      "kind": "r",
+      "columns": [
+        [
+          "supplier_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (supplier_id)",
+          "cols": [
+            "supplier_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX supplier_pkey ON lab06_b.supplier USING btree (supplier_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "服飾供應商 A"
+        ],
+        [
+          "2",
+          "日用品供應商 B"
+        ]
+      ]
+    }
+  ]
+}

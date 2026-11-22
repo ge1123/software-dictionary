@@ -1,0 +1,534 @@
+{
+  "intro": "每月寄兩支牙刷；下月暫停一次，第三月改寄公司。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 固定週期",
+      "每月固定商品與價格。",
+      "月底日期需定義截到月底或固定日規則。"
+    ],
+    [
+      "B 逐期調整",
+      "可跳期與改本期內容。",
+      "過了截止時間的修改需改單流程，不能直接改已建訂單。"
+    ],
+    [
+      "C 方案版本與續扣",
+      "續扣失敗可重試，改價從指定期別生效。",
+      "需設定重試期限與停止配送條件；外部未知付款先查單。"
+    ]
+  ],
+  "labSha256": "12bc021f072c0c96df8a06296016cc3221784c6ca0f8e2c7330048b97d056dee",
+  "plans": [
+    {
+      "code": "A",
+      "title": "固定週期",
+      "line": 19,
+      "tables": [
+        "ec_27_a.subscription",
+        "ec_27_a.subscription_order"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "逐期調整",
+      "line": 86,
+      "tables": [
+        "ec_27_b.subscription",
+        "ec_27_b.subscription_cycle"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "方案版本與續扣",
+      "line": 154,
+      "tables": [
+        "ec_27_c.plan_version",
+        "ec_27_c.renewal_attempt",
+        "ec_27_c.subscription_cycle"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_27_a",
+      "name": "subscription",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ],
+        [
+          "next_date",
+          "date",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX subscription_pkey ON ec_27_a.subscription USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "7",
+          "11",
+          2,
+          "2026-11-30T16:00:00.000Z"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_27_a",
+      "name": "subscription_order",
+      "kind": "r",
+      "columns": [
+        [
+          "subscription_id",
+          "bigint",
+          true
+        ],
+        [
+          "period_date",
+          "date",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (subscription_id, period_date)",
+          "cols": [
+            "subscription_id",
+            "period_date"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (subscription_id) REFERENCES ec_27_a.subscription(id)",
+          "cols": [
+            "subscription_id"
+          ],
+          "target": "subscription",
+          "targetSchema": "ec_27_a",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX subscription_order_pkey ON ec_27_a.subscription_order USING btree (subscription_id, period_date)",
+        "CREATE UNIQUE INDEX subscription_order_order_id_key ON ec_27_a.subscription_order USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "2026-10-31T16:00:00.000Z",
+          "101"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_27_b",
+      "name": "subscription",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX subscription_pkey ON ec_27_b.subscription USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "7"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_27_b",
+      "name": "subscription_cycle",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "subscription_id",
+          "bigint",
+          true
+        ],
+        [
+          "due_date",
+          "date",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ],
+        [
+          "address_snapshot",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((state = ANY (ARRAY['planned'::text, 'skipped'::text, 'ordered'::text])))",
+          "cols": [
+            "state"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (subscription_id, due_date)",
+          "cols": [
+            "subscription_id",
+            "due_date"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (subscription_id) REFERENCES ec_27_b.subscription(id)",
+          "cols": [
+            "subscription_id"
+          ],
+          "target": "subscription",
+          "targetSchema": "ec_27_b",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX subscription_cycle_pkey ON ec_27_b.subscription_cycle USING btree (id)",
+        "CREATE UNIQUE INDEX subscription_cycle_subscription_id_due_date_key ON ec_27_b.subscription_cycle USING btree (subscription_id, due_date)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "2026-11-30T16:00:00.000Z",
+          "skipped",
+          2,
+          "板橋示範路 1 號"
+        ],
+        [
+          "2",
+          "1",
+          "2026-12-31T16:00:00.000Z",
+          "planned",
+          2,
+          "新莊示範路 2 號"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_27_c",
+      "name": "plan_version",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "plan_code",
+          "text",
+          true
+        ],
+        [
+          "version",
+          "integer",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (plan_code, version)",
+          "cols": [
+            "plan_code",
+            "version"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX plan_version_pkey ON ec_27_c.plan_version USING btree (id)",
+        "CREATE UNIQUE INDEX plan_version_plan_code_version_key ON ec_27_c.plan_version USING btree (plan_code, version)"
+      ],
+      "samples": [
+        [
+          "1",
+          "BRUSH",
+          1,
+          "200"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_27_c",
+      "name": "renewal_attempt",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "cycle_id",
+          "bigint",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (cycle_id) REFERENCES subscription_cycle(id)",
+          "cols": [
+            "cycle_id"
+          ],
+          "target": "subscription_cycle",
+          "targetSchema": "ec_27_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX renewal_attempt_pkey ON ec_27_c.renewal_attempt USING btree (id)",
+        "CREATE UNIQUE INDEX renewal_attempt_request_key_key ON ec_27_c.renewal_attempt USING btree (request_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "renew-1",
+          "failed"
+        ],
+        [
+          "2",
+          "1",
+          "renew-2",
+          "pending"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_27_c",
+      "name": "subscription_cycle",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "subscription_id",
+          "bigint",
+          true
+        ],
+        [
+          "due_date",
+          "date",
+          true
+        ],
+        [
+          "plan_version_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (plan_version_id) REFERENCES plan_version(id)",
+          "cols": [
+            "plan_version_id"
+          ],
+          "target": "plan_version",
+          "targetSchema": "ec_27_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (subscription_id, due_date)",
+          "cols": [
+            "subscription_id",
+            "due_date"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX subscription_cycle_pkey ON ec_27_c.subscription_cycle USING btree (id)",
+        "CREATE UNIQUE INDEX subscription_cycle_subscription_id_due_date_key ON ec_27_c.subscription_cycle USING btree (subscription_id, due_date)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "2026-11-30T16:00:00.000Z",
+          "1",
+          "200"
+        ]
+      ]
+    }
+  ]
+}

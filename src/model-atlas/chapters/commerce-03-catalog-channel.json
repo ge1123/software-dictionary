@@ -1,0 +1,445 @@
+{
+  "intro": "同一支牙刷在官網與商城有不同名稱與上架時間。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 商品直接上架",
+      "單商店、單分類。",
+      "跨分類時需改模型。"
+    ],
+    [
+      "B 分類樹與多重歸類",
+      "牙刷同時出現在清潔用品與旅行用品。",
+      "搬移分類前需檢查祖先，外鍵無法擋多節點循環。"
+    ],
+    [
+      "C 通路上架表",
+      "同品在各通路分別販售。",
+      "此表只存一段期間；多次排程需另建 listing_period。"
+    ]
+  ],
+  "labSha256": "19d930a5e40de27c2883e9fb94e804e732b859b1b0e9f9ce713e0445af262fa4",
+  "plans": [
+    {
+      "code": "A",
+      "title": "商品直接上架",
+      "line": 19,
+      "tables": [
+        "ec_03_a.product"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "分類樹與多重歸類",
+      "line": 65,
+      "tables": [
+        "ec_03_b.category",
+        "ec_03_b.product",
+        "ec_03_b.product_category"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "通路上架表",
+      "line": 146,
+      "tables": [
+        "ec_03_c.channel",
+        "ec_03_c.listing",
+        "ec_03_c.product"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_03_a",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "category",
+          "text",
+          true
+        ],
+        [
+          "listed",
+          "boolean",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON ec_03_a.product USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "牙刷",
+          "清潔",
+          true
+        ]
+      ]
+    },
+    {
+      "schema": "ec_03_b",
+      "name": "category",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "parent_id",
+          "bigint",
+          false
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((parent_id IS NULL) OR (parent_id <> id)))",
+          "cols": [
+            "parent_id",
+            "id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (parent_id) REFERENCES ec_03_b.category(id)",
+          "cols": [
+            "parent_id"
+          ],
+          "target": "category",
+          "targetSchema": "ec_03_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX category_pkey ON ec_03_b.category USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          null,
+          "用品"
+        ],
+        [
+          "2",
+          "1",
+          "旅行"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_03_b",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON ec_03_b.product USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "牙刷"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_03_b",
+      "name": "product_category",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "category_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (category_id) REFERENCES ec_03_b.category(id)",
+          "cols": [
+            "category_id"
+          ],
+          "target": "category",
+          "targetSchema": "ec_03_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id, category_id)",
+          "cols": [
+            "product_id",
+            "category_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES ec_03_b.product(id)",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "ec_03_b",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_category_pkey ON ec_03_b.product_category USING btree (product_id, category_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1"
+        ],
+        [
+          "1",
+          "2"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_03_c",
+      "name": "channel",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX channel_pkey ON ec_03_c.channel USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "官網"
+        ],
+        [
+          "2",
+          "商城"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_03_c",
+      "name": "listing",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "code",
+          "text",
+          true
+        ],
+        [
+          "display_name",
+          "text",
+          true
+        ],
+        [
+          "starts_at",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "ends_at",
+          "timestamp with time zone",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (channel_id, code)",
+          "cols": [
+            "channel_id",
+            "code"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (channel_id) REFERENCES channel(id)",
+          "cols": [
+            "channel_id"
+          ],
+          "target": "channel",
+          "targetSchema": "ec_03_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((ends_at IS NULL) OR (ends_at > starts_at)))",
+          "cols": [
+            "ends_at",
+            "starts_at"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id, channel_id)",
+          "cols": [
+            "product_id",
+            "channel_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES product(id)",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "ec_03_c",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX listing_pkey ON ec_03_c.listing USING btree (product_id, channel_id)",
+        "CREATE UNIQUE INDEX listing_channel_id_code_key ON ec_03_c.listing USING btree (channel_id, code)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "B01",
+          "旅行牙刷",
+          "2026-11-01T00:00:00.000Z",
+          null
+        ]
+      ]
+    },
+    {
+      "schema": "ec_03_c",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON ec_03_c.product USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "牙刷"
+        ]
+      ]
+    }
+  ]
+}

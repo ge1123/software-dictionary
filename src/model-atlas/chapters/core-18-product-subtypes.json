@@ -1,0 +1,352 @@
+{
+  "intro": "實體商品需重量，票券需有效期限。",
+  "comparison": [
+    [
+      "面向",
+      "A 單表＋CHECK",
+      "B 主表＋子表"
+    ],
+    [
+      "本例合法欄位組合",
+      "已完整限制",
+      "子列類型正確，但主列可能缺子列"
+    ],
+    [
+      "新增商品",
+      "一次寫入",
+      "多次寫入，需要交易"
+    ],
+    [
+      "查完整商品",
+      "一表",
+      "主表及對應子表"
+    ],
+    [
+      "增加專屬欄位",
+      "主表增加可空欄位及條件",
+      "對應子表增欄"
+    ],
+    [
+      "共用訂單外鍵",
+      "指向 product",
+      "指向 product"
+    ],
+    [
+      "類型變更",
+      "需同時滿足新組合",
+      "必須協調主表與子表更換"
+    ]
+  ],
+  "labSha256": "2dc9c8200f23aa2b441cfceb67482ce051266636c8e5e8b0d0e35a9feb98ef0f",
+  "plans": [
+    {
+      "code": "A",
+      "title": "單表＋類型判別＋完整 CHECK",
+      "line": 11,
+      "tables": [
+        "lab18_a.product"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "共用主表＋專屬子表",
+      "line": 44,
+      "tables": [
+        "lab18_b.physical_detail",
+        "lab18_b.product",
+        "lab18_b.voucher_detail"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "完全分表",
+      "line": 100,
+      "concept": {
+        "entities": {
+          "實體商品": [],
+          "票券商品": []
+        },
+        "links": []
+      },
+      "note": "實體品與票券也可以完全分表，適合生命週期、編號、交易入口本來就獨立的系統。本章沒有第三份 SQL，因為核心比較是 A、B；若改用完全分表，訂單的通用 product_id 就失去單一外鍵目標，不能只放 type＋id 便宣稱有參照完整性。"
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab18_a",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "kind",
+          "text",
+          true
+        ],
+        [
+          "weight_g",
+          "numeric(10,2)",
+          false
+        ],
+        [
+          "valid_days",
+          "integer",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((((kind = 'physical'::text) AND (weight_g IS NOT NULL) AND (weight_g > (0)::numeric) AND (valid_days IS NULL)) OR ((kind = 'voucher'::text) AND (valid_days IS NOT NULL) AND (valid_days > 0) AND (weight_g IS NULL))))",
+          "cols": [
+            "kind",
+            "weight_g",
+            "valid_days"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((kind = ANY (ARRAY['physical'::text, 'voucher'::text])))",
+          "cols": [
+            "kind"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id)",
+          "cols": [
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab18_a.product USING btree (product_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "保溫杯",
+          "physical",
+          "350.00",
+          null
+        ],
+        [
+          "2",
+          "咖啡券",
+          "voucher",
+          null,
+          30
+        ]
+      ]
+    },
+    {
+      "schema": "lab18_b",
+      "name": "physical_detail",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "kind",
+          "text",
+          true
+        ],
+        [
+          "weight_g",
+          "numeric(10,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((kind = 'physical'::text))",
+          "cols": [
+            "kind"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id)",
+          "cols": [
+            "product_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id, kind) REFERENCES lab18_b.product(product_id, kind)",
+          "cols": [
+            "product_id",
+            "kind"
+          ],
+          "target": "product",
+          "targetSchema": "lab18_b",
+          "refs": [
+            "product_id",
+            "kind"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((weight_g > (0)::numeric))",
+          "cols": [
+            "weight_g"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX physical_detail_pkey ON lab18_b.physical_detail USING btree (product_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "physical",
+          "350.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab18_b",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "kind",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((kind = ANY (ARRAY['physical'::text, 'voucher'::text])))",
+          "cols": [
+            "kind"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id)",
+          "cols": [
+            "product_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (product_id, kind)",
+          "cols": [
+            "product_id",
+            "kind"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab18_b.product USING btree (product_id)",
+        "CREATE UNIQUE INDEX product_product_id_kind_key ON lab18_b.product USING btree (product_id, kind)"
+      ],
+      "samples": [
+        [
+          "1",
+          "保溫杯",
+          "physical"
+        ],
+        [
+          "2",
+          "咖啡券",
+          "voucher"
+        ]
+      ]
+    },
+    {
+      "schema": "lab18_b",
+      "name": "voucher_detail",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "kind",
+          "text",
+          true
+        ],
+        [
+          "valid_days",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((kind = 'voucher'::text))",
+          "cols": [
+            "kind"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id)",
+          "cols": [
+            "product_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id, kind) REFERENCES lab18_b.product(product_id, kind)",
+          "cols": [
+            "product_id",
+            "kind"
+          ],
+          "target": "product",
+          "targetSchema": "lab18_b",
+          "refs": [
+            "product_id",
+            "kind"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((valid_days > 0))",
+          "cols": [
+            "valid_days"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX voucher_detail_pkey ON lab18_b.voucher_detail USING btree (product_id)"
+      ],
+      "samples": [
+        [
+          "2",
+          "voucher",
+          30
+        ]
+      ]
+    }
+  ]
+}

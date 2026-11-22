@@ -1,0 +1,408 @@
+{
+  "intro": "小芸買衣服；公司採購員替公司買牙刷。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 會員下單",
+      "所有顧客先註冊。",
+      "每張訂單都需要會員。"
+    ],
+    [
+      "B 訪客下單",
+      "顧客可不註冊。",
+      "email 相同不足以證明訂單歸屬。"
+    ],
+    [
+      "C 企業採購",
+      "採購人與買方公司不同。",
+      "採購額度與核准另接權限及審批模組。"
+    ]
+  ],
+  "labSha256": "50f9941bcb4b2550a5e136a82cfaf3aebd3670d345e72675f915135c1d0f7826",
+  "plans": [
+    {
+      "code": "A",
+      "title": "會員下單",
+      "line": 19,
+      "tables": [
+        "ec_01_a.customer",
+        "ec_01_a.sales_order"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "訪客下單",
+      "line": 79,
+      "tables": [
+        "ec_01_b.customer",
+        "ec_01_b.sales_order"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "企業採購",
+      "line": 141,
+      "tables": [
+        "ec_01_c.buyer",
+        "ec_01_c.company",
+        "ec_01_c.sales_order"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_01_a",
+      "name": "customer",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX customer_pkey ON ec_01_a.customer USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "小芸"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_01_a",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ],
+        [
+          "contact_name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (customer_id) REFERENCES ec_01_a.customer(id)",
+          "cols": [
+            "customer_id"
+          ],
+          "target": "customer",
+          "targetSchema": "ec_01_a",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_01_a.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "1",
+          "小芸"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_01_b",
+      "name": "customer",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX customer_pkey ON ec_01_b.customer USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "小芸"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_01_b",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          false
+        ],
+        [
+          "contact_name",
+          "text",
+          true
+        ],
+        [
+          "email",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (customer_id) REFERENCES ec_01_b.customer(id)",
+          "cols": [
+            "customer_id"
+          ],
+          "target": "customer",
+          "targetSchema": "ec_01_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_01_b.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          null,
+          "小芸",
+          "yun@example.test"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_01_c",
+      "name": "buyer",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "company_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (company_id) REFERENCES company(id)",
+          "cols": [
+            "company_id"
+          ],
+          "target": "company",
+          "targetSchema": "ec_01_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (company_id, id)",
+          "cols": [
+            "company_id",
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX buyer_pkey ON ec_01_c.buyer USING btree (id)",
+        "CREATE UNIQUE INDEX buyer_company_id_id_key ON ec_01_c.buyer USING btree (company_id, id)"
+      ],
+      "samples": [
+        [
+          "7",
+          "1",
+          "小芸"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_01_c",
+      "name": "company",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX company_pkey ON ec_01_c.company USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "青山公司"
+        ],
+        [
+          "2",
+          "另一家公司"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_01_c",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "company_id",
+          "bigint",
+          true
+        ],
+        [
+          "buyer_id",
+          "bigint",
+          true
+        ],
+        [
+          "payer_name",
+          "text",
+          true
+        ],
+        [
+          "recipient_name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (company_id, buyer_id) REFERENCES buyer(company_id, id)",
+          "cols": [
+            "company_id",
+            "buyer_id"
+          ],
+          "target": "buyer",
+          "targetSchema": "ec_01_c",
+          "refs": [
+            "company_id",
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_01_c.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "1",
+          "7",
+          "青山公司",
+          "林店長"
+        ]
+      ]
+    }
+  ]
+}

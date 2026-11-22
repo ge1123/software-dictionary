@@ -1,0 +1,431 @@
+{
+  "intro": "平台收 1,000 元，抽成 10%，應付賣家 900 元；下月退貨要調整。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 自營收入與費用",
+      "商店自行銷售。",
+      "不表達賣家應付款。"
+    ],
+    [
+      "B 合約版本與應付",
+      "平台按賣家合約抽成。",
+      "合約生效期間及費率階梯需另加；保存快照後不因改約重算。"
+    ],
+    [
+      "C 結算批次與跨期調整",
+      "月結後次月退貨。",
+      "保留款需獨立到期與釋放紀錄；負應付可結轉下一期。"
+    ]
+  ],
+  "labSha256": "9ab2411c098099b15541d0e504488f8acd890eb2b14a2c8e67ef88a826975d92",
+  "plans": [
+    {
+      "code": "A",
+      "title": "自營收入與費用",
+      "line": 19,
+      "tables": [
+        "ec_25_a.order_finance"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "合約版本與應付",
+      "line": 63,
+      "tables": [
+        "ec_25_b.commission_version",
+        "ec_25_b.seller_payable"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "結算批次與跨期調整",
+      "line": 135,
+      "tables": [
+        "ec_25_c.settlement_batch",
+        "ec_25_c.settlement_entry"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_25_a",
+      "name": "order_finance",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "revenue",
+          "bigint",
+          true
+        ],
+        [
+          "payment_fee",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((payment_fee >= 0))",
+          "cols": [
+            "payment_fee"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((revenue >= 0))",
+          "cols": [
+            "revenue"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_finance_pkey ON ec_25_a.order_finance USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "1000",
+          "20"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_25_b",
+      "name": "commission_version",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "seller_id",
+          "bigint",
+          true
+        ],
+        [
+          "version",
+          "integer",
+          true
+        ],
+        [
+          "rate",
+          "numeric(6,5)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((rate >= (0)::numeric) AND (rate <= (1)::numeric)))",
+          "cols": [
+            "rate"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (seller_id, version)",
+          "cols": [
+            "seller_id",
+            "version"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX commission_version_pkey ON ec_25_b.commission_version USING btree (id)",
+        "CREATE UNIQUE INDEX commission_version_seller_id_version_key ON ec_25_b.commission_version USING btree (seller_id, version)"
+      ],
+      "samples": [
+        [
+          "1",
+          "8",
+          1,
+          "0.10000"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_25_b",
+      "name": "seller_payable",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_line_id",
+          "bigint",
+          true
+        ],
+        [
+          "contract_id",
+          "bigint",
+          true
+        ],
+        [
+          "gross",
+          "bigint",
+          true
+        ],
+        [
+          "fee",
+          "bigint",
+          true
+        ],
+        [
+          "payable",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((fee >= 0) AND (fee <= gross)))",
+          "cols": [
+            "fee",
+            "gross"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((payable = (gross - fee)))",
+          "cols": [
+            "payable",
+            "gross",
+            "fee"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (contract_id) REFERENCES ec_25_b.commission_version(id)",
+          "cols": [
+            "contract_id"
+          ],
+          "target": "commission_version",
+          "targetSchema": "ec_25_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((gross >= 0))",
+          "cols": [
+            "gross"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_line_id)",
+          "cols": [
+            "order_line_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX seller_payable_pkey ON ec_25_b.seller_payable USING btree (id)",
+        "CREATE UNIQUE INDEX seller_payable_order_line_id_key ON ec_25_b.seller_payable USING btree (order_line_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1001",
+          "1",
+          "1000",
+          "100",
+          "900"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_25_c",
+      "name": "settlement_batch",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "seller_id",
+          "bigint",
+          true
+        ],
+        [
+          "period",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (seller_id, period)",
+          "cols": [
+            "seller_id",
+            "period"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX settlement_batch_pkey ON ec_25_c.settlement_batch USING btree (id)",
+        "CREATE UNIQUE INDEX settlement_batch_seller_id_period_key ON ec_25_c.settlement_batch USING btree (seller_id, period)"
+      ],
+      "samples": [
+        [
+          "1",
+          "8",
+          "2026-11"
+        ],
+        [
+          "2",
+          "8",
+          "2026-12"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_25_c",
+      "name": "settlement_entry",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "batch_id",
+          "bigint",
+          true
+        ],
+        [
+          "source_key",
+          "text",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ],
+        [
+          "original_entry_id",
+          "bigint",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount <> 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (batch_id) REFERENCES settlement_batch(id)",
+          "cols": [
+            "batch_id"
+          ],
+          "target": "settlement_batch",
+          "targetSchema": "ec_25_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (original_entry_id) REFERENCES settlement_entry(id)",
+          "cols": [
+            "original_entry_id"
+          ],
+          "target": "settlement_entry",
+          "targetSchema": "ec_25_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (source_key)",
+          "cols": [
+            "source_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX settlement_entry_pkey ON ec_25_c.settlement_entry USING btree (id)",
+        "CREATE UNIQUE INDEX settlement_entry_source_key_key ON ec_25_c.settlement_entry USING btree (source_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "sale-1001",
+          "900",
+          null
+        ],
+        [
+          "2",
+          "2",
+          "refund-201",
+          "-450",
+          "1"
+        ]
+      ]
+    }
+  ]
+}

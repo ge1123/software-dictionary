@@ -1,0 +1,338 @@
+{
+  "intro": "通路因 timeout 重送同一訂單。",
+  "comparison": [
+    [
+      "面向",
+      "A 外部主鍵",
+      "B 業務唯一鍵",
+      "C 請求結果"
+    ],
+    [
+      "跨通路同單號",
+      "衝突",
+      "允許",
+      "允許"
+    ],
+    [
+      "同訂單不重複",
+      "有，但範圍錯",
+      "有",
+      "有"
+    ],
+    [
+      "同key內容衝突",
+      "未定義",
+      "未定義",
+      "明確拒絕"
+    ],
+    [
+      "重播原成功回應",
+      "無獨立保存",
+      "可由訂單重建",
+      "保存結果"
+    ],
+    [
+      "成本",
+      "最少",
+      "額外唯一鍵",
+      "更多儲存、生命週期規則"
+    ]
+  ],
+  "labSha256": "9d3501c7863f9779c9874a6783ef1ba04c60a057962aa5195213d48577a0acba",
+  "plans": [
+    {
+      "code": "A",
+      "title": "外部單號直接當全平台主鍵",
+      "line": 11,
+      "tables": [
+        "lab12_a.orders"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "內部ID＋通路範圍業務唯一鍵",
+      "line": 36,
+      "tables": [
+        "lab12_b.orders"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "訂單唯一鍵＋獨立冪等結果",
+      "line": 65,
+      "tables": [
+        "lab12_c.orders",
+        "lab12_c.request"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab12_a",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "external_no",
+          "text",
+          true
+        ],
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= (0)::numeric))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (external_no)",
+          "cols": [
+            "external_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab12_a.orders USING btree (external_no)"
+      ],
+      "samples": [
+        [
+          "ORD-1",
+          "1",
+          "100.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab12_b",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "external_no",
+          "text",
+          true
+        ],
+        [
+          "amount",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= (0)::numeric))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (channel_id, external_no)",
+          "cols": [
+            "channel_id",
+            "external_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab12_b.orders USING btree (id)",
+        "CREATE UNIQUE INDEX orders_channel_id_external_no_key ON lab12_b.orders USING btree (channel_id, external_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "ORD-1",
+          "100.00"
+        ],
+        [
+          "2",
+          "2",
+          "ORD-1",
+          "100.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab12_c",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "external_no",
+          "text",
+          true
+        ],
+        [
+          "amount",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= (0)::numeric))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (channel_id, external_no)",
+          "cols": [
+            "channel_id",
+            "external_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab12_c.orders USING btree (id)",
+        "CREATE UNIQUE INDEX orders_channel_id_external_no_key ON lab12_c.orders USING btree (channel_id, external_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "ORD-1",
+          "100.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab12_c",
+      "name": "request",
+      "kind": "r",
+      "columns": [
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "operation",
+          "text",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "payload",
+          "jsonb",
+          true
+        ],
+        [
+          "response",
+          "jsonb",
+          false
+        ],
+        [
+          "order_id",
+          "bigint",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((response IS NULL) = (order_id IS NULL)))",
+          "cols": [
+            "response",
+            "order_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES lab12_c.orders(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "orders",
+          "targetSchema": "lab12_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (channel_id, operation, request_key)",
+          "cols": [
+            "channel_id",
+            "operation",
+            "request_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX request_pkey ON lab12_c.request USING btree (channel_id, operation, request_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "create-order",
+          "K1",
+          {
+            "amount": 100,
+            "external_no": "ORD-1"
+          },
+          {
+            "status": "created",
+            "order_id": 1
+          },
+          "1"
+        ]
+      ]
+    }
+  ]
+}

@@ -50,3 +50,9 @@
 ## 資料模型案例
 
 詞條可用 modelCase 的 id 和 title 連到 `cases/<id>/index.html`。案例會出現在該詞條及主題清單，Vite 會將每個案例目錄的首頁建成可直接重新整理的靜態頁。沿用分批出貨的樣板，交代業務問題、各方案的 ER 圖（單表方案也畫出實體與主鍵）、同批資料在指定時點的差異、由哪個約束或交易保證規則，以及驗證範圍。頁尾放回詞條的相對連結與固定版本的教材、SQL 來源。研究用資料模型需明確標示為設計實驗。
+
+## ER 圖驗收
+
+資料模型圖集依 `src/model-atlas/index.json` 的固定教材版本收錄兩份索引。每個具名方案各有一張圖。實作方案使用章節主實驗回滾前的 PostgreSQL 系統目錄，保留所有欄位、主鍵、外鍵與檢視依賴；概念方案依原文繪圖並標示。案例頁的資料取自同一時點，每個資料庫物件節錄至多兩列。
+
+更新時，在專用 PostgreSQL 18 練習資料庫設定 DATABASE_URL，執行 `node scripts/atlas/verify-source.mjs /path/to/research-schema-design` 核對 lab.sql 雜湊、案例斷言與資料庫物件。接著執行 `npm run check`、`npm run build`、`python3 scripts/atlas/verify-pages.py`；最後一項會逐圖驗證節點、全部欄位、鍵標記、連線方向與複合鍵欄位順序。若來源有語法修正或只描述設計，須在對應方案頁標出驗證範圍。

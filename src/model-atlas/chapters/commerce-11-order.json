@@ -1,0 +1,508 @@
+{
+  "intro": "小芸買兩件衣服；平台還要把不同賣家的商品拆單。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 主檔與明細",
+      "單商店實體商品。",
+      "一張訂單只對應一個賣家。"
+    ],
+    [
+      "B 母單與賣家子單",
+      "一次結帳包含兩個賣家。",
+      "付款分配、跨賣家優惠及運費需另存分攤。"
+    ],
+    [
+      "C 預購與訂製明細",
+      "同單包含現貨與繡字上衣。",
+      "複雜訂製規格可拆子表；改訂製內容需版本及同意紀錄。"
+    ]
+  ],
+  "labSha256": "a1bd1d6cf0fffa9537cece6d2e8a0da722932183783548b25d750fe3f4ec17d7",
+  "plans": [
+    {
+      "code": "A",
+      "title": "主檔與明細",
+      "line": 19,
+      "tables": [
+        "ec_11_a.order_line",
+        "ec_11_a.sales_order"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "母單與賣家子單",
+      "line": 87,
+      "tables": [
+        "ec_11_b.order_group",
+        "ec_11_b.order_line",
+        "ec_11_b.seller_order"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "預購與訂製明細",
+      "line": 170,
+      "tables": [
+        "ec_11_c.order_line",
+        "ec_11_c.sales_order"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_11_a",
+      "name": "order_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "name_snapshot",
+          "text",
+          true
+        ],
+        [
+          "unit_amount",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES ec_11_a.sales_order(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "sales_order",
+          "targetSchema": "ec_11_a",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((unit_amount >= 0))",
+          "cols": [
+            "unit_amount"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_line_pkey ON ec_11_a.order_line USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1001",
+          "101",
+          "11",
+          "白色上衣 M",
+          "500",
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "ec_11_a",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_no",
+          "text",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_no)",
+          "cols": [
+            "order_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_11_a.sales_order USING btree (id)",
+        "CREATE UNIQUE INDEX sales_order_order_no_key ON ec_11_a.sales_order USING btree (order_no)"
+      ],
+      "samples": [
+        [
+          "101",
+          "O101",
+          "7"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_11_b",
+      "name": "order_group",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "checkout_key",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (checkout_key)",
+          "cols": [
+            "checkout_key"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_group_pkey ON ec_11_b.order_group USING btree (id)",
+        "CREATE UNIQUE INDEX order_group_checkout_key_key ON ec_11_b.order_group USING btree (checkout_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "checkout-1"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_11_b",
+      "name": "order_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES ec_11_b.seller_order(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "seller_order",
+          "targetSchema": "ec_11_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_line_pkey ON ec_11_b.order_line USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1001",
+          "101",
+          "11",
+          2
+        ],
+        [
+          "1002",
+          "102",
+          "12",
+          1
+        ]
+      ]
+    },
+    {
+      "schema": "ec_11_b",
+      "name": "seller_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "group_id",
+          "bigint",
+          true
+        ],
+        [
+          "seller_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (group_id) REFERENCES ec_11_b.order_group(id)",
+          "cols": [
+            "group_id"
+          ],
+          "target": "order_group",
+          "targetSchema": "ec_11_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (group_id, seller_id)",
+          "cols": [
+            "group_id",
+            "seller_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX seller_order_pkey ON ec_11_b.seller_order USING btree (id)",
+        "CREATE UNIQUE INDEX seller_order_group_id_seller_id_key ON ec_11_b.seller_order USING btree (group_id, seller_id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "1",
+          "8"
+        ],
+        [
+          "102",
+          "1",
+          "9"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_11_c",
+      "name": "order_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ],
+        [
+          "supply_type",
+          "text",
+          true
+        ],
+        [
+          "promised_date",
+          "date",
+          false
+        ],
+        [
+          "custom_text",
+          "text",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES sales_order(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "sales_order",
+          "targetSchema": "ec_11_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((supply_type = ANY (ARRAY['stock'::text, 'preorder'::text, 'custom'::text])))",
+          "cols": [
+            "supply_type"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_line_pkey ON ec_11_c.order_line USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1001",
+          "101",
+          "11",
+          1,
+          "custom",
+          "2026-12-09T16:00:00.000Z",
+          "YUN"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_11_c",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_no",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_no)",
+          "cols": [
+            "order_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_11_c.sales_order USING btree (id)",
+        "CREATE UNIQUE INDEX sales_order_order_no_key ON ec_11_c.sales_order USING btree (order_no)"
+      ],
+      "samples": [
+        [
+          "101",
+          "O101"
+        ]
+      ]
+    }
+  ]
+}

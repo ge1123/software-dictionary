@@ -1,0 +1,364 @@
+{
+  "intro": "小芸取消尚未出貨的一件衣服；另一件已交物流。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 整單取消",
+      "只允許未付款整單取消。",
+      "付款回呼競態需鎖同張訂單；遲到付款需進補償。"
+    ],
+    [
+      "B 部分取消",
+      "尚未出貨品項可按數量取消。",
+      "紀錄加總與 cancelled 需同交易維護。"
+    ],
+    [
+      "C 取消協調流程",
+      "倉庫已揀貨，先攔截再退款。",
+      "攔截失敗需改走退貨；未知結果先查步驟外部狀態。"
+    ]
+  ],
+  "labSha256": "22d176a8d638d77dc549aa7fdfd0e4cf98b3cf9d6db9f74f5235740d01b71adc",
+  "plans": [
+    {
+      "code": "A",
+      "title": "整單取消",
+      "line": 19,
+      "tables": [
+        "ec_21_a.sales_order"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "部分取消",
+      "line": 61,
+      "tables": [
+        "ec_21_b.cancellation",
+        "ec_21_b.order_line"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "取消協調流程",
+      "line": 129,
+      "tables": [
+        "ec_21_c.cancel_request",
+        "ec_21_c.cancel_step"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_21_a",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((state = ANY (ARRAY['pending'::text, 'paid'::text, 'cancelled'::text])))",
+          "cols": [
+            "state"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_21_a.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "pending"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_21_b",
+      "name": "cancellation",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "line_id",
+          "bigint",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ],
+        [
+          "reason",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (line_id) REFERENCES ec_21_b.order_line(id)",
+          "cols": [
+            "line_id"
+          ],
+          "target": "order_line",
+          "targetSchema": "ec_21_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX cancellation_pkey ON ec_21_b.cancellation USING btree (id)",
+        "CREATE UNIQUE INDEX cancellation_request_key_key ON ec_21_b.cancellation USING btree (request_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1001",
+          "cancel-1",
+          1,
+          "不需要第二件"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_21_b",
+      "name": "order_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ],
+        [
+          "shipped",
+          "integer",
+          true
+        ],
+        [
+          "cancelled",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((shipped >= 0) AND (shipped <= qty)))",
+          "cols": [
+            "shipped",
+            "qty"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((cancelled >= 0) AND ((cancelled + shipped) <= qty)))",
+          "cols": [
+            "cancelled",
+            "shipped",
+            "qty"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_line_pkey ON ec_21_b.order_line USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1001",
+          2,
+          1,
+          1
+        ]
+      ]
+    },
+    {
+      "schema": "ec_21_c",
+      "name": "cancel_request",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX cancel_request_pkey ON ec_21_c.cancel_request USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101",
+          "processing"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_21_c",
+      "name": "cancel_step",
+      "kind": "r",
+      "columns": [
+        [
+          "request_id",
+          "bigint",
+          true
+        ],
+        [
+          "step",
+          "text",
+          true
+        ],
+        [
+          "operation_key",
+          "text",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (operation_key)",
+          "cols": [
+            "operation_key"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (request_id, step)",
+          "cols": [
+            "request_id",
+            "step"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (request_id) REFERENCES cancel_request(id)",
+          "cols": [
+            "request_id"
+          ],
+          "target": "cancel_request",
+          "targetSchema": "ec_21_c",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX cancel_step_pkey ON ec_21_c.cancel_step USING btree (request_id, step)",
+        "CREATE UNIQUE INDEX cancel_step_operation_key_key ON ec_21_c.cancel_step USING btree (operation_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "intercept",
+          "cancel-1-stop",
+          "succeeded"
+        ],
+        [
+          "1",
+          "refund",
+          "cancel-1-refund",
+          "pending"
+        ]
+      ]
+    }
+  ]
+}

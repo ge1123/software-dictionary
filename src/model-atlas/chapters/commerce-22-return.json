@@ -1,0 +1,360 @@
+{
+  "intro": "顧客退回兩件衣服，其中一件缺配件。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 整單退貨",
+      "整張訂單一起退。",
+      "不支援部分退貨與多次申請。"
+    ],
+    [
+      "B 退貨主明細",
+      "每次可選品項與數量。",
+      "需加跨案件累計上限；被拒絕申請不占可退量。"
+    ],
+    [
+      "C 分批收貨與處置",
+      "兩件分兩次收到，驗收結果不同。",
+      "收貨加總需鎖 return_line；隔離量不能直接加可售庫。"
+    ]
+  ],
+  "labSha256": "96d8bb975ec319d4a7c98040ab6d3ccda76cc8d194a49e92ad4ab8c2be1698da",
+  "plans": [
+    {
+      "code": "A",
+      "title": "整單退貨",
+      "line": 19,
+      "tables": [
+        "ec_22_a.return_case"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "退貨主明細",
+      "line": 65,
+      "tables": [
+        "ec_22_b.return_case",
+        "ec_22_b.return_line"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "分批收貨與處置",
+      "line": 129,
+      "tables": [
+        "ec_22_c.return_line",
+        "ec_22_c.return_receipt"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_22_a",
+      "name": "return_case",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "reason",
+          "text",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX return_case_pkey ON ec_22_a.return_case USING btree (id)",
+        "CREATE UNIQUE INDEX return_case_order_id_key ON ec_22_a.return_case USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "201",
+          "101",
+          "尺寸不合",
+          "requested"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_22_b",
+      "name": "return_case",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX return_case_pkey ON ec_22_b.return_case USING btree (id)"
+      ],
+      "samples": [
+        [
+          "201",
+          "101"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_22_b",
+      "name": "return_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "case_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_line_id",
+          "bigint",
+          true
+        ],
+        [
+          "requested",
+          "integer",
+          true
+        ],
+        [
+          "approved",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (case_id) REFERENCES ec_22_b.return_case(id)",
+          "cols": [
+            "case_id"
+          ],
+          "target": "return_case",
+          "targetSchema": "ec_22_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((approved >= 0) AND (approved <= requested)))",
+          "cols": [
+            "approved",
+            "requested"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((requested > 0))",
+          "cols": [
+            "requested"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX return_line_pkey ON ec_22_b.return_line USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "201",
+          "1001",
+          2,
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "ec_22_c",
+      "name": "return_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_line_id",
+          "bigint",
+          true
+        ],
+        [
+          "approved",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((approved > 0))",
+          "cols": [
+            "approved"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX return_line_pkey ON ec_22_c.return_line USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1001",
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "ec_22_c",
+      "name": "return_receipt",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "line_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ],
+        [
+          "disposition",
+          "text",
+          true
+        ],
+        [
+          "received_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((disposition = ANY (ARRAY['restock'::text, 'quarantine'::text, 'scrap'::text])))",
+          "cols": [
+            "disposition"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (line_id) REFERENCES return_line(id)",
+          "cols": [
+            "line_id"
+          ],
+          "target": "return_line",
+          "targetSchema": "ec_22_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX return_receipt_pkey ON ec_22_c.return_receipt USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          1,
+          "restock",
+          "2026-11-20T09:00:00.000Z"
+        ],
+        [
+          "2",
+          "1",
+          1,
+          "quarantine",
+          "2026-11-21T09:00:00.000Z"
+        ]
+      ]
+    }
+  ]
+}

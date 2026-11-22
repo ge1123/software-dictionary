@@ -1,0 +1,27 @@
+:root {color:#23362b;background:#f8f8f3;font:15px/1.65 system-ui,sans-serif}
+* {box-sizing:border-box}
+body {margin:0}
+header,main {max-width:64rem;margin:auto;padding:1rem clamp(1rem,4vw,3.5rem)}
+header {border-bottom:1px solid #c7d2c9;display:flex;justify-content:space-between}
+header a:first-child {font-family:Georgia,serif;font-weight:bold}
+a {color:#285940;text-underline-offset:.2em}
+h1 {font-size:clamp(1.7rem,4vw,2.3rem);line-height:1.25;margin:.5em 0}
+h2 {font-size:1.2rem;margin:1.5em 0 .5em}
+h4 {font:600 .95rem monospace;overflow-wrap:anywhere}
+.meta,figcaption,.source {font-size:.86rem;color:#496052}
+nav {display:flex;flex-wrap:wrap;gap:.4rem 1rem}
+.chapters {columns:2;column-gap:3rem;padding-left:2rem}
+.chapters li {padding:.27rem 0;break-inside:avoid}
+.plan {margin-top:2rem;border-top:1px solid #b6c4b9}
+figure {margin:0}
+.diagram,.overflow,pre {max-width:100%;overflow:auto}
+.diagram {padding:.75rem;background:#fffef8;border:1px solid #b6c4b9;border-radius:5px}
+.diagram svg {display:block;max-width:none;margin:0 auto}
+figcaption {margin:.35rem 0}
+table {border-collapse:collapse;font-size:.9rem}
+td,th {padding:.4rem .65rem;border:1px solid #ccd6cd;text-align:start}
+th {background:#e4ede3}
+details {margin:1rem 0}
+summary {cursor:pointer;color:#285940;font-weight:600}
+pre {background:#edf0e9;padding:.7rem}
+@media(max-width:42rem){.chapters{columns:1}}

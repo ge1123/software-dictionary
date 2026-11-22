@@ -1,0 +1,283 @@
+{
+  "intro": "大量採購享折扣，未來價格可提前設定。",
+  "comparison": [
+    [
+      "判斷",
+      "A 固定欄位",
+      "B 區間列"
+    ],
+    [
+      "兩個固定現價",
+      "最直接",
+      "多列與區間運算"
+    ],
+    [
+      "預定未來價格",
+      "無法完整表達",
+      "可同時保存"
+    ],
+    [
+      "新增級距",
+      "改表與程式",
+      "增加資料"
+    ],
+    [
+      "重疊保障",
+      "不存在區間問題",
+      "排除約束保證最多命中一列"
+    ],
+    [
+      "區間完整覆蓋",
+      "程式 CASE 固定",
+      "排除約束不保證沒有缺口"
+    ]
+  ],
+  "labSha256": "9dd7834e44ea95346ddcb74a0e979f22f16ad054123e49cc6fef9d2966b8a546",
+  "plans": [
+    {
+      "code": "A",
+      "title": "固定級距欄位，直接覆寫現價",
+      "line": 11,
+      "tables": [
+        "lab04_a.sku_price"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "數量區間 × 日期區間",
+      "line": 44,
+      "tables": [
+        "lab04_b.price_rule",
+        "lab04_b.sku"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "價目版本＋級距（延伸）",
+      "line": 86,
+      "concept": {
+        "entities": {
+          "PriceVersion": [
+            "sku_id",
+            "valid_dates",
+            "status"
+          ],
+          "Tier": [
+            "version_id",
+            "quantities",
+            "price"
+          ]
+        },
+        "links": [
+          [
+            "Tier",
+            "PriceVersion",
+            "所屬版本"
+          ]
+        ]
+      },
+      "note": "可以再拆 PriceVersion(sku_id, valid_dates, status) 與 Tier(version_id, quantities, price)，讓草稿、審核、整組生效有共同單位。代價是需要防止已發布版本重疊、禁止發布後任意改動，還要定義取消發布的規則。本章 SQL 實作 A、B；C 是未來有發布流程才採用的延伸，不宣稱已實作。"
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab04_a",
+      "name": "sku_price",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "small_price",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "bulk_price",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "bulk_from",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((bulk_from > 1))",
+          "cols": [
+            "bulk_from"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((bulk_price >= (0)::numeric))",
+          "cols": [
+            "bulk_price"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((small_price >= (0)::numeric))",
+          "cols": [
+            "small_price"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sku_price_pkey ON lab04_a.sku_price USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          "110.00",
+          "95.00",
+          10
+        ]
+      ]
+    },
+    {
+      "schema": "lab04_b",
+      "name": "price_rule",
+      "kind": "r",
+      "columns": [
+        [
+          "rule_id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "quantities",
+          "int4range",
+          true
+        ],
+        [
+          "valid_dates",
+          "daterange",
+          true
+        ],
+        [
+          "unit_price",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (rule_id)",
+          "cols": [
+            "rule_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((NOT isempty(quantities)) AND (NOT lower_inf(quantities)) AND (lower(quantities) >= 1)))",
+          "cols": [
+            "quantities"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (sku_id) REFERENCES lab04_b.sku(sku_id)",
+          "cols": [
+            "sku_id"
+          ],
+          "target": "sku",
+          "targetSchema": "lab04_b",
+          "refs": [
+            "sku_id"
+          ]
+        },
+        {
+          "type": "x",
+          "sql": "EXCLUDE USING gist (sku_id WITH =, quantities WITH &&, valid_dates WITH &&)",
+          "cols": [
+            "sku_id",
+            "quantities",
+            "valid_dates"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((unit_price >= (0)::numeric))",
+          "cols": [
+            "unit_price"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((NOT isempty(valid_dates)))",
+          "cols": [
+            "valid_dates"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX price_rule_pkey ON lab04_b.price_rule USING btree (rule_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "11",
+          "[1,10)",
+          "[2026-10-01,2026-11-01)",
+          "100.00"
+        ],
+        [
+          "2",
+          "11",
+          "[10,)",
+          "[2026-10-01,2026-11-01)",
+          "90.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab04_b",
+      "name": "sku",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sku_pkey ON lab04_b.sku USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "11"
+        ]
+      ]
+    }
+  ]
+}

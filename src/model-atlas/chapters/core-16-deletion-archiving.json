@@ -1,0 +1,317 @@
+{
+  "intro": "商品下架仍可查歷史，並需決定編號可否重用。",
+  "comparison": [
+    [
+      "問題",
+      "A 實體刪除＋快照",
+      "B 軟刪除＋部分唯一索引",
+      "停用且不重用代碼"
+    ],
+    [
+      "歷史成交名稱",
+      "從訂單快照讀取",
+      "從訂單快照讀取",
+      "從訂單快照讀取"
+    ],
+    [
+      "舊商品完整屬性",
+      "刪除後無法查",
+      "保留",
+      "保留"
+    ],
+    [
+      "同 code 新品",
+      "刪掉後可建立",
+      "退役後可建立",
+      "拒絕重用"
+    ],
+    [
+      "恢復舊商品",
+      "需重建，原身分已失",
+      "新品占用 code 時衝突",
+      "單純改停用狀態"
+    ],
+    [
+      "可售查詢",
+      "表內資料即現存商品",
+      "必須篩選",
+      "必須篩選"
+    ]
+  ],
+  "labSha256": "f4712da5dea9b848d1f6689d7c107ebe0e93ef566e76f53e1d749c928d6b0032",
+  "plans": [
+    {
+      "code": "A",
+      "title": "實體刪除，訂單保留快照與可空外鍵",
+      "line": 11,
+      "tables": [
+        "lab16_a.order_line",
+        "lab16_a.product"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "保留身分，軟刪除與有效代碼唯一",
+      "line": 51,
+      "tables": [
+        "lab16_b.order_line",
+        "lab16_b.product",
+        "lab16_b.sellable_product"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab16_a",
+      "name": "order_line",
+      "kind": "r",
+      "columns": [
+        [
+          "line_id",
+          "bigint",
+          true
+        ],
+        [
+          "product_id",
+          "bigint",
+          false
+        ],
+        [
+          "sold_name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (line_id)",
+          "cols": [
+            "line_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES lab16_a.product(product_id) ON DELETE SET NULL",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "lab16_a",
+          "refs": [
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_line_pkey ON lab16_a.order_line USING btree (line_id)"
+      ],
+      "samples": [
+        [
+          "9001",
+          null,
+          "舊款保溫杯"
+        ]
+      ]
+    },
+    {
+      "schema": "lab16_a",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "code",
+          "text",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (code)",
+          "cols": [
+            "code"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id)",
+          "cols": [
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab16_a.product USING btree (product_id)",
+        "CREATE UNIQUE INDEX product_code_key ON lab16_a.product USING btree (code)"
+      ],
+      "samples": [
+        [
+          "102",
+          "CUP",
+          "新款保溫杯"
+        ]
+      ]
+    },
+    {
+      "schema": "lab16_b",
+      "name": "order_line",
+      "kind": "r",
+      "columns": [
+        [
+          "line_id",
+          "bigint",
+          true
+        ],
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "sold_name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (line_id)",
+          "cols": [
+            "line_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES lab16_b.product(product_id)",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "lab16_b",
+          "refs": [
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_line_pkey ON lab16_b.order_line USING btree (line_id)"
+      ],
+      "samples": [
+        [
+          "9001",
+          "101",
+          "舊款保溫杯"
+        ]
+      ]
+    },
+    {
+      "schema": "lab16_b",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "code",
+          "text",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "retired_at",
+          "timestamp with time zone",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id)",
+          "cols": [
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab16_b.product USING btree (product_id)",
+        "CREATE UNIQUE INDEX active_code_unique ON lab16_b.product USING btree (code) WHERE (retired_at IS NULL)"
+      ],
+      "samples": [
+        [
+          "101",
+          "CUP",
+          "舊款保溫杯",
+          "2026-10-01T00:00:00.000Z"
+        ],
+        [
+          "102",
+          "CUP",
+          "新款保溫杯",
+          null
+        ]
+      ]
+    },
+    {
+      "schema": "lab16_b",
+      "name": "sellable_product",
+      "kind": "v",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          false
+        ],
+        [
+          "code",
+          "text",
+          false
+        ],
+        [
+          "name",
+          "text",
+          false
+        ],
+        [
+          "retired_at",
+          "timestamp with time zone",
+          false
+        ]
+      ],
+      "constraints": [],
+      "indexes": [],
+      "depends": [
+        {
+          "schema": "lab16_b",
+          "name": "product"
+        }
+      ],
+      "samples": [
+        [
+          "102",
+          "CUP",
+          "新款保溫杯",
+          null
+        ]
+      ]
+    }
+  ]
+}

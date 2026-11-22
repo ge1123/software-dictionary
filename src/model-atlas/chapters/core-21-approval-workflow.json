@@ -1,0 +1,465 @@
+{
+  "intro": "大額採購需多關核准，流程可改版。",
+  "comparison": [
+    [
+      "面向",
+      "A 固定核准欄位",
+      "B 版本與決策表"
+    ],
+    [
+      "新增第三關",
+      "改表與程式，舊單需額外辨識",
+      "新版本新增關卡"
+    ],
+    [
+      "舊申請使用舊規則",
+      "原模型未表達",
+      "request.version_id 固定"
+    ],
+    [
+      "順序與重複",
+      "本例沒有保障",
+      "trigger＋主鍵"
+    ],
+    [
+      "查待辦",
+      "簡單欄位條件",
+      "找最小未決關卡"
+    ],
+    [
+      "決策歷史",
+      "只見 boolean 結果",
+      "每關保存人、結果、時間"
+    ],
+    [
+      "成本",
+      "小，但規則變更時放大",
+      "更多表、外鍵與寫入規則"
+    ]
+  ],
+  "labSha256": "491175f8b335db1566c8c5867a95b5ef3985b444033cadf8f49d053e685be666",
+  "plans": [
+    {
+      "code": "A",
+      "title": "申請表直接放核准欄位",
+      "line": 11,
+      "tables": [
+        "lab21_a.request"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "不可變發布版本＋申請引用版本＋決策紀錄",
+      "line": 40,
+      "tables": [
+        "lab21_b.decision",
+        "lab21_b.request",
+        "lab21_b.request_summary",
+        "lab21_b.workflow_step",
+        "lab21_b.workflow_version"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab21_a",
+      "name": "request",
+      "kind": "r",
+      "columns": [
+        [
+          "request_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "numeric(14,2)",
+          true
+        ],
+        [
+          "manager_approved",
+          "boolean",
+          true
+        ],
+        [
+          "finance_approved",
+          "boolean",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > (0)::numeric))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (request_id)",
+          "cols": [
+            "request_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX request_pkey ON lab21_a.request USING btree (request_id)"
+      ],
+      "samples": [
+        [
+          "100",
+          "500000.00",
+          false,
+          true
+        ]
+      ]
+    },
+    {
+      "schema": "lab21_b",
+      "name": "decision",
+      "kind": "r",
+      "columns": [
+        [
+          "request_id",
+          "bigint",
+          true
+        ],
+        [
+          "version_id",
+          "bigint",
+          true
+        ],
+        [
+          "step_no",
+          "integer",
+          true
+        ],
+        [
+          "outcome",
+          "text",
+          true
+        ],
+        [
+          "actor_id",
+          "text",
+          true
+        ],
+        [
+          "decided_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(actor_id) <> ''::text))",
+          "cols": [
+            "actor_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((outcome = ANY (ARRAY['approved'::text, 'rejected'::text])))",
+          "cols": [
+            "outcome"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (request_id, step_no)",
+          "cols": [
+            "request_id",
+            "step_no"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (request_id, version_id) REFERENCES lab21_b.request(request_id, version_id)",
+          "cols": [
+            "request_id",
+            "version_id"
+          ],
+          "target": "request",
+          "targetSchema": "lab21_b",
+          "refs": [
+            "request_id",
+            "version_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (version_id, step_no) REFERENCES lab21_b.workflow_step(version_id, step_no)",
+          "cols": [
+            "version_id",
+            "step_no"
+          ],
+          "target": "workflow_step",
+          "targetSchema": "lab21_b",
+          "refs": [
+            "version_id",
+            "step_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX decision_pkey ON lab21_b.decision USING btree (request_id, step_no)"
+      ],
+      "samples": [
+        [
+          "100",
+          "1",
+          1,
+          "approved",
+          "manager-1",
+          "2026-11-22T07:54:15.873Z"
+        ],
+        [
+          "100",
+          "1",
+          2,
+          "approved",
+          "finance-1",
+          "2026-11-22T07:54:15.874Z"
+        ]
+      ]
+    },
+    {
+      "schema": "lab21_b",
+      "name": "request",
+      "kind": "r",
+      "columns": [
+        [
+          "request_id",
+          "bigint",
+          true
+        ],
+        [
+          "version_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "numeric(14,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > (0)::numeric))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (request_id)",
+          "cols": [
+            "request_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_id, version_id)",
+          "cols": [
+            "request_id",
+            "version_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (version_id) REFERENCES lab21_b.workflow_version(version_id)",
+          "cols": [
+            "version_id"
+          ],
+          "target": "workflow_version",
+          "targetSchema": "lab21_b",
+          "refs": [
+            "version_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX request_pkey ON lab21_b.request USING btree (request_id)",
+        "CREATE UNIQUE INDEX request_request_id_version_id_key ON lab21_b.request USING btree (request_id, version_id)"
+      ],
+      "samples": [
+        [
+          "100",
+          "1",
+          "500000.00"
+        ],
+        [
+          "200",
+          "2",
+          "500000.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab21_b",
+      "name": "request_summary",
+      "kind": "v",
+      "columns": [
+        [
+          "request_id",
+          "bigint",
+          false
+        ],
+        [
+          "version_id",
+          "bigint",
+          false
+        ],
+        [
+          "status",
+          "text",
+          false
+        ]
+      ],
+      "constraints": [],
+      "indexes": [],
+      "depends": [
+        {
+          "schema": "lab21_b",
+          "name": "decision"
+        },
+        {
+          "schema": "lab21_b",
+          "name": "request"
+        },
+        {
+          "schema": "lab21_b",
+          "name": "workflow_step"
+        }
+      ],
+      "samples": [
+        [
+          "100",
+          "1",
+          "approved"
+        ],
+        [
+          "200",
+          "2",
+          "pending"
+        ]
+      ]
+    },
+    {
+      "schema": "lab21_b",
+      "name": "workflow_step",
+      "kind": "r",
+      "columns": [
+        [
+          "version_id",
+          "bigint",
+          true
+        ],
+        [
+          "step_no",
+          "integer",
+          true
+        ],
+        [
+          "role_code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (version_id, step_no)",
+          "cols": [
+            "version_id",
+            "step_no"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((step_no > 0))",
+          "cols": [
+            "step_no"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (version_id) REFERENCES lab21_b.workflow_version(version_id)",
+          "cols": [
+            "version_id"
+          ],
+          "target": "workflow_version",
+          "targetSchema": "lab21_b",
+          "refs": [
+            "version_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX workflow_step_pkey ON lab21_b.workflow_step USING btree (version_id, step_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          1,
+          "manager"
+        ],
+        [
+          "1",
+          2,
+          "finance"
+        ]
+      ]
+    },
+    {
+      "schema": "lab21_b",
+      "name": "workflow_version",
+      "kind": "r",
+      "columns": [
+        [
+          "version_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "published",
+          "boolean",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (version_id)",
+          "cols": [
+            "version_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX workflow_version_pkey ON lab21_b.workflow_version USING btree (version_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "原兩關",
+          true
+        ],
+        [
+          "2",
+          "新增總經理",
+          true
+        ]
+      ]
+    }
+  ]
+}

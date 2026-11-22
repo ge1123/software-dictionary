@@ -1,5 +1,6 @@
 import { createApp, computed, watch, onUnmounted, ref } from 'vue/dist/vue.esm-bundler.js';
 import { resolveEntryId, relatedTerms, domains, plannedTopics, terms } from './terms.js';
+import modelIndex from './model-atlas/index.json' with { type: 'json' };
 import './style.css';
 
 const withdrawnEntries = new Set([
@@ -24,6 +25,7 @@ createApp({
       return group ? domainTerms.value.filter(term => term.comparison?.group === group) : [];
     });
     const questions = computed(() => domainTerms.value.filter(term => term.lookupQuestion));
+    const linkedModels = computed(() => modelIndex.chapters.filter(chapter => chapter.term === selected.value?.id));
     const modelCases = computed(() => domainTerms.value.filter(term => term.modelCase));
     const categories = computed(() => ['全部', ...new Set(domainTerms.value.map(term => term.category))]);
     const filtered = computed(() => {
@@ -55,6 +57,6 @@ createApp({
       document.title = (term?.en ?? topic?.name ?? '主題索引') + ' · Software Dictionary';
     }, { immediate: true });
     const related = computed(() => relatedTerms(slug.value));
-    return { modelCases, questions, comparison, withdrawn, domains, plannedTopics, domain, related, query, category, categories, filtered, reset, selected, title };
+    return { linkedModels, modelCases, questions, comparison, withdrawn, domains, plannedTopics, domain, related, query, category, categories, filtered, reset, selected, title };
   }
 }).mount('#app');

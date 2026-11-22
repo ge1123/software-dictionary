@@ -1,0 +1,1076 @@
+{
+  "intro": "付款失敗可重試，且允許多次部分退款。",
+  "comparison": [
+    [
+      "面向",
+      "A 訂單摘要",
+      "B 分離紀錄",
+      "C 嘗試＋事件歷史"
+    ],
+    [
+      "多次付款嘗試",
+      "最後一次覆寫",
+      "每次獨立保留",
+      "每次嘗試及其事件可追查"
+    ],
+    [
+      "部分退款",
+      "只有累計",
+      "每筆金額、狀態與識別碼",
+      "另保留退款嘗試與事件"
+    ],
+    [
+      "結果未知",
+      "狀態容易混淆",
+      "pending 占額度",
+      "unknown 不釋放額度、不盲目重退"
+    ],
+    [
+      "重送",
+      "不知道原請求",
+      "唯一鍵＋內容比對",
+      "嘗試鍵、事件鍵與狀態協定"
+    ],
+    [
+      "操作成本",
+      "少量欄位更新",
+      "需要狀態流程與交易",
+      "額外維護 Attempt、Event 與對帳"
+    ]
+  ],
+  "labSha256": "fd8e3fa99056096eec2f14f36b281ecc34901f0593062c09572b70eed8b5cd45",
+  "plans": [
+    {
+      "code": "A",
+      "title": "訂單直接放付款狀態與累計退款",
+      "line": 11,
+      "tables": [
+        "lab09_a.orders"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "付款、付款嘗試、退款分離",
+      "line": 42,
+      "tables": [
+        "lab09_b.orders",
+        "lab09_b.payment",
+        "lab09_b.payment_attempt",
+        "lab09_b.refund"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "付款嘗試＋退款嘗試＋不可覆寫的事件歷史",
+      "line": 112,
+      "tables": [
+        "lab09_c.orders",
+        "lab09_c.payment",
+        "lab09_c.payment_attempt",
+        "lab09_c.payment_event_log",
+        "lab09_c.refund",
+        "lab09_c.refund_attempt"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab09_a",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "payment_status",
+          "text",
+          true
+        ],
+        [
+          "paid_amount",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "refunded_amount",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((refunded_amount >= (0)::numeric) AND (refunded_amount <= paid_amount)))",
+          "cols": [
+            "refunded_amount",
+            "paid_amount"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((paid_amount >= (0)::numeric))",
+          "cols": [
+            "paid_amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab09_a.orders USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "100",
+          "paid",
+          "1000.00",
+          "0.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab09_b",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "due_amount",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((due_amount > (0)::numeric))",
+          "cols": [
+            "due_amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab09_b.orders USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "100",
+          "1000.00"
+        ],
+        [
+          "200",
+          "1000.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab09_b",
+      "name": "payment",
+      "kind": "r",
+      "columns": [
+        [
+          "payment_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "captured_amount",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "refund_committed",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((captured_amount >= (0)::numeric))",
+          "cols": [
+            "captured_amount"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((refund_committed >= (0)::numeric) AND (refund_committed <= captured_amount)))",
+          "cols": [
+            "refund_committed",
+            "captured_amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES lab09_b.orders(order_id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "orders",
+          "targetSchema": "lab09_b",
+          "refs": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (payment_id)",
+          "cols": [
+            "payment_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX payment_pkey ON lab09_b.payment USING btree (payment_id)"
+      ],
+      "samples": [
+        [
+          "2",
+          "200",
+          "1000.00",
+          "0.00"
+        ],
+        [
+          "1",
+          "100",
+          "1000.00",
+          "1000.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab09_b",
+      "name": "payment_attempt",
+      "kind": "r",
+      "columns": [
+        [
+          "attempt_id",
+          "bigint",
+          true
+        ],
+        [
+          "payment_id",
+          "bigint",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "provider_reference",
+          "text",
+          false
+        ],
+        [
+          "status",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (payment_id) REFERENCES lab09_b.payment(payment_id)",
+          "cols": [
+            "payment_id"
+          ],
+          "target": "payment",
+          "targetSchema": "lab09_b",
+          "refs": [
+            "payment_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (attempt_id)",
+          "cols": [
+            "attempt_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (provider_reference)",
+          "cols": [
+            "provider_reference"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((status = ANY (ARRAY['pending'::text, 'failed'::text, 'succeeded'::text])))",
+          "cols": [
+            "status"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX payment_attempt_pkey ON lab09_b.payment_attempt USING btree (attempt_id)",
+        "CREATE UNIQUE INDEX payment_attempt_request_key_key ON lab09_b.payment_attempt USING btree (request_key)",
+        "CREATE UNIQUE INDEX payment_attempt_provider_reference_key ON lab09_b.payment_attempt USING btree (provider_reference)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "pay-attempt-1",
+          "provider-fail",
+          "failed"
+        ],
+        [
+          "2",
+          "1",
+          "pay-attempt-2",
+          "provider-ok",
+          "succeeded"
+        ]
+      ]
+    },
+    {
+      "schema": "lab09_b",
+      "name": "refund",
+      "kind": "r",
+      "columns": [
+        [
+          "refund_id",
+          "text",
+          true
+        ],
+        [
+          "payment_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "status",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > (0)::numeric))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (payment_id) REFERENCES lab09_b.payment(payment_id)",
+          "cols": [
+            "payment_id"
+          ],
+          "target": "payment",
+          "targetSchema": "lab09_b",
+          "refs": [
+            "payment_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (refund_id)",
+          "cols": [
+            "refund_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((status = ANY (ARRAY['pending'::text, 'failed'::text, 'succeeded'::text])))",
+          "cols": [
+            "status"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX refund_pkey ON lab09_b.refund USING btree (refund_id)"
+      ],
+      "samples": [
+        [
+          "R1",
+          "1",
+          "700.00",
+          "failed"
+        ],
+        [
+          "R2",
+          "1",
+          "600.00",
+          "succeeded"
+        ]
+      ]
+    },
+    {
+      "schema": "lab09_c",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "due_amount",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((due_amount > (0)::numeric))",
+          "cols": [
+            "due_amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab09_c.orders USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "100",
+          "1000.00"
+        ],
+        [
+          "200",
+          "1000.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab09_c",
+      "name": "payment",
+      "kind": "r",
+      "columns": [
+        [
+          "payment_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "status",
+          "text",
+          true
+        ],
+        [
+          "captured_amount",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "refund_committed",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((captured_amount >= (0)::numeric))",
+          "cols": [
+            "captured_amount"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((refund_committed >= (0)::numeric) AND (refund_committed <= captured_amount)))",
+          "cols": [
+            "refund_committed",
+            "captured_amount"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((((status = 'succeeded'::text) AND (captured_amount > (0)::numeric)) OR ((status <> 'succeeded'::text) AND (captured_amount = (0)::numeric))))",
+          "cols": [
+            "status",
+            "captured_amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES lab09_c.orders(order_id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "orders",
+          "targetSchema": "lab09_c",
+          "refs": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (payment_id)",
+          "cols": [
+            "payment_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((status = ANY (ARRAY['pending'::text, 'processing'::text, 'succeeded'::text, 'failed'::text])))",
+          "cols": [
+            "status"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX payment_pkey ON lab09_c.payment USING btree (payment_id)"
+      ],
+      "samples": [
+        [
+          "2",
+          "200",
+          "succeeded",
+          "1000.00",
+          "0.00"
+        ],
+        [
+          "3",
+          "300",
+          "failed",
+          "0.00",
+          "0.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab09_c",
+      "name": "payment_attempt",
+      "kind": "r",
+      "columns": [
+        [
+          "attempt_id",
+          "bigint",
+          true
+        ],
+        [
+          "payment_id",
+          "bigint",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "provider_reference",
+          "text",
+          false
+        ],
+        [
+          "status",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (attempt_id, payment_id)",
+          "cols": [
+            "attempt_id",
+            "payment_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (payment_id) REFERENCES lab09_c.payment(payment_id)",
+          "cols": [
+            "payment_id"
+          ],
+          "target": "payment",
+          "targetSchema": "lab09_c",
+          "refs": [
+            "payment_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (attempt_id)",
+          "cols": [
+            "attempt_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (provider_reference)",
+          "cols": [
+            "provider_reference"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((status = ANY (ARRAY['pending'::text, 'unknown'::text, 'failed'::text, 'succeeded'::text])))",
+          "cols": [
+            "status"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX payment_attempt_pkey ON lab09_c.payment_attempt USING btree (attempt_id)",
+        "CREATE UNIQUE INDEX payment_attempt_request_key_key ON lab09_c.payment_attempt USING btree (request_key)",
+        "CREATE UNIQUE INDEX payment_attempt_provider_reference_key ON lab09_c.payment_attempt USING btree (provider_reference)",
+        "CREATE UNIQUE INDEX payment_attempt_attempt_id_payment_id_key ON lab09_c.payment_attempt USING btree (attempt_id, payment_id)",
+        "CREATE UNIQUE INDEX one_unresolved_payment_attempt ON lab09_c.payment_attempt USING btree (payment_id) WHERE (status = ANY (ARRAY['pending'::text, 'unknown'::text]))"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "pay-attempt-1",
+          null,
+          "failed"
+        ],
+        [
+          "2",
+          "1",
+          "pay-attempt-2",
+          null,
+          "succeeded"
+        ]
+      ]
+    },
+    {
+      "schema": "lab09_c",
+      "name": "payment_event_log",
+      "kind": "r",
+      "columns": [
+        [
+          "event_id",
+          "bigint",
+          true
+        ],
+        [
+          "payment_id",
+          "bigint",
+          true
+        ],
+        [
+          "payment_attempt_id",
+          "bigint",
+          false
+        ],
+        [
+          "refund_id",
+          "text",
+          false
+        ],
+        [
+          "refund_attempt_id",
+          "bigint",
+          false
+        ],
+        [
+          "event_type",
+          "text",
+          true
+        ],
+        [
+          "source",
+          "text",
+          true
+        ],
+        [
+          "provider_event_key",
+          "text",
+          false
+        ],
+        [
+          "details",
+          "jsonb",
+          true
+        ],
+        [
+          "occurred_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((((event_type ~~ 'payment_%'::text) AND (refund_id IS NULL) AND (refund_attempt_id IS NULL) AND (payment_attempt_id IS NOT NULL)) OR ((event_type ~~ 'refund_%'::text) AND (refund_id IS NOT NULL) AND (payment_attempt_id IS NULL))))",
+          "cols": [
+            "event_type",
+            "refund_id",
+            "refund_attempt_id",
+            "payment_attempt_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((refund_attempt_id IS NULL) OR (refund_id IS NOT NULL)))",
+          "cols": [
+            "refund_attempt_id",
+            "refund_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((jsonb_typeof(details) = 'object'::text))",
+          "cols": [
+            "details"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (payment_attempt_id, payment_id) REFERENCES lab09_c.payment_attempt(attempt_id, payment_id)",
+          "cols": [
+            "payment_attempt_id",
+            "payment_id"
+          ],
+          "target": "payment_attempt",
+          "targetSchema": "lab09_c",
+          "refs": [
+            "attempt_id",
+            "payment_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (payment_id) REFERENCES lab09_c.payment(payment_id)",
+          "cols": [
+            "payment_id"
+          ],
+          "target": "payment",
+          "targetSchema": "lab09_c",
+          "refs": [
+            "payment_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (event_id)",
+          "cols": [
+            "event_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (provider_event_key)",
+          "cols": [
+            "provider_event_key"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (refund_attempt_id, refund_id) REFERENCES lab09_c.refund_attempt(attempt_id, refund_id)",
+          "cols": [
+            "refund_attempt_id",
+            "refund_id"
+          ],
+          "target": "refund_attempt",
+          "targetSchema": "lab09_c",
+          "refs": [
+            "attempt_id",
+            "refund_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (refund_id, payment_id) REFERENCES lab09_c.refund(refund_id, payment_id)",
+          "cols": [
+            "refund_id",
+            "payment_id"
+          ],
+          "target": "refund",
+          "targetSchema": "lab09_c",
+          "refs": [
+            "refund_id",
+            "payment_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((source = ANY (ARRAY['system'::text, 'provider'::text, 'webhook'::text, 'reconciliation'::text])))",
+          "cols": [
+            "source"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX payment_event_log_pkey ON lab09_c.payment_event_log USING btree (event_id)",
+        "CREATE UNIQUE INDEX payment_event_log_provider_event_key_key ON lab09_c.payment_event_log USING btree (provider_event_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "1",
+          null,
+          null,
+          "payment_attempt_started",
+          "system",
+          null,
+          {},
+          "2026-11-22T07:54:15.691Z"
+        ],
+        [
+          "2",
+          "1",
+          "1",
+          null,
+          null,
+          "payment_attempt_failed",
+          "provider",
+          "evt-pay-1-failed",
+          {},
+          "2026-11-22T07:54:15.692Z"
+        ]
+      ]
+    },
+    {
+      "schema": "lab09_c",
+      "name": "refund",
+      "kind": "r",
+      "columns": [
+        [
+          "refund_id",
+          "text",
+          true
+        ],
+        [
+          "payment_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "status",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > (0)::numeric))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (payment_id) REFERENCES lab09_c.payment(payment_id)",
+          "cols": [
+            "payment_id"
+          ],
+          "target": "payment",
+          "targetSchema": "lab09_c",
+          "refs": [
+            "payment_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (refund_id)",
+          "cols": [
+            "refund_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (refund_id, payment_id)",
+          "cols": [
+            "refund_id",
+            "payment_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((status = ANY (ARRAY['pending'::text, 'failed'::text, 'succeeded'::text])))",
+          "cols": [
+            "status"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX refund_pkey ON lab09_c.refund USING btree (refund_id)",
+        "CREATE UNIQUE INDEX refund_refund_id_payment_id_key ON lab09_c.refund USING btree (refund_id, payment_id)"
+      ],
+      "samples": [
+        [
+          "R0",
+          "1",
+          "700.00",
+          "failed"
+        ],
+        [
+          "R1",
+          "1",
+          "600.00",
+          "succeeded"
+        ]
+      ]
+    },
+    {
+      "schema": "lab09_c",
+      "name": "refund_attempt",
+      "kind": "r",
+      "columns": [
+        [
+          "attempt_id",
+          "bigint",
+          true
+        ],
+        [
+          "refund_id",
+          "text",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "provider_reference",
+          "text",
+          false
+        ],
+        [
+          "status",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (attempt_id, refund_id)",
+          "cols": [
+            "attempt_id",
+            "refund_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (attempt_id)",
+          "cols": [
+            "attempt_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (provider_reference)",
+          "cols": [
+            "provider_reference"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (refund_id) REFERENCES lab09_c.refund(refund_id)",
+          "cols": [
+            "refund_id"
+          ],
+          "target": "refund",
+          "targetSchema": "lab09_c",
+          "refs": [
+            "refund_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((status = ANY (ARRAY['pending'::text, 'unknown'::text, 'failed'::text, 'succeeded'::text])))",
+          "cols": [
+            "status"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX refund_attempt_pkey ON lab09_c.refund_attempt USING btree (attempt_id)",
+        "CREATE UNIQUE INDEX refund_attempt_request_key_key ON lab09_c.refund_attempt USING btree (request_key)",
+        "CREATE UNIQUE INDEX refund_attempt_provider_reference_key ON lab09_c.refund_attempt USING btree (provider_reference)",
+        "CREATE UNIQUE INDEX refund_attempt_attempt_id_refund_id_key ON lab09_c.refund_attempt USING btree (attempt_id, refund_id)",
+        "CREATE UNIQUE INDEX one_unresolved_refund_attempt ON lab09_c.refund_attempt USING btree (refund_id) WHERE (status = ANY (ARRAY['pending'::text, 'unknown'::text]))"
+      ],
+      "samples": [
+        [
+          "100",
+          "R0",
+          "refund-r0-first",
+          null,
+          "failed"
+        ],
+        [
+          "101",
+          "R1",
+          "refund-r1-first",
+          null,
+          "failed"
+        ]
+      ]
+    }
+  ],
+  "validationNote": "原 lab.sql 有部分 PL/pgSQL 定界符寫成單一 $。本次在驗證副本補為 $$ 後執行，資料表定義及案例斷言沿用原文。"
+}

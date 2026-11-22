@@ -1,0 +1,368 @@
+{
+  "intro": "牙刷在台北倉有 20 支，桃園倉有 30 支；部分批次月底到期。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A SKU 總庫存",
+      "只有一個倉庫。",
+      "無法知道商品在哪個倉。"
+    ],
+    [
+      "B 多倉與保留量",
+      "依倉庫分配訂單。",
+      "調倉需兩端及在途紀錄，避免直接改數字而失去來源。"
+    ],
+    [
+      "C 批次效期庫存",
+      "同 SKU 按效期揀貨。",
+      "序號商品需每件 serial 表及位置／狀態；批次數量無法辨識單件。"
+    ]
+  ],
+  "labSha256": "d4f9bc7704c25f2d4ce0099573ffac7c1470851b01eaee35057797eb23f0b41c",
+  "plans": [
+    {
+      "code": "A",
+      "title": "SKU 總庫存",
+      "line": 19,
+      "tables": [
+        "ec_15_a.stock"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "多倉與保留量",
+      "line": 61,
+      "tables": [
+        "ec_15_b.stock",
+        "ec_15_b.warehouse"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "批次效期庫存",
+      "line": 139,
+      "tables": [
+        "ec_15_c.stock_lot",
+        "ec_15_c.stock_move"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_15_a",
+      "name": "stock",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "on_hand",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((on_hand >= 0))",
+          "cols": [
+            "on_hand"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX stock_pkey ON ec_15_a.stock USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          20
+        ]
+      ]
+    },
+    {
+      "schema": "ec_15_b",
+      "name": "stock",
+      "kind": "r",
+      "columns": [
+        [
+          "warehouse_id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "on_hand",
+          "integer",
+          true
+        ],
+        [
+          "reserved",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((reserved >= 0) AND (reserved <= on_hand)))",
+          "cols": [
+            "reserved",
+            "on_hand"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((on_hand >= 0))",
+          "cols": [
+            "on_hand"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (warehouse_id, sku_id)",
+          "cols": [
+            "warehouse_id",
+            "sku_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (warehouse_id) REFERENCES ec_15_b.warehouse(id)",
+          "cols": [
+            "warehouse_id"
+          ],
+          "target": "warehouse",
+          "targetSchema": "ec_15_b",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX stock_pkey ON ec_15_b.stock USING btree (warehouse_id, sku_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "11",
+          20,
+          2
+        ],
+        [
+          "2",
+          "11",
+          30,
+          0
+        ]
+      ]
+    },
+    {
+      "schema": "ec_15_b",
+      "name": "warehouse",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX warehouse_pkey ON ec_15_b.warehouse USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "台北倉"
+        ],
+        [
+          "2",
+          "桃園倉"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_15_c",
+      "name": "stock_lot",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "warehouse_id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "lot_no",
+          "text",
+          true
+        ],
+        [
+          "expires_on",
+          "date",
+          true
+        ],
+        [
+          "on_hand",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((on_hand >= 0))",
+          "cols": [
+            "on_hand"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (warehouse_id, sku_id, lot_no)",
+          "cols": [
+            "warehouse_id",
+            "sku_id",
+            "lot_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX stock_lot_pkey ON ec_15_c.stock_lot USING btree (id)",
+        "CREATE UNIQUE INDEX stock_lot_warehouse_id_sku_id_lot_no_key ON ec_15_c.stock_lot USING btree (warehouse_id, sku_id, lot_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "11",
+          "B202611",
+          "2026-11-29T16:00:00.000Z",
+          20
+        ]
+      ]
+    },
+    {
+      "schema": "ec_15_c",
+      "name": "stock_move",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "lot_id",
+          "bigint",
+          true
+        ],
+        [
+          "event_key",
+          "text",
+          true
+        ],
+        [
+          "delta",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((delta <> 0))",
+          "cols": [
+            "delta"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (event_key)",
+          "cols": [
+            "event_key"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (lot_id) REFERENCES stock_lot(id)",
+          "cols": [
+            "lot_id"
+          ],
+          "target": "stock_lot",
+          "targetSchema": "ec_15_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX stock_move_pkey ON ec_15_c.stock_move USING btree (id)",
+        "CREATE UNIQUE INDEX stock_move_event_key_key ON ec_15_c.stock_move USING btree (event_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "receipt-1",
+          20
+        ]
+      ]
+    }
+  ]
+}

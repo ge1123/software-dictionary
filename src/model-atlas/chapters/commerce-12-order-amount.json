@@ -1,0 +1,471 @@
+{
+  "intro": "兩件各 500 元衣服，100 點折 100 元；退一件退 450 元及 50 點。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 整單金額",
+      "只允許整單取消或退款。",
+      "部分退貨時缺乏逐件分攤依據。"
+    ],
+    [
+      "B 明細分攤",
+      "不同 SKU 可分別退款。",
+      "跨列加總由交易檢查；同明細買多件仍需決定退其中一件的算法。"
+    ],
+    [
+      "C 單件分攤",
+      "同明細買兩件，可退其中一件。",
+      "此案例無促銷與運費；加入後需各自欄位並維持分攤總和。"
+    ]
+  ],
+  "labSha256": "4c7f893d07ce1feebaa3984d79a1bab479f29a99f8918c3824deb4b98cd23347",
+  "plans": [
+    {
+      "code": "A",
+      "title": "整單金額",
+      "line": 19,
+      "tables": [
+        "ec_12_a.order_amount"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "明細分攤",
+      "line": 70,
+      "tables": [
+        "ec_12_b.line_allocation",
+        "ec_12_b.order_amount"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "單件分攤",
+      "line": 135,
+      "tables": [
+        "ec_12_c.order_line",
+        "ec_12_c.unit_allocation"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_12_a",
+      "name": "order_amount",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "goods",
+          "bigint",
+          true
+        ],
+        [
+          "discount",
+          "bigint",
+          true
+        ],
+        [
+          "points_money",
+          "bigint",
+          true
+        ],
+        [
+          "shipping",
+          "bigint",
+          true
+        ],
+        [
+          "payable",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((payable = (((goods - discount) - points_money) + shipping)))",
+          "cols": [
+            "payable",
+            "goods",
+            "discount",
+            "points_money",
+            "shipping"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((discount >= 0))",
+          "cols": [
+            "discount"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((goods >= 0))",
+          "cols": [
+            "goods"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((payable >= 0))",
+          "cols": [
+            "payable"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((points_money >= 0))",
+          "cols": [
+            "points_money"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((shipping >= 0))",
+          "cols": [
+            "shipping"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_amount_pkey ON ec_12_a.order_amount USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "1000",
+          "0",
+          "100",
+          "0",
+          "900"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_12_b",
+      "name": "line_allocation",
+      "kind": "r",
+      "columns": [
+        [
+          "line_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "gross",
+          "bigint",
+          true
+        ],
+        [
+          "points_money",
+          "bigint",
+          true
+        ],
+        [
+          "cash",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((cash >= 0))",
+          "cols": [
+            "cash"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((points_money >= 0) AND (points_money <= gross)))",
+          "cols": [
+            "points_money",
+            "gross"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((cash + points_money) = gross))",
+          "cols": [
+            "cash",
+            "points_money",
+            "gross"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((gross >= 0))",
+          "cols": [
+            "gross"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES ec_12_b.order_amount(order_id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "order_amount",
+          "targetSchema": "ec_12_b",
+          "refs": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (line_id)",
+          "cols": [
+            "line_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX line_allocation_pkey ON ec_12_b.line_allocation USING btree (line_id)"
+      ],
+      "samples": [
+        [
+          "1001",
+          "101",
+          "1000",
+          "100",
+          "900"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_12_b",
+      "name": "order_amount",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "points_money",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((points_money >= 0))",
+          "cols": [
+            "points_money"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_amount_pkey ON ec_12_b.order_amount USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "100"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_12_c",
+      "name": "order_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_line_pkey ON ec_12_c.order_line USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1001",
+          "101",
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "ec_12_c",
+      "name": "unit_allocation",
+      "kind": "r",
+      "columns": [
+        [
+          "line_id",
+          "bigint",
+          true
+        ],
+        [
+          "unit_no",
+          "integer",
+          true
+        ],
+        [
+          "gross",
+          "bigint",
+          true
+        ],
+        [
+          "points",
+          "bigint",
+          true
+        ],
+        [
+          "points_money",
+          "bigint",
+          true
+        ],
+        [
+          "cash",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((cash >= 0))",
+          "cols": [
+            "cash"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((gross = (points_money + cash)))",
+          "cols": [
+            "gross",
+            "points_money",
+            "cash"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((gross >= 0))",
+          "cols": [
+            "gross"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (line_id) REFERENCES order_line(id)",
+          "cols": [
+            "line_id"
+          ],
+          "target": "order_line",
+          "targetSchema": "ec_12_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (line_id, unit_no)",
+          "cols": [
+            "line_id",
+            "unit_no"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((points >= 0))",
+          "cols": [
+            "points"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((points_money >= 0))",
+          "cols": [
+            "points_money"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((unit_no > 0))",
+          "cols": [
+            "unit_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX unit_allocation_pkey ON ec_12_c.unit_allocation USING btree (line_id, unit_no)"
+      ],
+      "samples": [
+        [
+          "1001",
+          1,
+          "500",
+          "50",
+          "50",
+          "450"
+        ],
+        [
+          "1001",
+          2,
+          "500",
+          "50",
+          "50",
+          "450"
+        ]
+      ]
+    }
+  ]
+}

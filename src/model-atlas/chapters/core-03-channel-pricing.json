@@ -1,0 +1,508 @@
+{
+  "intro": "不同通路有不同進貨價。",
+  "comparison": [
+    [
+      "面向",
+      "A SKU 現價",
+      "B 通路覆寫",
+      "C 價目表"
+    ],
+    [
+      "A／B／C 報價",
+      "無法同時表示",
+      "90／80／100",
+      "90／80／100"
+    ],
+    [
+      "新通路",
+      "自動同價",
+      "無覆寫走預設",
+      "必須指派價目表"
+    ],
+    [
+      "個別議價",
+      "無法表示",
+      "直接更新覆寫",
+      "需專用價目或延伸覆寫"
+    ],
+    [
+      "一群通路一起調價",
+      "所有人一起變",
+      "更新多列",
+      "更新共享價目"
+    ],
+    [
+      "缺少報價",
+      "本例 SKU 必填價格",
+      "使用預設",
+      "拒絕報價"
+    ],
+    [
+      "結構代價",
+      "最少",
+      "增加關聯表",
+      "增加價目與指派概念"
+    ]
+  ],
+  "labSha256": "24125dfb65ad5bd825e7b49aba7e4cb7e5316d1ed2d90af4ecbb1204a78b4cb6",
+  "plans": [
+    {
+      "code": "A",
+      "title": "價格直接放 SKU",
+      "line": 13,
+      "tables": [
+        "lab03_a.sku"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "通路價格覆寫",
+      "line": 49,
+      "tables": [
+        "lab03_b.channel",
+        "lab03_b.channel_price",
+        "lab03_b.sku"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "價目表＋通路指派",
+      "line": 110,
+      "tables": [
+        "lab03_c.channel",
+        "lab03_c.price_list",
+        "lab03_c.price_list_item",
+        "lab03_c.sku"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab03_a",
+      "name": "sku",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "price",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((price >= (0)::numeric))",
+          "cols": [
+            "price"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sku_pkey ON lab03_a.sku USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          "紅色 M",
+          "80.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab03_b",
+      "name": "channel",
+      "kind": "r",
+      "columns": [
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (channel_id)",
+          "cols": [
+            "channel_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX channel_pkey ON lab03_b.channel USING btree (channel_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "A 通路"
+        ],
+        [
+          "2",
+          "B 通路"
+        ]
+      ]
+    },
+    {
+      "schema": "lab03_b",
+      "name": "channel_price",
+      "kind": "r",
+      "columns": [
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "price",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (channel_id) REFERENCES lab03_b.channel(channel_id)",
+          "cols": [
+            "channel_id"
+          ],
+          "target": "channel",
+          "targetSchema": "lab03_b",
+          "refs": [
+            "channel_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (channel_id, sku_id)",
+          "cols": [
+            "channel_id",
+            "sku_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((price >= (0)::numeric))",
+          "cols": [
+            "price"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (sku_id) REFERENCES lab03_b.sku(sku_id)",
+          "cols": [
+            "sku_id"
+          ],
+          "target": "sku",
+          "targetSchema": "lab03_b",
+          "refs": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX channel_price_pkey ON lab03_b.channel_price USING btree (channel_id, sku_id)"
+      ],
+      "samples": [
+        [
+          "2",
+          "11",
+          "80.00"
+        ],
+        [
+          "1",
+          "11",
+          "0.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab03_b",
+      "name": "sku",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "default_price",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((default_price >= (0)::numeric))",
+          "cols": [
+            "default_price"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sku_pkey ON lab03_b.sku USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          "紅色 M",
+          "100.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab03_c",
+      "name": "channel",
+      "kind": "r",
+      "columns": [
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "price_list_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (channel_id)",
+          "cols": [
+            "channel_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (price_list_id) REFERENCES lab03_c.price_list(price_list_id)",
+          "cols": [
+            "price_list_id"
+          ],
+          "target": "price_list",
+          "targetSchema": "lab03_c",
+          "refs": [
+            "price_list_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX channel_pkey ON lab03_c.channel USING btree (channel_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "A 通路",
+          "2"
+        ],
+        [
+          "2",
+          "B 通路",
+          "3"
+        ]
+      ]
+    },
+    {
+      "schema": "lab03_c",
+      "name": "price_list",
+      "kind": "r",
+      "columns": [
+        [
+          "price_list_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (price_list_id)",
+          "cols": [
+            "price_list_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX price_list_pkey ON lab03_c.price_list USING btree (price_list_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "標準"
+        ],
+        [
+          "2",
+          "銀級"
+        ]
+      ]
+    },
+    {
+      "schema": "lab03_c",
+      "name": "price_list_item",
+      "kind": "r",
+      "columns": [
+        [
+          "price_list_id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "price",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (price_list_id, sku_id)",
+          "cols": [
+            "price_list_id",
+            "sku_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((price >= (0)::numeric))",
+          "cols": [
+            "price"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (price_list_id) REFERENCES lab03_c.price_list(price_list_id)",
+          "cols": [
+            "price_list_id"
+          ],
+          "target": "price_list",
+          "targetSchema": "lab03_c",
+          "refs": [
+            "price_list_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (sku_id) REFERENCES lab03_c.sku(sku_id)",
+          "cols": [
+            "sku_id"
+          ],
+          "target": "sku",
+          "targetSchema": "lab03_c",
+          "refs": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX price_list_item_pkey ON lab03_c.price_list_item USING btree (price_list_id, sku_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "11",
+          "100.00"
+        ],
+        [
+          "3",
+          "11",
+          "80.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab03_c",
+      "name": "sku",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sku_pkey ON lab03_c.sku USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          "紅色 M"
+        ],
+        [
+          "12",
+          "藍色 M"
+        ]
+      ]
+    }
+  ]
+}

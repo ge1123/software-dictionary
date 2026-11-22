@@ -1,0 +1,253 @@
+{
+  "intro": "今天補登上個月已生效的合約。",
+  "comparison": [
+    [
+      "問題",
+      "A 現況",
+      "B 快照歷史"
+    ],
+    [
+      "現在的認知",
+      "直接查一列",
+      "查最新版本"
+    ],
+    [
+      "當時系統已知",
+      "無法還原",
+      "指定 known_at"
+    ],
+    [
+      "補登與改正",
+      "舊值消失",
+      "增加版本與原因"
+    ],
+    [
+      "查詢與容量",
+      "簡單、少",
+      "多列、兩種時間語意"
+    ]
+  ],
+  "labSha256": "fa8c76caa1e0cd2d2921d46bb0721460978a192d00f6b044513a4e2114770bce",
+  "plans": [
+    {
+      "code": "A",
+      "title": "有效起點＋最後更新時間",
+      "line": 11,
+      "tables": [
+        "lab23_a.contract"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "每次記錄都是不可變的有效期間快照",
+      "line": 43,
+      "tables": [
+        "lab23_b.contract",
+        "lab23_b.revision"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab23_a",
+      "name": "contract",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "valid_from",
+          "date",
+          true
+        ],
+        [
+          "rate",
+          "numeric(5,4)",
+          true
+        ],
+        [
+          "updated_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX contract_pkey ON lab23_a.contract USING btree (id)"
+      ],
+      "samples": [
+        [
+          1,
+          "2026-08-31T16:00:00.000Z",
+          "0.1200",
+          "2026-10-10T00:00:00.000Z"
+        ]
+      ]
+    },
+    {
+      "schema": "lab23_b",
+      "name": "contract",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX contract_pkey ON lab23_b.contract USING btree (id)"
+      ],
+      "samples": [
+        [
+          1
+        ]
+      ]
+    },
+    {
+      "schema": "lab23_b",
+      "name": "revision",
+      "kind": "r",
+      "columns": [
+        [
+          "contract_id",
+          "integer",
+          true
+        ],
+        [
+          "revision_no",
+          "integer",
+          true
+        ],
+        [
+          "recorded_at",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "valid_from",
+          "date",
+          true
+        ],
+        [
+          "valid_to",
+          "date",
+          true
+        ],
+        [
+          "rate",
+          "numeric(5,4)",
+          true
+        ],
+        [
+          "reason",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((valid_from < valid_to))",
+          "cols": [
+            "valid_from",
+            "valid_to"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (contract_id) REFERENCES lab23_b.contract(id)",
+          "cols": [
+            "contract_id"
+          ],
+          "target": "contract",
+          "targetSchema": "lab23_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (contract_id, recorded_at)",
+          "cols": [
+            "contract_id",
+            "recorded_at"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (contract_id, revision_no)",
+          "cols": [
+            "contract_id",
+            "revision_no"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((rate >= (0)::numeric) AND (rate <= (1)::numeric)))",
+          "cols": [
+            "rate"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(reason) <> ''::text))",
+          "cols": [
+            "reason"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((revision_no > 0))",
+          "cols": [
+            "revision_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX revision_pkey ON lab23_b.revision USING btree (contract_id, revision_no)",
+        "CREATE UNIQUE INDEX revision_contract_id_recorded_at_key ON lab23_b.revision USING btree (contract_id, recorded_at)"
+      ],
+      "samples": [
+        [
+          1,
+          1,
+          "2026-09-01T00:00:00.000Z",
+          "2026-08-31T16:00:00.000Z",
+          "2026-12-31T16:00:00.000Z",
+          "0.1000",
+          "首次登錄"
+        ],
+        [
+          1,
+          2,
+          "2026-10-10T00:00:00.000Z",
+          "2026-08-31T16:00:00.000Z",
+          "2026-12-31T16:00:00.000Z",
+          "0.1200",
+          "補登九月已生效的修訂"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,190 @@
+{
+  "intro": "已上線的單一地址改成多地址，新舊程式並存。",
+  "comparison": [
+    [
+      "面向",
+      "A 一次切換",
+      "B 漸進相容"
+    ],
+    [
+      "是否容忍舊版",
+      "不容忍",
+      "過渡期容忍"
+    ],
+    [
+      "寫入來源",
+      "新結構",
+      "明定一個主入口＋同步"
+    ],
+    [
+      "主要風險",
+      "舊讀寫立刻失敗",
+      "同步缺口、相容期拖長"
+    ],
+    [
+      "回復",
+      "未寫新形態前較容易",
+      "contract 前可回舊 UI，但新地址不能丟"
+    ],
+    [
+      "適用",
+      "可停機、所有依賴受控",
+      "滾動部署與多消費者"
+    ]
+  ],
+  "labSha256": "0dbb8f4e1ab98b6940624c852040cd0ede3b27a00f7dc2f498b22984743ad71a",
+  "plans": [
+    {
+      "code": "A",
+      "title": "直接改結構並同步更版",
+      "line": 11,
+      "tables": [
+        "lab29_a.customer"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "Expand → Backfill → 切換 → Contract",
+      "line": 42,
+      "tables": [
+        "lab29_b.customer",
+        "lab29_b.customer_address"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab29_a",
+      "name": "customer",
+      "kind": "r",
+      "columns": [
+        [
+          "customer_id",
+          "bigint",
+          true
+        ],
+        [
+          "primary_address",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (customer_id)",
+          "cols": [
+            "customer_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX customer_pkey ON lab29_a.customer USING btree (customer_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "台北舊址"
+        ]
+      ]
+    },
+    {
+      "schema": "lab29_b",
+      "name": "customer",
+      "kind": "r",
+      "columns": [
+        [
+          "customer_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (customer_id)",
+          "cols": [
+            "customer_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX customer_pkey ON lab29_b.customer USING btree (customer_id)"
+      ],
+      "samples": [
+        [
+          "1"
+        ],
+        [
+          "2"
+        ]
+      ]
+    },
+    {
+      "schema": "lab29_b",
+      "name": "customer_address",
+      "kind": "r",
+      "columns": [
+        [
+          "customer_id",
+          "bigint",
+          true
+        ],
+        [
+          "address_key",
+          "text",
+          true
+        ],
+        [
+          "address_text",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(address_text) <> ''::text))",
+          "cols": [
+            "address_text"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (customer_id) REFERENCES lab29_b.customer(customer_id)",
+          "cols": [
+            "customer_id"
+          ],
+          "target": "customer",
+          "targetSchema": "lab29_b",
+          "refs": [
+            "customer_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (customer_id, address_key)",
+          "cols": [
+            "customer_id",
+            "address_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX customer_address_pkey ON lab29_b.customer_address USING btree (customer_id, address_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "warehouse",
+          "桃園倉庫"
+        ],
+        [
+          "2",
+          "primary",
+          "新竹新客戶"
+        ]
+      ]
+    }
+  ]
+}

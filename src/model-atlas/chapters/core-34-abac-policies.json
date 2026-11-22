@@ -1,0 +1,548 @@
+{
+  "intro": "核准需符合部門、授權金額與訂單狀態。",
+  "comparison": [
+    [
+      "面向",
+      "A 固定判斷",
+      "B 政策版本"
+    ],
+    [
+      "調整金額",
+      "修改使用者額度",
+      "改政策版本或個人額度"
+    ],
+    [
+      "共用規則",
+      "程式統一",
+      "多人綁同版本"
+    ],
+    [
+      "查當時規則",
+      "需保留程式版本與屬性",
+      "可查政策版本，仍需決策證據"
+    ],
+    [
+      "新運算子",
+      "修改程式",
+      "同樣需要修改評估器"
+    ],
+    [
+      "管理負擔",
+      "低",
+      "發布、版本、綁定流程"
+    ]
+  ],
+  "labSha256": "b0e19b9967cdbd6102b9e4005e2e65267f6c7de0738b0f9a71af6509d71b26de",
+  "plans": [
+    {
+      "code": "A",
+      "title": "固定屬性欄位＋固定判斷",
+      "line": 20,
+      "tables": [
+        "lab34_a.request",
+        "lab34_a.subject"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "有型別且版本化的政策",
+      "line": 69,
+      "tables": [
+        "lab34_b.binding",
+        "lab34_b.policy",
+        "lab34_b.request",
+        "lab34_b.subject"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab34_a",
+      "name": "request",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "request_id",
+          "integer",
+          true
+        ],
+        [
+          "description",
+          "text",
+          true
+        ],
+        [
+          "department_id",
+          "integer",
+          true
+        ],
+        [
+          "amount",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "status",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= (0)::numeric))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, request_id)",
+          "cols": [
+            "tenant_id",
+            "request_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text])))",
+          "cols": [
+            "status"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX request_pkey ON lab34_a.request USING btree (tenant_id, request_id)"
+      ],
+      "samples": [
+        [
+          1,
+          1,
+          "辦公椅採購",
+          10,
+          "4000.00",
+          "pending"
+        ],
+        [
+          1,
+          2,
+          "電腦設備採購",
+          10,
+          "6000.00",
+          "pending"
+        ]
+      ]
+    },
+    {
+      "schema": "lab34_a",
+      "name": "subject",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "user_id",
+          "integer",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "department_id",
+          "integer",
+          true
+        ],
+        [
+          "can_approve",
+          "boolean",
+          true
+        ],
+        [
+          "approval_limit",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((approval_limit >= (0)::numeric))",
+          "cols": [
+            "approval_limit"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, user_id)",
+          "cols": [
+            "tenant_id",
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX subject_pkey ON lab34_a.subject USING btree (tenant_id, user_id)"
+      ],
+      "samples": [
+        [
+          1,
+          7,
+          "王主管",
+          10,
+          true,
+          "5000.00"
+        ],
+        [
+          1,
+          8,
+          "李採購員",
+          10,
+          false,
+          "5000.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab34_b",
+      "name": "binding",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "user_id",
+          "integer",
+          true
+        ],
+        [
+          "policy_id",
+          "integer",
+          false
+        ],
+        [
+          "version",
+          "integer",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, user_id)",
+          "cols": [
+            "tenant_id",
+            "user_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, policy_id, version) REFERENCES lab34_b.policy(tenant_id, policy_id, version)",
+          "cols": [
+            "tenant_id",
+            "policy_id",
+            "version"
+          ],
+          "target": "policy",
+          "targetSchema": "lab34_b",
+          "refs": [
+            "tenant_id",
+            "policy_id",
+            "version"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, user_id) REFERENCES lab34_b.subject(tenant_id, user_id)",
+          "cols": [
+            "tenant_id",
+            "user_id"
+          ],
+          "target": "subject",
+          "targetSchema": "lab34_b",
+          "refs": [
+            "tenant_id",
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX binding_pkey ON lab34_b.binding USING btree (tenant_id, user_id)"
+      ],
+      "samples": [
+        [
+          1,
+          8,
+          1,
+          1
+        ],
+        [
+          1,
+          7,
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "lab34_b",
+      "name": "policy",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "policy_id",
+          "integer",
+          true
+        ],
+        [
+          "version",
+          "integer",
+          true
+        ],
+        [
+          "require_same_department",
+          "boolean",
+          true
+        ],
+        [
+          "max_amount",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "required_status",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((max_amount >= (0)::numeric))",
+          "cols": [
+            "max_amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, policy_id, version)",
+          "cols": [
+            "tenant_id",
+            "policy_id",
+            "version"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((required_status = 'pending'::text))",
+          "cols": [
+            "required_status"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((version > 0))",
+          "cols": [
+            "version"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX policy_pkey ON lab34_b.policy USING btree (tenant_id, policy_id, version)"
+      ],
+      "samples": [
+        [
+          1,
+          1,
+          1,
+          true,
+          "5000.00",
+          "pending"
+        ],
+        [
+          1,
+          1,
+          2,
+          true,
+          "3000.00",
+          "pending"
+        ]
+      ]
+    },
+    {
+      "schema": "lab34_b",
+      "name": "request",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "request_id",
+          "integer",
+          true
+        ],
+        [
+          "description",
+          "text",
+          true
+        ],
+        [
+          "department_id",
+          "integer",
+          true
+        ],
+        [
+          "amount",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "status",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= (0)::numeric))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, request_id)",
+          "cols": [
+            "tenant_id",
+            "request_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text])))",
+          "cols": [
+            "status"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX request_pkey ON lab34_b.request USING btree (tenant_id, request_id)"
+      ],
+      "samples": [
+        [
+          1,
+          1,
+          "辦公椅採購",
+          10,
+          "4000.00",
+          "pending"
+        ],
+        [
+          1,
+          2,
+          "電腦設備採購",
+          10,
+          "6000.00",
+          "pending"
+        ]
+      ]
+    },
+    {
+      "schema": "lab34_b",
+      "name": "subject",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "user_id",
+          "integer",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "department_id",
+          "integer",
+          true
+        ],
+        [
+          "can_approve",
+          "boolean",
+          true
+        ],
+        [
+          "approval_limit",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((approval_limit >= (0)::numeric))",
+          "cols": [
+            "approval_limit"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, user_id)",
+          "cols": [
+            "tenant_id",
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX subject_pkey ON lab34_b.subject USING btree (tenant_id, user_id)"
+      ],
+      "samples": [
+        [
+          1,
+          7,
+          "王主管",
+          10,
+          true,
+          "5000.00"
+        ],
+        [
+          1,
+          8,
+          "李採購員",
+          10,
+          false,
+          "5000.00"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,384 @@
+{
+  "intro": "結帳報價只保留十五分鐘，付款前要占用庫存、券與點數。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 直接建單",
+      "單服務內同步完成結帳。",
+      "外部付款呼叫不能靠本地交易一起回滾。"
+    ],
+    [
+      "B 結帳工作階段",
+      "使用者先看報價再確認。",
+      "報價明細、規則版本與運費來源需一併快照。"
+    ],
+    [
+      "C 跨模組保留流程",
+      "庫存、券與點數由不同服務處理。",
+      "逾時代表結果未知；重試前查外部結果，步驟與事件寫入 Outbox。"
+    ]
+  ],
+  "labSha256": "aa264b83b48240359e350f8dab9a8c3cb3307598a4971765aa3c1c7384ada90c",
+  "plans": [
+    {
+      "code": "A",
+      "title": "直接建單",
+      "line": 19,
+      "tables": [
+        "ec_10_a.sales_order"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "結帳工作階段",
+      "line": 63,
+      "tables": [
+        "ec_10_b.checkout_session",
+        "ec_10_b.sales_order"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "跨模組保留流程",
+      "line": 129,
+      "tables": [
+        "ec_10_c.checkout_session",
+        "ec_10_c.checkout_step"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_10_a",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_10_a.sales_order USING btree (id)",
+        "CREATE UNIQUE INDEX sales_order_request_key_key ON ec_10_a.sales_order USING btree (request_key)"
+      ],
+      "samples": [
+        [
+          "101",
+          "checkout-1",
+          "900"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_10_b",
+      "name": "checkout_session",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ],
+        [
+          "quoted_amount",
+          "bigint",
+          true
+        ],
+        [
+          "expires_at",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "version",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((quoted_amount >= 0))",
+          "cols": [
+            "quoted_amount"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((version > 0))",
+          "cols": [
+            "version"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX checkout_session_pkey ON ec_10_b.checkout_session USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "7",
+          "900",
+          "2026-11-18T09:15:00.000Z",
+          1
+        ]
+      ]
+    },
+    {
+      "schema": "ec_10_b",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "session_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (session_id) REFERENCES ec_10_b.checkout_session(id)",
+          "cols": [
+            "session_id"
+          ],
+          "target": "checkout_session",
+          "targetSchema": "ec_10_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (session_id)",
+          "cols": [
+            "session_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_10_b.sales_order USING btree (id)",
+        "CREATE UNIQUE INDEX sales_order_session_id_key ON ec_10_b.sales_order USING btree (session_id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "1",
+          "900"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_10_c",
+      "name": "checkout_session",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX checkout_session_pkey ON ec_10_c.checkout_session USING btree (id)",
+        "CREATE UNIQUE INDEX checkout_session_request_key_key ON ec_10_c.checkout_session USING btree (request_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "checkout-1",
+          "reserving"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_10_c",
+      "name": "checkout_step",
+      "kind": "r",
+      "columns": [
+        [
+          "session_id",
+          "bigint",
+          true
+        ],
+        [
+          "step_name",
+          "text",
+          true
+        ],
+        [
+          "operation_key",
+          "text",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ],
+        [
+          "external_ref",
+          "text",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (operation_key)",
+          "cols": [
+            "operation_key"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (session_id, step_name)",
+          "cols": [
+            "session_id",
+            "step_name"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (session_id) REFERENCES checkout_session(id)",
+          "cols": [
+            "session_id"
+          ],
+          "target": "checkout_session",
+          "targetSchema": "ec_10_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((state = ANY (ARRAY['pending'::text, 'succeeded'::text, 'failed'::text, 'compensated'::text])))",
+          "cols": [
+            "state"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX checkout_step_pkey ON ec_10_c.checkout_step USING btree (session_id, step_name)",
+        "CREATE UNIQUE INDEX checkout_step_operation_key_key ON ec_10_c.checkout_step USING btree (operation_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "inventory",
+          "checkout-1-stock",
+          "succeeded",
+          "hold-1"
+        ],
+        [
+          "1",
+          "points",
+          "checkout-1-points",
+          "pending",
+          null
+        ]
+      ]
+    }
+  ]
+}

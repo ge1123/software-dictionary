@@ -1,0 +1,364 @@
+{
+  "intro": "採購員下單、主管核准、財務查帳。",
+  "comparison": [
+    [
+      "面向",
+      "A 單角色欄位",
+      "B 角色與權限分表"
+    ],
+    [
+      "一人兼任",
+      "無法直接表達",
+      "新增指派列"
+    ],
+    [
+      "角色改權限",
+      "改程式對照",
+      "改 role_permission"
+    ],
+    [
+      "是否允許任意新操作",
+      "程式認識才有意義",
+      "仍需要應用實作對應操作"
+    ],
+    [
+      "查詢",
+      "單列判斷",
+      "EXISTS JOIN"
+    ],
+    [
+      "管理複雜度",
+      "小",
+      "需安全的角色管理流程"
+    ],
+    [
+      "資料範圍",
+      "未處理",
+      "未處理"
+    ]
+  ],
+  "labSha256": "561234ae5045c367e82649392a2d39c8ae6301ad2bdc3d95bbee05ea64749091",
+  "plans": [
+    {
+      "code": "A",
+      "title": "使用者只有一個 Role 欄位",
+      "line": 11,
+      "tables": [
+        "lab30_a.app_user"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "User／Role／Permission 分離",
+      "line": 47,
+      "tables": [
+        "lab30_b.app_user",
+        "lab30_b.permission",
+        "lab30_b.role",
+        "lab30_b.role_permission",
+        "lab30_b.user_role"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab30_a",
+      "name": "app_user",
+      "kind": "r",
+      "columns": [
+        [
+          "user_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "role_code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (user_id)",
+          "cols": [
+            "user_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((role_code = ANY (ARRAY['buyer'::text, 'manager'::text, 'finance'::text])))",
+          "cols": [
+            "role_code"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX app_user_pkey ON lab30_a.app_user USING btree (user_id)"
+      ],
+      "samples": [
+        [
+          "2",
+          "小王",
+          "manager"
+        ],
+        [
+          "3",
+          "小陳",
+          "finance"
+        ]
+      ]
+    },
+    {
+      "schema": "lab30_b",
+      "name": "app_user",
+      "kind": "r",
+      "columns": [
+        [
+          "user_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (user_id)",
+          "cols": [
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX app_user_pkey ON lab30_b.app_user USING btree (user_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "小林"
+        ],
+        [
+          "2",
+          "小王"
+        ]
+      ]
+    },
+    {
+      "schema": "lab30_b",
+      "name": "permission",
+      "kind": "r",
+      "columns": [
+        [
+          "permission_code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (permission_code)",
+          "cols": [
+            "permission_code"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX permission_pkey ON lab30_b.permission USING btree (permission_code)"
+      ],
+      "samples": [
+        [
+          "order.create"
+        ],
+        [
+          "order.approve"
+        ]
+      ]
+    },
+    {
+      "schema": "lab30_b",
+      "name": "role",
+      "kind": "r",
+      "columns": [
+        [
+          "role_id",
+          "bigint",
+          true
+        ],
+        [
+          "role_code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (role_id)",
+          "cols": [
+            "role_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (role_code)",
+          "cols": [
+            "role_code"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX role_pkey ON lab30_b.role USING btree (role_id)",
+        "CREATE UNIQUE INDEX role_role_code_key ON lab30_b.role USING btree (role_code)"
+      ],
+      "samples": [
+        [
+          "10",
+          "buyer"
+        ],
+        [
+          "20",
+          "manager"
+        ]
+      ]
+    },
+    {
+      "schema": "lab30_b",
+      "name": "role_permission",
+      "kind": "r",
+      "columns": [
+        [
+          "role_id",
+          "bigint",
+          true
+        ],
+        [
+          "permission_code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (permission_code) REFERENCES lab30_b.permission(permission_code)",
+          "cols": [
+            "permission_code"
+          ],
+          "target": "permission",
+          "targetSchema": "lab30_b",
+          "refs": [
+            "permission_code"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (role_id, permission_code)",
+          "cols": [
+            "role_id",
+            "permission_code"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (role_id) REFERENCES lab30_b.role(role_id)",
+          "cols": [
+            "role_id"
+          ],
+          "target": "role",
+          "targetSchema": "lab30_b",
+          "refs": [
+            "role_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX role_permission_pkey ON lab30_b.role_permission USING btree (role_id, permission_code)"
+      ],
+      "samples": [
+        [
+          "10",
+          "order.create"
+        ],
+        [
+          "20",
+          "order.approve"
+        ]
+      ]
+    },
+    {
+      "schema": "lab30_b",
+      "name": "user_role",
+      "kind": "r",
+      "columns": [
+        [
+          "user_id",
+          "bigint",
+          true
+        ],
+        [
+          "role_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (user_id, role_id)",
+          "cols": [
+            "user_id",
+            "role_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (role_id) REFERENCES lab30_b.role(role_id)",
+          "cols": [
+            "role_id"
+          ],
+          "target": "role",
+          "targetSchema": "lab30_b",
+          "refs": [
+            "role_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (user_id) REFERENCES lab30_b.app_user(user_id)",
+          "cols": [
+            "user_id"
+          ],
+          "target": "app_user",
+          "targetSchema": "lab30_b",
+          "refs": [
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX user_role_pkey ON lab30_b.user_role USING btree (user_id, role_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "10"
+        ],
+        [
+          "2",
+          "20"
+        ]
+      ]
+    }
+  ]
+}

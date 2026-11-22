@@ -1,0 +1,350 @@
+{
+  "intro": "客服要追查誰在何時修改訂單及原因。",
+  "comparison": [
+    [
+      "面向",
+      "A 最後修改",
+      "B 異動流水",
+      "C 完整版本"
+    ],
+    [
+      "查現況",
+      "直接查",
+      "直接查",
+      "選最新版本"
+    ],
+    [
+      "問Bob改什麼",
+      "無法回答",
+      "讀一次變更",
+      "比較相鄰版本"
+    ],
+    [
+      "重現某版",
+      "無法",
+      "需正確回放／基線",
+      "直接查版本"
+    ],
+    [
+      "儲存成本",
+      "最少",
+      "依異動欄位",
+      "每版完整資料"
+    ],
+    [
+      "擴充新欄位",
+      "改現況表",
+      "也改捕捉策略",
+      "定義版本相容"
+    ]
+  ],
+  "labSha256": "eabfc7ef840760f856c6ec67f6e60472170bc32d268c2e1d357c0228274f81d1",
+  "plans": [
+    {
+      "code": "A",
+      "title": "只存最後修改者",
+      "line": 11,
+      "tables": [
+        "lab14_a.orders"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "現況＋欄位異動流水",
+      "line": 38,
+      "tables": [
+        "lab14_b.audit",
+        "lab14_b.orders"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "每次保存完整版本",
+      "line": 77,
+      "tables": [
+        "lab14_c.order_version",
+        "lab14_c.orders"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab14_a",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "address",
+          "text",
+          true
+        ],
+        [
+          "updated_by",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab14_a.orders USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "新竹",
+          "carol"
+        ]
+      ]
+    },
+    {
+      "schema": "lab14_b",
+      "name": "audit",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "actor",
+          "text",
+          true
+        ],
+        [
+          "reason",
+          "text",
+          true
+        ],
+        [
+          "old_address",
+          "text",
+          true
+        ],
+        [
+          "new_address",
+          "text",
+          true
+        ],
+        [
+          "occurred_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES lab14_b.orders(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "orders",
+          "targetSchema": "lab14_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(reason) <> ''::text))",
+          "cols": [
+            "reason"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX audit_pkey ON lab14_b.audit USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "bob",
+          "客戶更換地址",
+          "台北",
+          "桃園",
+          "2026-11-22T07:54:15.777Z"
+        ],
+        [
+          "2",
+          "1",
+          "carol",
+          "更正門市",
+          "桃園",
+          "新竹",
+          "2026-11-22T07:54:15.777Z"
+        ]
+      ]
+    },
+    {
+      "schema": "lab14_b",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "address",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab14_b.orders USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "新竹"
+        ]
+      ]
+    },
+    {
+      "schema": "lab14_c",
+      "name": "order_version",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "version_no",
+          "integer",
+          true
+        ],
+        [
+          "address",
+          "text",
+          true
+        ],
+        [
+          "actor",
+          "text",
+          true
+        ],
+        [
+          "reason",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES lab14_c.orders(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "orders",
+          "targetSchema": "lab14_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id, version_no)",
+          "cols": [
+            "order_id",
+            "version_no"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((version_no > 0))",
+          "cols": [
+            "version_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_version_pkey ON lab14_c.order_version USING btree (order_id, version_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          1,
+          "台北",
+          "alice",
+          "建立"
+        ],
+        [
+          "1",
+          2,
+          "桃園",
+          "bob",
+          "客戶更換地址"
+        ]
+      ]
+    },
+    {
+      "schema": "lab14_c",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab14_c.orders USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1"
+        ]
+      ]
+    }
+  ]
+}

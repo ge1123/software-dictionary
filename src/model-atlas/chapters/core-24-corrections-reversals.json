@@ -1,0 +1,285 @@
+{
+  "intro": "已開立單據金額有誤，需保留修正軌跡。",
+  "comparison": [
+    [
+      "面向",
+      "A 覆寫",
+      "B 調整紀錄"
+    ],
+    [
+      "查目前應收",
+      "直接讀",
+      "原額＋調整加總"
+    ],
+    [
+      "解釋歷史",
+      "原值遺失",
+      "保留原因與時間"
+    ],
+    [
+      "錯誤修正再撤回",
+      "再次覆寫",
+      "新增反向差額"
+    ],
+    [
+      "重送保護",
+      "原結構沒有",
+      "唯一請求鍵"
+    ]
+  ],
+  "labSha256": "aa0d4ad953bbe9e4855c1122b20dca627246ec409f8c0583f12460a754ff1332",
+  "plans": [
+    {
+      "code": "A",
+      "title": "直接修改原金額",
+      "line": 11,
+      "tables": [
+        "lab24_a.document"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "原單不變，另存差額調整",
+      "line": 39,
+      "tables": [
+        "lab24_b.adjustment",
+        "lab24_b.balance",
+        "lab24_b.document"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab24_a",
+      "name": "document",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "amount",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= (0)::numeric))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX document_pkey ON lab24_a.document USING btree (id)"
+      ],
+      "samples": [
+        [
+          1,
+          "900.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab24_b",
+      "name": "adjustment",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "document_id",
+          "integer",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "delta",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "reason",
+          "text",
+          true
+        ],
+        [
+          "created_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((delta <> (0)::numeric))",
+          "cols": [
+            "delta"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (document_id) REFERENCES lab24_b.document(id)",
+          "cols": [
+            "document_id"
+          ],
+          "target": "document",
+          "targetSchema": "lab24_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(reason) <> ''::text))",
+          "cols": [
+            "reason"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX adjustment_pkey ON lab24_b.adjustment USING btree (id)",
+        "CREATE UNIQUE INDEX adjustment_request_key_key ON lab24_b.adjustment USING btree (request_key)"
+      ],
+      "samples": [
+        [
+          10,
+          1,
+          "CORRECT-001",
+          "-100.00",
+          "重複收取包裝費",
+          "2026-10-02T00:00:00.000Z"
+        ],
+        [
+          13,
+          1,
+          "CORRECT-003",
+          "100.00",
+          "撤回CORRECT-001；包裝費確實成立",
+          "2026-10-03T00:00:00.000Z"
+        ]
+      ]
+    },
+    {
+      "schema": "lab24_b",
+      "name": "balance",
+      "kind": "v",
+      "columns": [
+        [
+          "id",
+          "integer",
+          false
+        ],
+        [
+          "original_amount",
+          "numeric(12,2)",
+          false
+        ],
+        [
+          "net_amount",
+          "numeric",
+          false
+        ]
+      ],
+      "constraints": [],
+      "indexes": [],
+      "depends": [
+        {
+          "schema": "lab24_b",
+          "name": "adjustment"
+        },
+        {
+          "schema": "lab24_b",
+          "name": "document"
+        }
+      ],
+      "samples": [
+        [
+          1,
+          "1000.00",
+          "1000.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab24_b",
+      "name": "document",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "amount",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "issued_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= (0)::numeric))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX document_pkey ON lab24_b.document USING btree (id)"
+      ],
+      "samples": [
+        [
+          1,
+          "1000.00",
+          "2026-10-01T00:00:00.000Z"
+        ]
+      ]
+    }
+  ]
+}

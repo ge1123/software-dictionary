@@ -1,0 +1,370 @@
+{
+  "intro": "付款完成但只出一件，客服改剩餘商品的地址。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 單一總狀態",
+      "一次付款、一次出貨。",
+      "無法表達部分出貨與退款並行。"
+    ],
+    [
+      "B 狀態與歷程",
+      "客服需知道誰修改狀態。",
+      "合法轉換仍需程式或資料庫函式檢查。"
+    ],
+    [
+      "C 多維狀態與改單",
+      "付款、履約、售後各有進度。",
+      "JSON 差異需固定格式；還原歷史需要初始快照與完整事件。"
+    ]
+  ],
+  "labSha256": "f8dcba0ae69e5376ebad900826a93721ac4908a1c24f9b24e9a10b599ab7fed9",
+  "plans": [
+    {
+      "code": "A",
+      "title": "單一總狀態",
+      "line": 19,
+      "tables": [
+        "ec_14_a.sales_order"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "狀態與歷程",
+      "line": 63,
+      "tables": [
+        "ec_14_b.sales_order",
+        "ec_14_b.state_change"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "多維狀態與改單",
+      "line": 130,
+      "tables": [
+        "ec_14_c.order_change",
+        "ec_14_c.sales_order"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_14_a",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ],
+        [
+          "version",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((state = ANY (ARRAY['pending'::text, 'paid'::text, 'shipped'::text, 'cancelled'::text])))",
+          "cols": [
+            "state"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((version > 0))",
+          "cols": [
+            "version"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_14_a.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "paid",
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "ec_14_b",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ],
+        [
+          "version",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((version > 0))",
+          "cols": [
+            "version"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_14_b.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "paid",
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "ec_14_b",
+      "name": "state_change",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "version",
+          "integer",
+          true
+        ],
+        [
+          "from_state",
+          "text",
+          true
+        ],
+        [
+          "to_state",
+          "text",
+          true
+        ],
+        [
+          "actor",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES ec_14_b.sales_order(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "sales_order",
+          "targetSchema": "ec_14_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id, version)",
+          "cols": [
+            "order_id",
+            "version"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((version > 0))",
+          "cols": [
+            "version"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX state_change_pkey ON ec_14_b.state_change USING btree (order_id, version)"
+      ],
+      "samples": [
+        [
+          "101",
+          2,
+          "pending",
+          "paid",
+          "payment-worker"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_14_c",
+      "name": "order_change",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "version",
+          "integer",
+          true
+        ],
+        [
+          "reason",
+          "text",
+          true
+        ],
+        [
+          "delta",
+          "jsonb",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES sales_order(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "sales_order",
+          "targetSchema": "ec_14_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_id, version)",
+          "cols": [
+            "order_id",
+            "version"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((version > 0))",
+          "cols": [
+            "version"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_change_pkey ON ec_14_c.order_change USING btree (id)",
+        "CREATE UNIQUE INDEX order_change_order_id_version_key ON ec_14_c.order_change USING btree (order_id, version)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101",
+          3,
+          "收件人要求改址",
+          {
+            "address_id": 2,
+            "new_address": "新莊示範路 3 號"
+          }
+        ]
+      ]
+    },
+    {
+      "schema": "ec_14_c",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "payment_state",
+          "text",
+          true
+        ],
+        [
+          "fulfillment_state",
+          "text",
+          true
+        ],
+        [
+          "version",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((version > 0))",
+          "cols": [
+            "version"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_14_c.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "paid",
+          "partial",
+          3
+        ]
+      ]
+    }
+  ]
+}

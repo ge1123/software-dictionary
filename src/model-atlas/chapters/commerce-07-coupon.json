@@ -1,0 +1,363 @@
+{
+  "intro": "WELCOME 可共用；生日券只給小芸；限量券結帳時保留。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 共用折扣碼",
+      "所有人可輸入同一代碼。",
+      "此模型沒有每人次數與總量限制。"
+    ],
+    [
+      "B 會員單次券",
+      "生日券限持有人使用一次。",
+      "取消後能否重用需定義；刪除使用列會失去歷史。"
+    ],
+    [
+      "C 保留與釋放",
+      "付款等待期間占用券。",
+      "已加部分唯一索引，限制每券只有一筆 held 或 used；總發行量另需鎖定活動配額。"
+    ]
+  ],
+  "labSha256": "4d1da91d463ee90bf62baa5673405dcc754e433f269a827452dd593a2b146a53",
+  "plans": [
+    {
+      "code": "A",
+      "title": "共用折扣碼",
+      "line": 19,
+      "tables": [
+        "ec_07_a.coupon",
+        "ec_07_a.coupon_use"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "會員單次券",
+      "line": 77,
+      "tables": [
+        "ec_07_b.coupon_issue",
+        "ec_07_b.coupon_use"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "保留與釋放",
+      "line": 137,
+      "tables": [
+        "ec_07_c.coupon_claim",
+        "ec_07_c.coupon_issue"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_07_a",
+      "name": "coupon",
+      "kind": "r",
+      "columns": [
+        [
+          "code",
+          "text",
+          true
+        ],
+        [
+          "discount_amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((discount_amount > 0))",
+          "cols": [
+            "discount_amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (code)",
+          "cols": [
+            "code"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX coupon_pkey ON ec_07_a.coupon USING btree (code)"
+      ],
+      "samples": [
+        [
+          "WELCOME",
+          "100"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_07_a",
+      "name": "coupon_use",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (code) REFERENCES ec_07_a.coupon(code)",
+          "cols": [
+            "code"
+          ],
+          "target": "coupon",
+          "targetSchema": "ec_07_a",
+          "refs": [
+            "code"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX coupon_use_pkey ON ec_07_a.coupon_use USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "WELCOME"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_07_b",
+      "name": "coupon_issue",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ],
+        [
+          "discount_amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((discount_amount > 0))",
+          "cols": [
+            "discount_amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX coupon_issue_pkey ON ec_07_b.coupon_issue USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "7",
+          "100"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_07_b",
+      "name": "coupon_use",
+      "kind": "r",
+      "columns": [
+        [
+          "issue_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (issue_id) REFERENCES ec_07_b.coupon_issue(id)",
+          "cols": [
+            "issue_id"
+          ],
+          "target": "coupon_issue",
+          "targetSchema": "ec_07_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (issue_id)",
+          "cols": [
+            "issue_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX coupon_use_pkey ON ec_07_b.coupon_use USING btree (issue_id)",
+        "CREATE UNIQUE INDEX coupon_use_order_id_key ON ec_07_b.coupon_use USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_07_c",
+      "name": "coupon_claim",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "issue_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ],
+        [
+          "expires_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (issue_id) REFERENCES coupon_issue(id)",
+          "cols": [
+            "issue_id"
+          ],
+          "target": "coupon_issue",
+          "targetSchema": "ec_07_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((state = ANY (ARRAY['held'::text, 'used'::text, 'released'::text])))",
+          "cols": [
+            "state"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX coupon_claim_pkey ON ec_07_c.coupon_claim USING btree (id)",
+        "CREATE UNIQUE INDEX one_active_coupon ON ec_07_c.coupon_claim USING btree (issue_id) WHERE (state = ANY (ARRAY['held'::text, 'used'::text]))"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "101",
+          "held",
+          "2026-11-18T09:15:00.000Z"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_07_c",
+      "name": "coupon_issue",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ],
+        [
+          "expires_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX coupon_issue_pkey ON ec_07_c.coupon_issue USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "7",
+          "2026-12-01T00:00:00.000Z"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,469 @@
+{
+  "intro": "退款轉購物金；生日購物金限服飾；禮物卡可分次消費。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 會員購物金",
+      "會員持有單一幣別餘額。",
+      "用途與效期需增加批次。"
+    ],
+    [
+      "B 限制用途與效期",
+      "生日購物金限服飾。",
+      "剩餘額與品類符合性由交易服務檢查；退款另建回補紀錄。"
+    ],
+    [
+      "C 禮物卡",
+      "卡片可轉贈與分次使用。",
+      "卡片兌換憑證與會員所有權須另訂規則；範例 digest 僅為示意值。"
+    ]
+  ],
+  "labSha256": "ce28a3ccb5f0b4b568a98a9db276164eb8f6892bc642549e04a4cbf988617e9c",
+  "plans": [
+    {
+      "code": "A",
+      "title": "會員購物金",
+      "line": 19,
+      "tables": [
+        "ec_09_a.credit_account",
+        "ec_09_a.credit_entry"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "限制用途與效期",
+      "line": 86,
+      "tables": [
+        "ec_09_b.credit_lot",
+        "ec_09_b.credit_use"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "禮物卡",
+      "line": 154,
+      "tables": [
+        "ec_09_c.gift_card",
+        "ec_09_c.gift_card_entry"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_09_a",
+      "name": "credit_account",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ],
+        [
+          "currency",
+          "text",
+          true
+        ],
+        [
+          "balance",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((balance >= 0))",
+          "cols": [
+            "balance"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (customer_id, currency)",
+          "cols": [
+            "customer_id",
+            "currency"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX credit_account_pkey ON ec_09_a.credit_account USING btree (id)",
+        "CREATE UNIQUE INDEX credit_account_customer_id_currency_key ON ec_09_a.credit_account USING btree (customer_id, currency)"
+      ],
+      "samples": [
+        [
+          "1",
+          "7",
+          "TWD",
+          "500"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_09_a",
+      "name": "credit_entry",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "account_id",
+          "bigint",
+          true
+        ],
+        [
+          "event_key",
+          "text",
+          true
+        ],
+        [
+          "delta",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (account_id) REFERENCES ec_09_a.credit_account(id)",
+          "cols": [
+            "account_id"
+          ],
+          "target": "credit_account",
+          "targetSchema": "ec_09_a",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((delta <> 0))",
+          "cols": [
+            "delta"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (event_key)",
+          "cols": [
+            "event_key"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX credit_entry_pkey ON ec_09_a.credit_entry USING btree (id)",
+        "CREATE UNIQUE INDEX credit_entry_event_key_key ON ec_09_a.credit_entry USING btree (event_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "refund-1",
+          "500"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_09_b",
+      "name": "credit_lot",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "customer_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ],
+        [
+          "expires_at",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "category",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX credit_lot_pkey ON ec_09_b.credit_lot USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "7",
+          "100",
+          "2026-12-01T00:00:00.000Z",
+          "服飾"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_09_b",
+      "name": "credit_use",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "lot_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_line_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (lot_id) REFERENCES ec_09_b.credit_lot(id)",
+          "cols": [
+            "lot_id"
+          ],
+          "target": "credit_lot",
+          "targetSchema": "ec_09_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX credit_use_pkey ON ec_09_b.credit_use USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "1001",
+          "50"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_09_c",
+      "name": "gift_card",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "code_digest",
+          "text",
+          true
+        ],
+        [
+          "currency",
+          "text",
+          true
+        ],
+        [
+          "balance",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((balance >= 0))",
+          "cols": [
+            "balance"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (code_digest)",
+          "cols": [
+            "code_digest"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX gift_card_pkey ON ec_09_c.gift_card USING btree (id)",
+        "CREATE UNIQUE INDEX gift_card_code_digest_key ON ec_09_c.gift_card USING btree (code_digest)"
+      ],
+      "samples": [
+        [
+          "1",
+          "example-digest",
+          "TWD",
+          "300"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_09_c",
+      "name": "gift_card_entry",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "card_id",
+          "bigint",
+          true
+        ],
+        [
+          "event_key",
+          "text",
+          true
+        ],
+        [
+          "delta",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (card_id) REFERENCES gift_card(id)",
+          "cols": [
+            "card_id"
+          ],
+          "target": "gift_card",
+          "targetSchema": "ec_09_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((delta <> 0))",
+          "cols": [
+            "delta"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (event_key)",
+          "cols": [
+            "event_key"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX gift_card_entry_pkey ON ec_09_c.gift_card_entry USING btree (id)",
+        "CREATE UNIQUE INDEX gift_card_entry_event_key_key ON ec_09_c.gift_card_entry USING btree (event_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "activate-1",
+          "500",
+          null
+        ],
+        [
+          "2",
+          "1",
+          "use-101",
+          "-200",
+          "101"
+        ]
+      ]
+    }
+  ]
+}

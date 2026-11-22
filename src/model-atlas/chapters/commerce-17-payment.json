@@ -1,0 +1,417 @@
+{
+  "intro": "刷卡失敗後重試；也可能購物金 100 元加信用卡 900 元。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 單筆付款",
+      "每單只有一次付款。",
+      "重試覆寫同列會失去失敗原因。"
+    ],
+    [
+      "B 付款意圖與嘗試",
+      "同筆應付可重試多次。",
+      "成功嘗試唯一索引只能防本地重複入帳，外部重複收款仍需查單與補償退款。"
+    ],
+    [
+      "C 多來源與分次請款",
+      "購物金加信用卡，信用卡可先授權再請款。",
+      "須鎖來源檢查成功及處理中請款總額；到期授權、失敗重試需結合 B。"
+    ]
+  ],
+  "labSha256": "f0c6355e8849bc652e38a446746effb9452c883c3816e989b2f624a45bb75ad3",
+  "plans": [
+    {
+      "code": "A",
+      "title": "單筆付款",
+      "line": 19,
+      "tables": [
+        "ec_17_a.payment"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "付款意圖與嘗試",
+      "line": 65,
+      "tables": [
+        "ec_17_b.payment",
+        "ec_17_b.payment_attempt"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "多來源與分次請款",
+      "line": 137,
+      "tables": [
+        "ec_17_c.capture",
+        "ec_17_c.payment_source"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_17_a",
+      "name": "payment",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ],
+        [
+          "provider_ref",
+          "text",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (provider_ref)",
+          "cols": [
+            "provider_ref"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX payment_pkey ON ec_17_a.payment USING btree (order_id)",
+        "CREATE UNIQUE INDEX payment_provider_ref_key ON ec_17_a.payment USING btree (provider_ref)"
+      ],
+      "samples": [
+        [
+          "101",
+          "900",
+          "succeeded",
+          "P001"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_17_b",
+      "name": "payment",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX payment_pkey ON ec_17_b.payment USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101",
+          "900"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_17_b",
+      "name": "payment_attempt",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "payment_id",
+          "bigint",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "provider",
+          "text",
+          true
+        ],
+        [
+          "provider_ref",
+          "text",
+          false
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (payment_id) REFERENCES ec_17_b.payment(id)",
+          "cols": [
+            "payment_id"
+          ],
+          "target": "payment",
+          "targetSchema": "ec_17_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (provider, provider_ref)",
+          "cols": [
+            "provider",
+            "provider_ref"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((state = ANY (ARRAY['pending'::text, 'unknown'::text, 'failed'::text, 'succeeded'::text])))",
+          "cols": [
+            "state"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX payment_attempt_pkey ON ec_17_b.payment_attempt USING btree (id)",
+        "CREATE UNIQUE INDEX payment_attempt_request_key_key ON ec_17_b.payment_attempt USING btree (request_key)",
+        "CREATE UNIQUE INDEX payment_attempt_provider_provider_ref_key ON ec_17_b.payment_attempt USING btree (provider, provider_ref)",
+        "CREATE UNIQUE INDEX one_successful_attempt ON ec_17_b.payment_attempt USING btree (payment_id) WHERE (state = 'succeeded'::text)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "pay-1",
+          "psp",
+          null,
+          "failed"
+        ],
+        [
+          "2",
+          "1",
+          "pay-2",
+          "psp",
+          "P002",
+          "succeeded"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_17_c",
+      "name": "capture",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "source_id",
+          "bigint",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (source_id) REFERENCES payment_source(id)",
+          "cols": [
+            "source_id"
+          ],
+          "target": "payment_source",
+          "targetSchema": "ec_17_c",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX capture_pkey ON ec_17_c.capture USING btree (id)",
+        "CREATE UNIQUE INDEX capture_request_key_key ON ec_17_c.capture USING btree (request_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "capture-1",
+          "100",
+          "succeeded"
+        ],
+        [
+          "2",
+          "2",
+          "capture-2",
+          "900",
+          "succeeded"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_17_c",
+      "name": "payment_source",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "method",
+          "text",
+          true
+        ],
+        [
+          "authorized",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((authorized >= 0))",
+          "cols": [
+            "authorized"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX payment_source_pkey ON ec_17_c.payment_source USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101",
+          "credit",
+          "100"
+        ],
+        [
+          "2",
+          "101",
+          "card",
+          "900"
+        ]
+      ]
+    }
+  ]
+}

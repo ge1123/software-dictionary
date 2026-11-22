@@ -1,0 +1,303 @@
+{
+  "intro": "餘額券可多次扣款，也可取消核銷。",
+  "comparison": [
+    [
+      "情境",
+      "A 餘額",
+      "B 餘額與流水"
+    ],
+    [
+      "查剩餘金額",
+      "一列",
+      "一列"
+    ],
+    [
+      "700 後再扣 600",
+      "條件更新可拒絕",
+      "函式拒絕並保留已成功紀錄"
+    ],
+    [
+      "取消重送",
+      "無法辨認原消費",
+      "原核銷唯一沖回"
+    ],
+    [
+      "客服追查",
+      "無法還原",
+      "查核銷與沖回"
+    ],
+    [
+      "寫入成本",
+      "一次更新",
+      "鎖券、更新餘額與插入流水"
+    ]
+  ],
+  "labSha256": "8db4ace9b6fbbf287546771a86225ebb0b368c579b9963d1e38b370298cdb800",
+  "plans": [
+    {
+      "code": "A",
+      "title": "直接修改餘額",
+      "line": 11,
+      "tables": [
+        "lab10_a.voucher"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "現況餘額＋核銷紀錄＋反向沖回",
+      "line": 37,
+      "tables": [
+        "lab10_b.redemption",
+        "lab10_b.reversal",
+        "lab10_b.voucher"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab10_a",
+      "name": "voucher",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "balance",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((balance >= (0)::numeric))",
+          "cols": [
+            "balance"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX voucher_pkey ON lab10_a.voucher USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1700.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab10_b",
+      "name": "redemption",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "voucher_id",
+          "bigint",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "amount",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "created_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > (0)::numeric))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(request_key) <> ''::text))",
+          "cols": [
+            "request_key"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (voucher_id) REFERENCES lab10_b.voucher(id)",
+          "cols": [
+            "voucher_id"
+          ],
+          "target": "voucher",
+          "targetSchema": "lab10_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (voucher_id, request_key)",
+          "cols": [
+            "voucher_id",
+            "request_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX redemption_pkey ON lab10_b.redemption USING btree (id)",
+        "CREATE UNIQUE INDEX redemption_voucher_id_request_key_key ON lab10_b.redemption USING btree (voucher_id, request_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "shop-A-001",
+          "700.00",
+          "2026-11-22T07:54:15.727Z"
+        ]
+      ]
+    },
+    {
+      "schema": "lab10_b",
+      "name": "reversal",
+      "kind": "r",
+      "columns": [
+        [
+          "redemption_id",
+          "bigint",
+          true
+        ],
+        [
+          "reason",
+          "text",
+          true
+        ],
+        [
+          "created_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (redemption_id)",
+          "cols": [
+            "redemption_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(reason) <> ''::text))",
+          "cols": [
+            "reason"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (redemption_id) REFERENCES lab10_b.redemption(id)",
+          "cols": [
+            "redemption_id"
+          ],
+          "target": "redemption",
+          "targetSchema": "lab10_b",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX reversal_pkey ON lab10_b.reversal USING btree (redemption_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "門市取消",
+          "2026-11-22T07:54:15.727Z"
+        ]
+      ]
+    },
+    {
+      "schema": "lab10_b",
+      "name": "voucher",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "opening_amount",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "balance",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((balance >= (0)::numeric))",
+          "cols": [
+            "balance"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((opening_amount >= (0)::numeric))",
+          "cols": [
+            "opening_amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX voucher_pkey ON lab10_b.voucher USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1000.00",
+          "1000.00"
+        ]
+      ]
+    }
+  ]
+}

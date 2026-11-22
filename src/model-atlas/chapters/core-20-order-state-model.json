@@ -1,0 +1,351 @@
+{
+  "intro": "付款、出貨進度不同，不能任意跳轉完成。",
+  "comparison": [
+    [
+      "面向",
+      "A 總狀態",
+      "B 分開事實＋推導"
+    ],
+    [
+      "顯示目前狀態",
+      "直接讀欄位",
+      "查 view 推導"
+    ],
+    [
+      "付款與履約可分別查詢",
+      "要解析總狀態",
+      "各欄明確"
+    ],
+    [
+      "值合法",
+      "CHECK",
+      "CHECK"
+    ],
+    [
+      "轉移合法",
+      "本例未實作，反例可成功",
+      "trigger 比較 OLD／NEW"
+    ],
+    [
+      "狀態變更歷史",
+      "無",
+      "記錄每種狀態的 from / to，不保存未變欄位"
+    ],
+    [
+      "重建某時點整體狀態",
+      "沒有歷史",
+      "需要初始基準及按序套用 Delta"
+    ],
+    [
+      "completed 一致性",
+      "容易與其他資料矛盾",
+      "由 paid＋shipped 推導"
+    ],
+    [
+      "增加部分出貨",
+      "值集合與轉移快速膨脹",
+      "需出貨明細／數量，不能只加一個旗標"
+    ]
+  ],
+  "labSha256": "082d22de7ffe563af5ffdbd565a5163681bcb2314467987d58c7f10c9ad5107d",
+  "plans": [
+    {
+      "code": "A",
+      "title": "單一總狀態",
+      "line": 11,
+      "tables": [
+        "lab20_a.sales_order"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "分開狀態＋Delta 異動歷史，推導總狀態",
+      "line": 38,
+      "tables": [
+        "lab20_b.order_change",
+        "lab20_b.order_summary",
+        "lab20_b.sales_order"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab20_a",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "status",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((status = ANY (ARRAY['pending'::text, 'paid'::text, 'shipped'::text, 'completed'::text, 'cancelled'::text])))",
+          "cols": [
+            "status"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON lab20_a.sales_order USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "completed"
+        ]
+      ]
+    },
+    {
+      "schema": "lab20_b",
+      "name": "order_change",
+      "kind": "r",
+      "columns": [
+        [
+          "change_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "state_type",
+          "text",
+          true
+        ],
+        [
+          "from_status",
+          "text",
+          true
+        ],
+        [
+          "to_status",
+          "text",
+          true
+        ],
+        [
+          "changed_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((((state_type = 'payment'::text) AND (from_status = 'unpaid'::text) AND (to_status = 'paid'::text)) OR ((state_type = 'fulfillment'::text) AND (from_status = 'pending'::text) AND (to_status = 'shipped'::text)) OR ((state_type = 'cancellation'::text) AND (from_status = 'active'::text) AND (to_status = 'cancelled'::text))))",
+          "cols": [
+            "state_type",
+            "from_status",
+            "to_status"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES lab20_b.sales_order(order_id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "sales_order",
+          "targetSchema": "lab20_b",
+          "refs": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (change_id)",
+          "cols": [
+            "change_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((state_type = ANY (ARRAY['payment'::text, 'fulfillment'::text, 'cancellation'::text])))",
+          "cols": [
+            "state_type"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_change_pkey ON lab20_b.order_change USING btree (change_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "payment",
+          "unpaid",
+          "paid",
+          "2026-11-22T07:54:15.859Z"
+        ],
+        [
+          "2",
+          "1",
+          "fulfillment",
+          "pending",
+          "shipped",
+          "2026-11-22T07:54:15.859Z"
+        ]
+      ]
+    },
+    {
+      "schema": "lab20_b",
+      "name": "order_summary",
+      "kind": "v",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          false
+        ],
+        [
+          "payment_status",
+          "text",
+          false
+        ],
+        [
+          "fulfillment_status",
+          "text",
+          false
+        ],
+        [
+          "cancelled",
+          "boolean",
+          false
+        ],
+        [
+          "display_status",
+          "text",
+          false
+        ]
+      ],
+      "constraints": [],
+      "indexes": [],
+      "depends": [
+        {
+          "schema": "lab20_b",
+          "name": "sales_order"
+        }
+      ],
+      "samples": [
+        [
+          "2",
+          "unpaid",
+          "pending",
+          true,
+          "cancelled"
+        ],
+        [
+          "1",
+          "paid",
+          "shipped",
+          false,
+          "completed"
+        ]
+      ]
+    },
+    {
+      "schema": "lab20_b",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "payment_status",
+          "text",
+          true
+        ],
+        [
+          "fulfillment_status",
+          "text",
+          true
+        ],
+        [
+          "cancelled",
+          "boolean",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((fulfillment_status <> 'shipped'::text) OR (payment_status = 'paid'::text)))",
+          "cols": [
+            "fulfillment_status",
+            "payment_status"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((NOT cancelled) OR ((payment_status = 'unpaid'::text) AND (fulfillment_status = 'pending'::text))))",
+          "cols": [
+            "cancelled",
+            "payment_status",
+            "fulfillment_status"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((fulfillment_status = ANY (ARRAY['pending'::text, 'shipped'::text])))",
+          "cols": [
+            "fulfillment_status"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((payment_status = ANY (ARRAY['unpaid'::text, 'paid'::text])))",
+          "cols": [
+            "payment_status"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON lab20_b.sales_order USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "2",
+          "unpaid",
+          "pending",
+          true
+        ],
+        [
+          "1",
+          "paid",
+          "shipped",
+          false
+        ]
+      ]
+    }
+  ],
+  "validationNote": "原 lab.sql 有部分 PL/pgSQL 定界符寫成單一 $。本次在驗證副本補為 $$ 後執行，資料表定義及案例斷言沿用原文。"
+}

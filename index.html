@@ -19,9 +19,12 @@
       </dl>
       <h2>{{ selected.sources ? "專案實例" : "使用情境" }}</h2>
       <p>{{ selected.example }}</p>
-      <section v-if="selected.modelCase" class="question-list">
+      <section v-if="selected.modelCase || linkedModels.length" class="question-list">
         <h2>資料模型案例</h2>
-        <a :href="'./cases/'+selected.modelCase.id+'/'">{{ selected.modelCase.title }}</a>
+        <ul>
+          <li v-if="selected.modelCase"><a :href="'./cases/'+selected.modelCase.id+'/'">{{ selected.modelCase.title }}</a></li>
+          <li v-for="chapter in linkedModels" :key="chapter.slug"><a :href="'./models/'+chapter.slug+'/'">{{ chapter.group === 'core' ? '模型設計' : '電商交易' }} · {{ chapter.title }}</a></li>
+        </ul>
       </section>
       <section v-if="comparison.length" class="comparison">
         <h2>容易混淆的詞</h2>
@@ -86,6 +89,7 @@
       </section>
       <section v-if="modelCases.length" class="question-list">
         <h2>資料模型案例</h2>
+        <a href="./models/">查看全部案例與 ER 圖</a>
         <ul><li v-for="term in modelCases" :key="term.id"><a :href="'./cases/'+term.modelCase.id+'/'">{{ term.modelCase.title }}</a></li></ul>
       </section>
       <input type="search" v-model="query" aria-label="搜尋詞條" placeholder="搜尋英文名詞、中文名稱或關鍵字…">
@@ -110,6 +114,7 @@
           <div class="card-foot"><span>{{ topic.terms.length }} 個詞條</span><span aria-hidden="true">↗</span></div>
         </a>
       </div>
+      <section class="question-list"><h2>資料模型案例</h2><a href="./models/">依業務需求瀏覽 ER 圖</a></section>
       <section v-if="plannedTopics.length" class="planned">
         <h2>規劃中的主題</h2>
         <ul><li v-for="[id, name] in plannedTopics" :key="id">{{ name }}</li></ul>

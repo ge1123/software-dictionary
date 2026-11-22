@@ -1,0 +1,231 @@
+{
+  "intro": "每日營收持續更新，退款與補登會影響舊報表。",
+  "comparison": [
+    [
+      "問題",
+      "A 即時計算",
+      "B 彙總表",
+      "C 物化檢視"
+    ],
+    [
+      "補登後何時改變",
+      "下次查詢",
+      "重建完成後",
+      "refresh 後"
+    ],
+    [
+      "正確性的來源",
+      "原始事件",
+      "事件＋建置協定",
+      "事件＋refresh"
+    ],
+    [
+      "重算局部日期",
+      "WHERE 後聚合",
+      "可自行實作",
+      "本例全量"
+    ],
+    [
+      "報表欄位與發布批次",
+      "每次推導",
+      "可保存建置版本",
+      "需另建發布資訊"
+    ],
+    [
+      "主要成本",
+      "重複聚合",
+      "維護及重建",
+      "refresh及陳舊資料"
+    ]
+  ],
+  "labSha256": "09ec44286603e88669e31fe24e9dc1a6dc292a3200065cabc11514bef8511156",
+  "plans": [
+    {
+      "code": "A",
+      "title": "即時聚合／普通 View",
+      "line": 11,
+      "tables": [
+        "lab28.entry",
+        "lab28.live_daily"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "彙總表與可重跑重建",
+      "line": 48,
+      "tables": [
+        "lab28.daily_summary",
+        "lab28.entry"
+      ],
+      "note": "rebuild_daily() 從 entry 分組寫入 daily_summary。兩表以重建查詢連結，沒有外鍵。"
+    },
+    {
+      "code": "C",
+      "title": "物化檢視",
+      "line": 83,
+      "tables": [
+        "lab28.daily_mv",
+        "lab28.entry"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab28",
+      "name": "daily_mv",
+      "kind": "m",
+      "columns": [
+        [
+          "channel_id",
+          "bigint",
+          false
+        ],
+        [
+          "business_day",
+          "date",
+          false
+        ],
+        [
+          "net_amount",
+          "numeric",
+          false
+        ]
+      ],
+      "constraints": [],
+      "indexes": [
+        "CREATE UNIQUE INDEX daily_mv_channel_id_business_day_idx ON lab28.daily_mv USING btree (channel_id, business_day)"
+      ],
+      "depends": [
+        {
+          "schema": "lab28",
+          "name": "entry"
+        }
+      ],
+      "samples": []
+    },
+    {
+      "schema": "lab28",
+      "name": "daily_summary",
+      "kind": "r",
+      "columns": [
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "business_day",
+          "date",
+          true
+        ],
+        [
+          "net_amount",
+          "numeric(18,2)",
+          true
+        ],
+        [
+          "rebuilt_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (channel_id, business_day)",
+          "cols": [
+            "channel_id",
+            "business_day"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX daily_summary_pkey ON lab28.daily_summary USING btree (channel_id, business_day)"
+      ],
+      "samples": []
+    },
+    {
+      "schema": "lab28",
+      "name": "entry",
+      "kind": "r",
+      "columns": [
+        [
+          "entry_id",
+          "bigint",
+          true
+        ],
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "business_day",
+          "date",
+          true
+        ],
+        [
+          "recorded_at",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "amount",
+          "numeric(14,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount <> (0)::numeric))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (entry_id)",
+          "cols": [
+            "entry_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX entry_pkey ON lab28.entry USING btree (entry_id)"
+      ],
+      "samples": []
+    },
+    {
+      "schema": "lab28",
+      "name": "live_daily",
+      "kind": "v",
+      "columns": [
+        [
+          "channel_id",
+          "bigint",
+          false
+        ],
+        [
+          "business_day",
+          "date",
+          false
+        ],
+        [
+          "net_amount",
+          "numeric",
+          false
+        ]
+      ],
+      "constraints": [],
+      "indexes": [],
+      "depends": [
+        {
+          "schema": "lab28",
+          "name": "entry"
+        }
+      ],
+      "samples": []
+    }
+  ]
+}

@@ -1,0 +1,342 @@
+{
+  "intro": "員工代理主管一週，到期失效。",
+  "comparison": [
+    [
+      "面向",
+      "A 修改角色",
+      "B 代理紀錄"
+    ],
+    [
+      "原有權限",
+      "被覆蓋",
+      "保留"
+    ],
+    [
+      "到期",
+      "依賴補償排程",
+      "查詢檢查時間"
+    ],
+    [
+      "來源撤銷",
+      "不知道來源",
+      "即時檢查來源"
+    ],
+    [
+      "門市／操作",
+      "通常過大",
+      "使用來源精確範圍"
+    ],
+    [
+      "追查",
+      "很困難",
+      "有來源、期間、撤銷"
+    ]
+  ],
+  "labSha256": "2ad86832cffbba70ad46038c83033e42f49c08c04656dc0b4a623ad09a7f8e03",
+  "plans": [
+    {
+      "code": "A",
+      "title": "直接把成員角色改成主管",
+      "line": 11,
+      "tables": [
+        "lab35_a.member"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "來源授權＋期限代理紀錄",
+      "line": 42,
+      "tables": [
+        "lab35_b.delegation",
+        "lab35_b.member",
+        "lab35_b.source_grant"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab35_a",
+      "name": "member",
+      "kind": "r",
+      "columns": [
+        [
+          "user_id",
+          "integer",
+          true
+        ],
+        [
+          "role",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (user_id)",
+          "cols": [
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX member_pkey ON lab35_a.member USING btree (user_id)"
+      ],
+      "samples": [
+        [
+          7,
+          "manager"
+        ],
+        [
+          8,
+          "manager"
+        ]
+      ]
+    },
+    {
+      "schema": "lab35_b",
+      "name": "delegation",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "delegation_id",
+          "integer",
+          true
+        ],
+        [
+          "source_grant_id",
+          "integer",
+          true
+        ],
+        [
+          "delegate_id",
+          "integer",
+          true
+        ],
+        [
+          "valid_from",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "valid_until",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "revoked_at",
+          "timestamp with time zone",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((valid_from < valid_until))",
+          "cols": [
+            "valid_from",
+            "valid_until"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, delegation_id)",
+          "cols": [
+            "tenant_id",
+            "delegation_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, delegate_id) REFERENCES lab35_b.member(tenant_id, user_id)",
+          "cols": [
+            "tenant_id",
+            "delegate_id"
+          ],
+          "target": "member",
+          "targetSchema": "lab35_b",
+          "refs": [
+            "tenant_id",
+            "user_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, source_grant_id) REFERENCES lab35_b.source_grant(tenant_id, grant_id)",
+          "cols": [
+            "tenant_id",
+            "source_grant_id"
+          ],
+          "target": "source_grant",
+          "targetSchema": "lab35_b",
+          "refs": [
+            "tenant_id",
+            "grant_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX delegation_pkey ON lab35_b.delegation USING btree (tenant_id, delegation_id)"
+      ],
+      "samples": [
+        [
+          1,
+          1,
+          1,
+          8,
+          "2026-10-20T00:00:00.000Z",
+          "2026-10-27T00:00:00.000Z",
+          "2026-10-23T00:00:00.000Z"
+        ],
+        [
+          1,
+          2,
+          1,
+          8,
+          "2026-10-20T00:00:00.000Z",
+          "2026-12-01T00:00:00.000Z",
+          null
+        ]
+      ]
+    },
+    {
+      "schema": "lab35_b",
+      "name": "member",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "user_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, user_id)",
+          "cols": [
+            "tenant_id",
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX member_pkey ON lab35_b.member USING btree (tenant_id, user_id)"
+      ],
+      "samples": [
+        [
+          1,
+          7
+        ],
+        [
+          1,
+          8
+        ]
+      ]
+    },
+    {
+      "schema": "lab35_b",
+      "name": "source_grant",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "integer",
+          true
+        ],
+        [
+          "grant_id",
+          "integer",
+          true
+        ],
+        [
+          "owner_id",
+          "integer",
+          true
+        ],
+        [
+          "store_id",
+          "integer",
+          true
+        ],
+        [
+          "action",
+          "text",
+          true
+        ],
+        [
+          "valid_from",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "valid_until",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "revoked_at",
+          "timestamp with time zone",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((valid_from < valid_until))",
+          "cols": [
+            "valid_from",
+            "valid_until"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, grant_id)",
+          "cols": [
+            "tenant_id",
+            "grant_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, owner_id) REFERENCES lab35_b.member(tenant_id, user_id)",
+          "cols": [
+            "tenant_id",
+            "owner_id"
+          ],
+          "target": "member",
+          "targetSchema": "lab35_b",
+          "refs": [
+            "tenant_id",
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX source_grant_pkey ON lab35_b.source_grant USING btree (tenant_id, grant_id)"
+      ],
+      "samples": [
+        [
+          1,
+          1,
+          7,
+          10,
+          "order.approve",
+          "2026-10-01T00:00:00.000Z",
+          "2026-11-01T00:00:00.000Z",
+          "2026-10-24T00:00:00.000Z"
+        ]
+      ]
+    }
+  ]
+}

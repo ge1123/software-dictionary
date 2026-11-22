@@ -1,0 +1,366 @@
+{
+  "intro": "建單逾時重送；訂單成立後要通知庫存服務。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 建單冪等紀錄",
+      "HTTP 請求重送。",
+      "範例省略訂單表；正式加入 FK，避免結果指向不存在訂單。"
+    ],
+    [
+      "B Outbox",
+      "資料提交後一定要有待發事件。",
+      "送出後寫標記前當機會重送；消費端需 Inbox。"
+    ],
+    [
+      "C Inbox 與補償工作",
+      "庫存服務重複收到事件。",
+      "Inbox 提交與外部呼叫無法同一 DB 交易涵蓋；透過 Outbox 工作及外部冪等鍵銜接。"
+    ]
+  ],
+  "labSha256": "682e8679b2d140e1d33141010553976de251330239c0426266429262786f867d",
+  "plans": [
+    {
+      "code": "A",
+      "title": "建單冪等紀錄",
+      "line": 19,
+      "tables": [
+        "ec_29_a.request_record"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "Outbox",
+      "line": 66,
+      "tables": [
+        "ec_29_b.outbox_event",
+        "ec_29_b.sales_order"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "Inbox 與補償工作",
+      "line": 130,
+      "tables": [
+        "ec_29_c.inbox_event",
+        "ec_29_c.workflow",
+        "ec_29_c.workflow_step"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_29_a",
+      "name": "request_record",
+      "kind": "r",
+      "columns": [
+        [
+          "scope",
+          "text",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "payload_hash",
+          "text",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (scope, request_key)",
+          "cols": [
+            "scope",
+            "request_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX request_record_pkey ON ec_29_a.request_record USING btree (scope, request_key)"
+      ],
+      "samples": [
+        [
+          "shop-1",
+          "checkout-1",
+          "hash-example",
+          "101"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_29_b",
+      "name": "outbox_event",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "event_type",
+          "text",
+          true
+        ],
+        [
+          "payload",
+          "jsonb",
+          true
+        ],
+        [
+          "published_at",
+          "timestamp with time zone",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES ec_29_b.sales_order(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "sales_order",
+          "targetSchema": "ec_29_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX outbox_event_pkey ON ec_29_b.outbox_event USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101",
+          "OrderCreated",
+          {
+            "order_id": 101
+          },
+          null
+        ]
+      ]
+    },
+    {
+      "schema": "ec_29_b",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_29_b.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "created"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_29_c",
+      "name": "inbox_event",
+      "kind": "r",
+      "columns": [
+        [
+          "consumer",
+          "text",
+          true
+        ],
+        [
+          "event_id",
+          "bigint",
+          true
+        ],
+        [
+          "processed_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (consumer, event_id)",
+          "cols": [
+            "consumer",
+            "event_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX inbox_event_pkey ON ec_29_c.inbox_event USING btree (consumer, event_id)"
+      ],
+      "samples": [
+        [
+          "inventory",
+          "1",
+          "2026-11-18T09:00:00.000Z"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_29_c",
+      "name": "workflow",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX workflow_pkey ON ec_29_c.workflow USING btree (id)",
+        "CREATE UNIQUE INDEX workflow_order_id_key ON ec_29_c.workflow USING btree (order_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101",
+          "compensating"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_29_c",
+      "name": "workflow_step",
+      "kind": "r",
+      "columns": [
+        [
+          "workflow_id",
+          "bigint",
+          true
+        ],
+        [
+          "step_name",
+          "text",
+          true
+        ],
+        [
+          "operation_key",
+          "text",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (operation_key)",
+          "cols": [
+            "operation_key"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (workflow_id, step_name)",
+          "cols": [
+            "workflow_id",
+            "step_name"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (workflow_id) REFERENCES workflow(id)",
+          "cols": [
+            "workflow_id"
+          ],
+          "target": "workflow",
+          "targetSchema": "ec_29_c",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX workflow_step_pkey ON ec_29_c.workflow_step USING btree (workflow_id, step_name)",
+        "CREATE UNIQUE INDEX workflow_step_operation_key_key ON ec_29_c.workflow_step USING btree (operation_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "release-stock",
+          "wf-1-release",
+          "pending"
+        ]
+      ]
+    }
+  ]
+}

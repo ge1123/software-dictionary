@@ -1,0 +1,376 @@
+{
+  "intro": "客服把訂單地址從板橋改到新莊，要查修改人與原因。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 最後修改欄位",
+      "只需知道最後一次修改。",
+      "無法查原地址或前幾次修改。"
+    ],
+    [
+      "B 欄位差異",
+      "需要追查每次修改。",
+      "完整重建需要初始版本，且所有寫入入口都必須記錄。"
+    ],
+    [
+      "C 完整版本快照",
+      "需要直接查指定版本訂單。",
+      "DDL 已加延後檢查的複合 FK，保證 current_version 存在；JSON 結構與保存期限另訂。"
+    ]
+  ],
+  "labSha256": "caf06f07bdfa458c6f5d093d8f9dcbbf31551cc5b3b13b36dfab22f90585a5b6",
+  "plans": [
+    {
+      "code": "A",
+      "title": "最後修改欄位",
+      "line": 19,
+      "tables": [
+        "ec_30_a.sales_order"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "欄位差異",
+      "line": 65,
+      "tables": [
+        "ec_30_b.change_log",
+        "ec_30_b.sales_order"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "完整版本快照",
+      "line": 134,
+      "tables": [
+        "ec_30_c.order_snapshot",
+        "ec_30_c.sales_order"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_30_a",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "address_text",
+          "text",
+          true
+        ],
+        [
+          "updated_by",
+          "text",
+          true
+        ],
+        [
+          "updated_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_30_a.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "新莊示範路 2 號",
+          "客服小林",
+          "2026-11-18T09:00:00.000Z"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_30_b",
+      "name": "change_log",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "version",
+          "integer",
+          true
+        ],
+        [
+          "actor",
+          "text",
+          true
+        ],
+        [
+          "reason",
+          "text",
+          true
+        ],
+        [
+          "changes",
+          "jsonb",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES ec_30_b.sales_order(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "sales_order",
+          "targetSchema": "ec_30_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_id, version)",
+          "cols": [
+            "order_id",
+            "version"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX change_log_pkey ON ec_30_b.change_log USING btree (id)",
+        "CREATE UNIQUE INDEX change_log_order_id_version_key ON ec_30_b.change_log USING btree (order_id, version)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101",
+          2,
+          "客服小林",
+          "顧客要求",
+          {
+            "address_text": {
+              "after": "新莊示範路 2 號",
+              "before": "板橋示範路 1 號"
+            }
+          }
+        ]
+      ]
+    },
+    {
+      "schema": "ec_30_b",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "address_text",
+          "text",
+          true
+        ],
+        [
+          "version",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((version > 0))",
+          "cols": [
+            "version"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_30_b.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "新莊示範路 2 號",
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "ec_30_c",
+      "name": "order_snapshot",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "version",
+          "integer",
+          true
+        ],
+        [
+          "snapshot",
+          "jsonb",
+          true
+        ],
+        [
+          "actor",
+          "text",
+          true
+        ],
+        [
+          "recorded_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (order_id) REFERENCES sales_order(id)",
+          "cols": [
+            "order_id"
+          ],
+          "target": "sales_order",
+          "targetSchema": "ec_30_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id, version)",
+          "cols": [
+            "order_id",
+            "version"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((version > 0))",
+          "cols": [
+            "version"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_snapshot_pkey ON ec_30_c.order_snapshot USING btree (order_id, version)"
+      ],
+      "samples": [
+        [
+          "101",
+          1,
+          {
+            "address": "板橋示範路 1 號"
+          },
+          "小芸",
+          "2026-11-17T09:00:00.000Z"
+        ],
+        [
+          "101",
+          2,
+          {
+            "address": "新莊示範路 2 號"
+          },
+          "客服小林",
+          "2026-11-18T09:00:00.000Z"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_30_c",
+      "name": "sales_order",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "current_version",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (id, current_version) REFERENCES order_snapshot(order_id, version) DEFERRABLE INITIALLY DEFERRED",
+          "cols": [
+            "id",
+            "current_version"
+          ],
+          "target": "order_snapshot",
+          "targetSchema": "ec_30_c",
+          "refs": [
+            "order_id",
+            "version"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((current_version > 0))",
+          "cols": [
+            "current_version"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sales_order_pkey ON ec_30_c.sales_order USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          2
+        ]
+      ]
+    }
+  ]
+}

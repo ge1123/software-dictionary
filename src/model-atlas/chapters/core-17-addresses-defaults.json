@@ -1,0 +1,313 @@
+{
+  "intro": "通路可存多個地址，但只能有一個預設地址。",
+  "comparison": [
+    [
+      "面向",
+      "A 地址旗標",
+      "B 通路指標"
+    ],
+    [
+      "至多一個",
+      "部分唯一索引",
+      "單一欄位"
+    ],
+    [
+      "啟用後至少一個",
+      "尚未保證",
+      "CHECK＋外鍵"
+    ],
+    [
+      "同通路歸屬",
+      "地址自身歸屬明確",
+      "複合外鍵限制指標"
+    ],
+    [
+      "改預設",
+      "改兩筆地址",
+      "改一筆通路"
+    ],
+    [
+      "刪除預設",
+      "會變零個",
+      "外鍵拒絕"
+    ],
+    [
+      "主要代價",
+      "寫入協調與完整性檢查",
+      "循環關聯與初始化順序"
+    ]
+  ],
+  "labSha256": "337df736efc254ce91c57d6800e1e13a5e2c5031c3adb410d43db6879a9e5420",
+  "plans": [
+    {
+      "code": "A",
+      "title": "地址旗標＋部分唯一索引",
+      "line": 11,
+      "tables": [
+        "lab17_a.address",
+        "lab17_a.channel"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "通路保存預設地址 ID",
+      "line": 48,
+      "tables": [
+        "lab17_b.address",
+        "lab17_b.channel"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab17_a",
+      "name": "address",
+      "kind": "r",
+      "columns": [
+        [
+          "address_id",
+          "bigint",
+          true
+        ],
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "address_text",
+          "text",
+          true
+        ],
+        [
+          "is_default",
+          "boolean",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (channel_id) REFERENCES lab17_a.channel(channel_id)",
+          "cols": [
+            "channel_id"
+          ],
+          "target": "channel",
+          "targetSchema": "lab17_a",
+          "refs": [
+            "channel_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (address_id)",
+          "cols": [
+            "address_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX address_pkey ON lab17_a.address USING btree (address_id)",
+        "CREATE UNIQUE INDEX one_default ON lab17_a.address USING btree (channel_id) WHERE is_default"
+      ],
+      "samples": [
+        [
+          "12",
+          "1",
+          "台中倉",
+          false
+        ],
+        [
+          "11",
+          "1",
+          "台北倉",
+          false
+        ]
+      ]
+    },
+    {
+      "schema": "lab17_a",
+      "name": "channel",
+      "kind": "r",
+      "columns": [
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (channel_id)",
+          "cols": [
+            "channel_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX channel_pkey ON lab17_a.channel USING btree (channel_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "青禾"
+        ]
+      ]
+    },
+    {
+      "schema": "lab17_b",
+      "name": "address",
+      "kind": "r",
+      "columns": [
+        [
+          "address_id",
+          "bigint",
+          true
+        ],
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "address_text",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (channel_id, address_id)",
+          "cols": [
+            "channel_id",
+            "address_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (channel_id) REFERENCES lab17_b.channel(channel_id)",
+          "cols": [
+            "channel_id"
+          ],
+          "target": "channel",
+          "targetSchema": "lab17_b",
+          "refs": [
+            "channel_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (address_id)",
+          "cols": [
+            "address_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX address_pkey ON lab17_b.address USING btree (address_id)",
+        "CREATE UNIQUE INDEX address_channel_id_address_id_key ON lab17_b.address USING btree (channel_id, address_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          "1",
+          "台北倉"
+        ],
+        [
+          "12",
+          "1",
+          "台中倉"
+        ]
+      ]
+    },
+    {
+      "schema": "lab17_b",
+      "name": "channel",
+      "kind": "r",
+      "columns": [
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "status",
+          "text",
+          true
+        ],
+        [
+          "default_address_id",
+          "bigint",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((status <> 'active'::text) OR (default_address_id IS NOT NULL)))",
+          "cols": [
+            "status",
+            "default_address_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (channel_id)",
+          "cols": [
+            "channel_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text])))",
+          "cols": [
+            "status"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (channel_id, default_address_id) REFERENCES lab17_b.address(channel_id, address_id)",
+          "cols": [
+            "channel_id",
+            "default_address_id"
+          ],
+          "target": "address",
+          "targetSchema": "lab17_b",
+          "refs": [
+            "channel_id",
+            "address_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX channel_pkey ON lab17_b.channel USING btree (channel_id)"
+      ],
+      "samples": [
+        [
+          "2",
+          "白雲",
+          "draft",
+          null
+        ],
+        [
+          "1",
+          "青禾",
+          "active",
+          "12"
+        ]
+      ]
+    }
+  ]
+}

@@ -87,3 +87,5 @@ for (const term of b2b2c) {
     assert.match(url, /^https:\/\/github\.com\/[^/]+\/[^/]+\/blob\/[0-9a-f]{40}\/.+#L\d+(?:-L\d+)?$/, term.id);
   }
 }
+
+await import('./atlas/check.mjs');

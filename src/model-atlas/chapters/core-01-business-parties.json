@@ -1,0 +1,497 @@
+{
+  "intro": "同一家公司既是供應商，也是通路。",
+  "comparison": [
+    [
+      "面向",
+      "A 分表",
+      "B 角色關聯",
+      "C 角色子表"
+    ],
+    [
+      "青禾新增",
+      "兩筆公司資料",
+      "一筆公司、兩筆角色",
+      "一筆公司、兩筆設定"
+    ],
+    [
+      "公司更名",
+      "更新兩表，需同步",
+      "更新 company",
+      "更新 company"
+    ],
+    [
+      "列出所有公司",
+      "合併與身分去重",
+      "查 company",
+      "查 company"
+    ],
+    [
+      "專屬條件",
+      "各表直接存",
+      "目前未表達",
+      "子表直接存"
+    ],
+    [
+      "增加新角色",
+      "增加一張對象表",
+      "調整代碼集合",
+      "增加子表"
+    ],
+    [
+      "本需求適合度",
+      "有現況同步負擔",
+      "適合只有身分的階段",
+      "包含專屬設定時較合適"
+    ]
+  ],
+  "labSha256": "7496705cf664a8bf2a974625dfa23c755d00089cd1732842e224d68a8ca6aae4",
+  "plans": [
+    {
+      "code": "A",
+      "title": "供應商與通路分表",
+      "line": 13,
+      "tables": [
+        "lab01_a.channel",
+        "lab01_a.supplier"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "公司主表＋角色關聯表",
+      "line": 65,
+      "tables": [
+        "lab01_b.company",
+        "lab01_b.company_role"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "公司主表＋角色專屬子表",
+      "line": 109,
+      "tables": [
+        "lab01_c.channel_profile",
+        "lab01_c.company",
+        "lab01_c.supplier_profile"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab01_a",
+      "name": "channel",
+      "kind": "r",
+      "columns": [
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "registration_no",
+          "text",
+          true
+        ],
+        [
+          "legal_name",
+          "text",
+          true
+        ],
+        [
+          "credit_limit",
+          "numeric(14,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((credit_limit >= (0)::numeric))",
+          "cols": [
+            "credit_limit"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(legal_name) <> ''::text))",
+          "cols": [
+            "legal_name"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (channel_id)",
+          "cols": [
+            "channel_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (registration_no)",
+          "cols": [
+            "registration_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX channel_pkey ON lab01_a.channel USING btree (channel_id)",
+        "CREATE UNIQUE INDEX channel_registration_no_key ON lab01_a.channel USING btree (registration_no)"
+      ],
+      "samples": [
+        [
+          "10",
+          "TW-DEMO-001",
+          "青禾有限公司",
+          "100000.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab01_a",
+      "name": "supplier",
+      "kind": "r",
+      "columns": [
+        [
+          "supplier_id",
+          "bigint",
+          true
+        ],
+        [
+          "registration_no",
+          "text",
+          true
+        ],
+        [
+          "legal_name",
+          "text",
+          true
+        ],
+        [
+          "payment_days",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(legal_name) <> ''::text))",
+          "cols": [
+            "legal_name"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((payment_days >= 0))",
+          "cols": [
+            "payment_days"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (supplier_id)",
+          "cols": [
+            "supplier_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (registration_no)",
+          "cols": [
+            "registration_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX supplier_pkey ON lab01_a.supplier USING btree (supplier_id)",
+        "CREATE UNIQUE INDEX supplier_registration_no_key ON lab01_a.supplier USING btree (registration_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          "TW-DEMO-001",
+          "青禾股份有限公司",
+          30
+        ]
+      ]
+    },
+    {
+      "schema": "lab01_b",
+      "name": "company",
+      "kind": "r",
+      "columns": [
+        [
+          "company_id",
+          "bigint",
+          true
+        ],
+        [
+          "registration_no",
+          "text",
+          true
+        ],
+        [
+          "legal_name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(legal_name) <> ''::text))",
+          "cols": [
+            "legal_name"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (company_id)",
+          "cols": [
+            "company_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (registration_no)",
+          "cols": [
+            "registration_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX company_pkey ON lab01_b.company USING btree (company_id)",
+        "CREATE UNIQUE INDEX company_registration_no_key ON lab01_b.company USING btree (registration_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          "TW-DEMO-001",
+          "青禾股份有限公司"
+        ]
+      ]
+    },
+    {
+      "schema": "lab01_b",
+      "name": "company_role",
+      "kind": "r",
+      "columns": [
+        [
+          "company_id",
+          "bigint",
+          true
+        ],
+        [
+          "role_code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (company_id) REFERENCES lab01_b.company(company_id)",
+          "cols": [
+            "company_id"
+          ],
+          "target": "company",
+          "targetSchema": "lab01_b",
+          "refs": [
+            "company_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (company_id, role_code)",
+          "cols": [
+            "company_id",
+            "role_code"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((role_code = ANY (ARRAY['supplier'::text, 'channel'::text])))",
+          "cols": [
+            "role_code"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX company_role_pkey ON lab01_b.company_role USING btree (company_id, role_code)"
+      ],
+      "samples": [
+        [
+          "1",
+          "supplier"
+        ],
+        [
+          "1",
+          "channel"
+        ]
+      ]
+    },
+    {
+      "schema": "lab01_c",
+      "name": "channel_profile",
+      "kind": "r",
+      "columns": [
+        [
+          "company_id",
+          "bigint",
+          true
+        ],
+        [
+          "credit_limit",
+          "numeric(14,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (company_id) REFERENCES lab01_c.company(company_id)",
+          "cols": [
+            "company_id"
+          ],
+          "target": "company",
+          "targetSchema": "lab01_c",
+          "refs": [
+            "company_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((credit_limit >= (0)::numeric))",
+          "cols": [
+            "credit_limit"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (company_id)",
+          "cols": [
+            "company_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX channel_profile_pkey ON lab01_c.channel_profile USING btree (company_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "100000.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab01_c",
+      "name": "company",
+      "kind": "r",
+      "columns": [
+        [
+          "company_id",
+          "bigint",
+          true
+        ],
+        [
+          "registration_no",
+          "text",
+          true
+        ],
+        [
+          "legal_name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(legal_name) <> ''::text))",
+          "cols": [
+            "legal_name"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (company_id)",
+          "cols": [
+            "company_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (registration_no)",
+          "cols": [
+            "registration_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX company_pkey ON lab01_c.company USING btree (company_id)",
+        "CREATE UNIQUE INDEX company_registration_no_key ON lab01_c.company USING btree (registration_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          "TW-DEMO-001",
+          "青禾股份有限公司"
+        ]
+      ]
+    },
+    {
+      "schema": "lab01_c",
+      "name": "supplier_profile",
+      "kind": "r",
+      "columns": [
+        [
+          "company_id",
+          "bigint",
+          true
+        ],
+        [
+          "payment_days",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (company_id) REFERENCES lab01_c.company(company_id)",
+          "cols": [
+            "company_id"
+          ],
+          "target": "company",
+          "targetSchema": "lab01_c",
+          "refs": [
+            "company_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((payment_days >= 0))",
+          "cols": [
+            "payment_days"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (company_id)",
+          "cols": [
+            "company_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX supplier_profile_pkey ON lab01_c.supplier_profile USING btree (company_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          30
+        ]
+      ]
+    }
+  ]
+}

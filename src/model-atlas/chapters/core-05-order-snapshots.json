@@ -1,0 +1,483 @@
+{
+  "intro": "改商品名稱與價格不能改變歷史訂單。",
+  "comparison": [
+    [
+      "需求",
+      "A 現況關聯",
+      "B 快照",
+      "C 版本＋成交價"
+    ],
+    [
+      "保存成交 90",
+      "不行",
+      "可以",
+      "可以"
+    ],
+    [
+      "歷史名稱",
+      "隨現況變動",
+      "每筆保存",
+      "版本共用"
+    ],
+    [
+      "查歷史",
+      "JOIN，但內容錯誤",
+      "直接查明細",
+      "JOIN 固定版本"
+    ],
+    [
+      "商品歷史管理",
+      "沒有",
+      "只有成交中出現的內容",
+      "可保存未成交版本"
+    ],
+    [
+      "適用",
+      "動態購物清單",
+      "一般訂單",
+      "需版本追蹤的商品／合約"
+    ]
+  ],
+  "labSha256": "e937cce70a71082c7ae287befd294f8df938a4a1dac93c8ae50ca5481bf43181",
+  "plans": [
+    {
+      "code": "A",
+      "title": "明細只存商品 ID 與數量",
+      "line": 11,
+      "tables": [
+        "lab05_a.order_line",
+        "lab05_a.product"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "商品關聯＋成交快照",
+      "line": 43,
+      "tables": [
+        "lab05_b.order_line",
+        "lab05_b.product"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "商品版本＋成交價格",
+      "line": 78,
+      "tables": [
+        "lab05_c.order_line",
+        "lab05_c.product",
+        "lab05_c.product_version"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab05_a",
+      "name": "order_line",
+      "kind": "r",
+      "columns": [
+        [
+          "line_id",
+          "bigint",
+          true
+        ],
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "quantity",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (line_id)",
+          "cols": [
+            "line_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES lab05_a.product(product_id)",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "lab05_a",
+          "refs": [
+            "product_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((quantity > 0))",
+          "cols": [
+            "quantity"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_line_pkey ON lab05_a.order_line USING btree (line_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "11",
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "lab05_a",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "list_price",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((list_price >= (0)::numeric))",
+          "cols": [
+            "list_price"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id)",
+          "cols": [
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab05_a.product USING btree (product_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          "舒適上衣",
+          "120.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab05_b",
+      "name": "order_line",
+      "kind": "r",
+      "columns": [
+        [
+          "line_id",
+          "bigint",
+          true
+        ],
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "sold_name",
+          "text",
+          true
+        ],
+        [
+          "unit_price",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "quantity",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (line_id)",
+          "cols": [
+            "line_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES lab05_b.product(product_id)",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "lab05_b",
+          "refs": [
+            "product_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((quantity > 0))",
+          "cols": [
+            "quantity"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((unit_price >= (0)::numeric))",
+          "cols": [
+            "unit_price"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_line_pkey ON lab05_b.order_line USING btree (line_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "11",
+          "基本款上衣",
+          "90.00",
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "lab05_b",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "list_price",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((list_price >= (0)::numeric))",
+          "cols": [
+            "list_price"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id)",
+          "cols": [
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab05_b.product USING btree (product_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          "舒適上衣",
+          "120.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab05_c",
+      "name": "order_line",
+      "kind": "r",
+      "columns": [
+        [
+          "line_id",
+          "bigint",
+          true
+        ],
+        [
+          "version_id",
+          "bigint",
+          true
+        ],
+        [
+          "agreed_price",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "quantity",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((agreed_price >= (0)::numeric))",
+          "cols": [
+            "agreed_price"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (line_id)",
+          "cols": [
+            "line_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((quantity > 0))",
+          "cols": [
+            "quantity"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (version_id) REFERENCES lab05_c.product_version(version_id)",
+          "cols": [
+            "version_id"
+          ],
+          "target": "product_version",
+          "targetSchema": "lab05_c",
+          "refs": [
+            "version_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_line_pkey ON lab05_c.order_line USING btree (line_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "90.00",
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "lab05_c",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "product_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (product_id)",
+          "cols": [
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab05_c.product USING btree (product_id)"
+      ],
+      "samples": [
+        [
+          "11"
+        ]
+      ]
+    },
+    {
+      "schema": "lab05_c",
+      "name": "product_version",
+      "kind": "r",
+      "columns": [
+        [
+          "version_id",
+          "bigint",
+          true
+        ],
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "list_price",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((list_price >= (0)::numeric))",
+          "cols": [
+            "list_price"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (version_id)",
+          "cols": [
+            "version_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES lab05_c.product(product_id)",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "lab05_c",
+          "refs": [
+            "product_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_version_pkey ON lab05_c.product_version USING btree (version_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "11",
+          "基本款上衣",
+          "100.00"
+        ],
+        [
+          "2",
+          "11",
+          "舒適上衣",
+          "120.00"
+        ]
+      ]
+    }
+  ]
+}

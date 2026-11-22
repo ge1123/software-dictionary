@@ -1,0 +1,638 @@
+{
+  "intro": "促銷適用商品、分類或通路，部分不能併用。",
+  "comparison": [
+    [
+      "面向",
+      "A 多型對象",
+      "B 專用關聯表"
+    ],
+    [
+      "新增對象類型",
+      "加代碼與驗證邏輯",
+      "加表與查詢分支"
+    ],
+    [
+      "對象存在保證",
+      "不能直接用普通外鍵",
+      "可用外鍵"
+    ],
+    [
+      "查詢",
+      "統一入口但需動態分支",
+      "多個明確 EXISTS"
+    ],
+    [
+      "維護風險",
+      "孤立關聯較難發現",
+      "schema 變動較多"
+    ]
+  ],
+  "labSha256": "27a39821162e0919f4ced52fa5b8a1f6c423b6aac9db2045173f1ebffdd4fbe2",
+  "plans": [
+    {
+      "code": "A",
+      "title": "TargetType＋TargetId",
+      "line": 11,
+      "tables": [
+        "lab22_a.product",
+        "lab22_a.promotion",
+        "lab22_a.target"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "每種對象一張關聯表",
+      "line": 57,
+      "tables": [
+        "lab22_b.category",
+        "lab22_b.category_target",
+        "lab22_b.channel",
+        "lab22_b.channel_target",
+        "lab22_b.exclusion",
+        "lab22_b.product",
+        "lab22_b.product_target",
+        "lab22_b.promotion"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab22_a",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab22_a.product USING btree (id)"
+      ],
+      "samples": [
+        [
+          100,
+          "紅色上衣"
+        ]
+      ]
+    },
+    {
+      "schema": "lab22_a",
+      "name": "promotion",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX promotion_pkey ON lab22_a.promotion USING btree (id)"
+      ],
+      "samples": [
+        [
+          1,
+          "指定商品折扣"
+        ]
+      ]
+    },
+    {
+      "schema": "lab22_a",
+      "name": "target",
+      "kind": "r",
+      "columns": [
+        [
+          "promotion_id",
+          "integer",
+          true
+        ],
+        [
+          "target_type",
+          "text",
+          true
+        ],
+        [
+          "target_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (promotion_id, target_type, target_id)",
+          "cols": [
+            "promotion_id",
+            "target_type",
+            "target_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (promotion_id) REFERENCES lab22_a.promotion(id)",
+          "cols": [
+            "promotion_id"
+          ],
+          "target": "promotion",
+          "targetSchema": "lab22_a",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((target_type = ANY (ARRAY['product'::text, 'category'::text, 'channel'::text])))",
+          "cols": [
+            "target_type"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX target_pkey ON lab22_a.target USING btree (promotion_id, target_type, target_id)"
+      ],
+      "samples": [
+        [
+          1,
+          "product",
+          100
+        ],
+        [
+          1,
+          "product",
+          999
+        ]
+      ]
+    },
+    {
+      "schema": "lab22_b",
+      "name": "category",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX category_pkey ON lab22_b.category USING btree (id)"
+      ],
+      "samples": [
+        [
+          10,
+          "服飾"
+        ],
+        [
+          20,
+          "生活用品"
+        ]
+      ]
+    },
+    {
+      "schema": "lab22_b",
+      "name": "category_target",
+      "kind": "r",
+      "columns": [
+        [
+          "promotion_id",
+          "integer",
+          true
+        ],
+        [
+          "category_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (category_id) REFERENCES lab22_b.category(id)",
+          "cols": [
+            "category_id"
+          ],
+          "target": "category",
+          "targetSchema": "lab22_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (promotion_id, category_id)",
+          "cols": [
+            "promotion_id",
+            "category_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (promotion_id) REFERENCES lab22_b.promotion(id)",
+          "cols": [
+            "promotion_id"
+          ],
+          "target": "promotion",
+          "targetSchema": "lab22_b",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX category_target_pkey ON lab22_b.category_target USING btree (promotion_id, category_id)"
+      ],
+      "samples": [
+        [
+          2,
+          10
+        ]
+      ]
+    },
+    {
+      "schema": "lab22_b",
+      "name": "channel",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX channel_pkey ON lab22_b.channel USING btree (id)"
+      ],
+      "samples": [
+        [
+          1,
+          "momo 電商"
+        ],
+        [
+          2,
+          "PChome 電商"
+        ]
+      ]
+    },
+    {
+      "schema": "lab22_b",
+      "name": "channel_target",
+      "kind": "r",
+      "columns": [
+        [
+          "promotion_id",
+          "integer",
+          true
+        ],
+        [
+          "channel_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (channel_id) REFERENCES lab22_b.channel(id)",
+          "cols": [
+            "channel_id"
+          ],
+          "target": "channel",
+          "targetSchema": "lab22_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (promotion_id, channel_id)",
+          "cols": [
+            "promotion_id",
+            "channel_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (promotion_id) REFERENCES lab22_b.promotion(id)",
+          "cols": [
+            "promotion_id"
+          ],
+          "target": "promotion",
+          "targetSchema": "lab22_b",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX channel_target_pkey ON lab22_b.channel_target USING btree (promotion_id, channel_id)"
+      ],
+      "samples": [
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ]
+      ]
+    },
+    {
+      "schema": "lab22_b",
+      "name": "exclusion",
+      "kind": "r",
+      "columns": [
+        [
+          "low_id",
+          "integer",
+          true
+        ],
+        [
+          "high_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((low_id < high_id))",
+          "cols": [
+            "low_id",
+            "high_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (high_id) REFERENCES lab22_b.promotion(id)",
+          "cols": [
+            "high_id"
+          ],
+          "target": "promotion",
+          "targetSchema": "lab22_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (low_id) REFERENCES lab22_b.promotion(id)",
+          "cols": [
+            "low_id"
+          ],
+          "target": "promotion",
+          "targetSchema": "lab22_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (low_id, high_id)",
+          "cols": [
+            "low_id",
+            "high_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX exclusion_pkey ON lab22_b.exclusion USING btree (low_id, high_id)"
+      ],
+      "samples": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "lab22_b",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "category_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (category_id) REFERENCES lab22_b.category(id)",
+          "cols": [
+            "category_id"
+          ],
+          "target": "category",
+          "targetSchema": "lab22_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab22_b.product USING btree (id)"
+      ],
+      "samples": [
+        [
+          100,
+          "紅色上衣",
+          10
+        ],
+        [
+          200,
+          "保溫杯",
+          20
+        ]
+      ]
+    },
+    {
+      "schema": "lab22_b",
+      "name": "product_target",
+      "kind": "r",
+      "columns": [
+        [
+          "promotion_id",
+          "integer",
+          true
+        ],
+        [
+          "product_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (promotion_id, product_id)",
+          "cols": [
+            "promotion_id",
+            "product_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES lab22_b.product(id)",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "lab22_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (promotion_id) REFERENCES lab22_b.promotion(id)",
+          "cols": [
+            "promotion_id"
+          ],
+          "target": "promotion",
+          "targetSchema": "lab22_b",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_target_pkey ON lab22_b.product_target USING btree (promotion_id, product_id)"
+      ],
+      "samples": [
+        [
+          1,
+          100
+        ]
+      ]
+    },
+    {
+      "schema": "lab22_b",
+      "name": "promotion",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "discount",
+          "numeric(5,4)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((discount > (0)::numeric) AND (discount <= (1)::numeric)))",
+          "cols": [
+            "discount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX promotion_pkey ON lab22_b.promotion USING btree (id)"
+      ],
+      "samples": [
+        [
+          1,
+          "指定商品折扣",
+          "0.1000"
+        ],
+        [
+          2,
+          "服飾分類折扣",
+          "0.1500"
+        ]
+      ]
+    }
+  ]
+}

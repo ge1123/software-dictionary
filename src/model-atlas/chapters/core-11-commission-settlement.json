@@ -1,0 +1,482 @@
+{
+  "intro": "合約改版不能改動已結算結果。",
+  "comparison": [
+    [
+      "面向",
+      "A 現況計算",
+      "B 版本與結果"
+    ],
+    [
+      "調整新約",
+      "改一列",
+      "新增版本，後續交易指新版"
+    ],
+    [
+      "查歷史佣金",
+      "受新約影響",
+      "直接讀快照"
+    ],
+    [
+      "查規則依據",
+      "只有現況",
+      "關聯成交規則版本"
+    ],
+    [
+      "修正已結算結果",
+      "容易覆蓋",
+      "需新增調整流程"
+    ],
+    [
+      "儲存與流程成本",
+      "低",
+      "多表、鎖定結果與版本治理"
+    ]
+  ],
+  "labSha256": "0cbcf83965353787919354e998b3eba960f93ddc3dc1009ccdd6f235c2ac957f",
+  "plans": [
+    {
+      "code": "A",
+      "title": "交易永遠讀最新合約",
+      "line": 11,
+      "tables": [
+        "lab11_a.contract",
+        "lab11_a.sale"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "不可變規則版本＋結算明細快照",
+      "line": 49,
+      "tables": [
+        "lab11_b.batch",
+        "lab11_b.contract",
+        "lab11_b.rule_version",
+        "lab11_b.sale",
+        "lab11_b.settlement_line"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab11_a",
+      "name": "contract",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "rate",
+          "numeric(7,6)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((rate >= (0)::numeric) AND (rate <= (1)::numeric)))",
+          "cols": [
+            "rate"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX contract_pkey ON lab11_a.contract USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "0.150000"
+        ]
+      ]
+    },
+    {
+      "schema": "lab11_a",
+      "name": "sale",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "contract_id",
+          "bigint",
+          true
+        ],
+        [
+          "base_amount",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((base_amount >= (0)::numeric))",
+          "cols": [
+            "base_amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (contract_id) REFERENCES lab11_a.contract(id)",
+          "cols": [
+            "contract_id"
+          ],
+          "target": "contract",
+          "targetSchema": "lab11_a",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sale_pkey ON lab11_a.sale USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "1",
+          "1000.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab11_b",
+      "name": "batch",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "period_start",
+          "date",
+          true
+        ],
+        [
+          "period_end",
+          "date",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((period_end > period_start))",
+          "cols": [
+            "period_end",
+            "period_start"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX batch_pkey ON lab11_b.batch USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "2026-08-31T16:00:00.000Z",
+          "2026-09-30T16:00:00.000Z"
+        ]
+      ]
+    },
+    {
+      "schema": "lab11_b",
+      "name": "contract",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX contract_pkey ON lab11_b.contract USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1"
+        ]
+      ]
+    },
+    {
+      "schema": "lab11_b",
+      "name": "rule_version",
+      "kind": "r",
+      "columns": [
+        [
+          "contract_id",
+          "bigint",
+          true
+        ],
+        [
+          "version_no",
+          "integer",
+          true
+        ],
+        [
+          "rate",
+          "numeric(7,6)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (contract_id) REFERENCES lab11_b.contract(id)",
+          "cols": [
+            "contract_id"
+          ],
+          "target": "contract",
+          "targetSchema": "lab11_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (contract_id, version_no)",
+          "cols": [
+            "contract_id",
+            "version_no"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((rate >= (0)::numeric) AND (rate <= (1)::numeric)))",
+          "cols": [
+            "rate"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((version_no > 0))",
+          "cols": [
+            "version_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX rule_version_pkey ON lab11_b.rule_version USING btree (contract_id, version_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          1,
+          "0.100000"
+        ],
+        [
+          "1",
+          2,
+          "0.150000"
+        ]
+      ]
+    },
+    {
+      "schema": "lab11_b",
+      "name": "sale",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "contract_id",
+          "bigint",
+          true
+        ],
+        [
+          "version_no",
+          "integer",
+          true
+        ],
+        [
+          "base_amount",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((base_amount >= (0)::numeric))",
+          "cols": [
+            "base_amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (contract_id, version_no) REFERENCES lab11_b.rule_version(contract_id, version_no)",
+          "cols": [
+            "contract_id",
+            "version_no"
+          ],
+          "target": "rule_version",
+          "targetSchema": "lab11_b",
+          "refs": [
+            "contract_id",
+            "version_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sale_pkey ON lab11_b.sale USING btree (id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "1",
+          1,
+          "1000.00"
+        ]
+      ]
+    },
+    {
+      "schema": "lab11_b",
+      "name": "settlement_line",
+      "kind": "r",
+      "columns": [
+        [
+          "sale_id",
+          "bigint",
+          true
+        ],
+        [
+          "batch_id",
+          "bigint",
+          true
+        ],
+        [
+          "base_snapshot",
+          "numeric(12,2)",
+          true
+        ],
+        [
+          "rate_snapshot",
+          "numeric(7,6)",
+          true
+        ],
+        [
+          "commission",
+          "numeric(12,2)",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((base_snapshot >= (0)::numeric))",
+          "cols": [
+            "base_snapshot"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (batch_id) REFERENCES lab11_b.batch(id)",
+          "cols": [
+            "batch_id"
+          ],
+          "target": "batch",
+          "targetSchema": "lab11_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((commission = round((base_snapshot * rate_snapshot), 2)))",
+          "cols": [
+            "commission",
+            "base_snapshot",
+            "rate_snapshot"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sale_id)",
+          "cols": [
+            "sale_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((rate_snapshot >= (0)::numeric) AND (rate_snapshot <= (1)::numeric)))",
+          "cols": [
+            "rate_snapshot"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (sale_id) REFERENCES lab11_b.sale(id)",
+          "cols": [
+            "sale_id"
+          ],
+          "target": "sale",
+          "targetSchema": "lab11_b",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX settlement_line_pkey ON lab11_b.settlement_line USING btree (sale_id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "1",
+          "1000.00",
+          "0.100000",
+          "100.00"
+        ]
+      ]
+    }
+  ]
+}

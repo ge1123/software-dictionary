@@ -1,0 +1,246 @@
+{
+  "intro": "下單預留，逾期未付款釋放。",
+  "comparison": [
+    [
+      "面向",
+      "A 可售量",
+      "B 預留紀錄＋摘要"
+    ],
+    [
+      "防負庫存",
+      "條件式 UPDATE",
+      "條件式 UPDATE"
+    ],
+    [
+      "查保留歸屬",
+      "沒有",
+      "reservation_id"
+    ],
+    [
+      "到期與重送",
+      "無法可靠辨識",
+      "狀態條件與鎖"
+    ],
+    [
+      "寫入成本",
+      "一列",
+      "庫存＋預留同交易"
+    ],
+    [
+      "故障追查",
+      "只能看到數字",
+      "能查活躍、確認、過期"
+    ]
+  ],
+  "labSha256": "42e710d8989dafa840a275ad3eba8673c623cccfed554eb9ddee32de1445f4ad",
+  "plans": [
+    {
+      "code": "A",
+      "title": "下單直接扣一個 available 欄位",
+      "line": 11,
+      "tables": [
+        "lab07_a.stock"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "庫存摘要＋獨立預留",
+      "line": 46,
+      "tables": [
+        "lab07_b.reservation",
+        "lab07_b.stock"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab07_a",
+      "name": "stock",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "available",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((available >= 0))",
+          "cols": [
+            "available"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX stock_pkey ON lab07_a.stock USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          17
+        ]
+      ]
+    },
+    {
+      "schema": "lab07_b",
+      "name": "reservation",
+      "kind": "r",
+      "columns": [
+        [
+          "reservation_id",
+          "text",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ],
+        [
+          "expires_at",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "status",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (reservation_id)",
+          "cols": [
+            "reservation_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (sku_id) REFERENCES lab07_b.stock(sku_id)",
+          "cols": [
+            "sku_id"
+          ],
+          "target": "stock",
+          "targetSchema": "lab07_b",
+          "refs": [
+            "sku_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((status = ANY (ARRAY['active'::text, 'confirmed'::text, 'expired'::text])))",
+          "cols": [
+            "status"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX reservation_pkey ON lab07_b.reservation USING btree (reservation_id)"
+      ],
+      "samples": [
+        [
+          "R1",
+          "11",
+          7,
+          "2026-11-22T07:53:15.649Z",
+          "expired"
+        ],
+        [
+          "R3",
+          "11",
+          2,
+          "2026-11-22T08:54:15.649Z",
+          "confirmed"
+        ]
+      ]
+    },
+    {
+      "schema": "lab07_b",
+      "name": "stock",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "on_hand",
+          "integer",
+          true
+        ],
+        [
+          "reserved",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK (((reserved >= 0) AND (reserved <= on_hand)))",
+          "cols": [
+            "reserved",
+            "on_hand"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((on_hand >= 0))",
+          "cols": [
+            "on_hand"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX stock_pkey ON lab07_b.stock USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "12",
+          10,
+          0
+        ],
+        [
+          "11",
+          8,
+          0
+        ]
+      ]
+    }
+  ]
+}

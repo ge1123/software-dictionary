@@ -1,0 +1,335 @@
+{
+  "intro": "白色 M 號衣服與白色 L 號衣服各有庫存；牙刷禮盒包含兩支牙刷。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 單規格商品",
+      "每個商品只有一種販售單位。",
+      "加入尺寸後，名稱相同的商品需要共同分組。"
+    ],
+    [
+      "B 商品與 SKU",
+      "同款衣服有顏色與尺寸。",
+      "更多規格軸需要增加欄位或規格值關聯表。"
+    ],
+    [
+      "C 組合商品",
+      "牙刷禮盒使用散裝牙刷庫存。",
+      "CHECK 只擋自我引用；多層循環由遞迴檢查與受控寫入阻止。"
+    ]
+  ],
+  "labSha256": "562ee2682fc42a030576cc76a257f47125720341eb8cc72b794fd693094ece54",
+  "plans": [
+    {
+      "code": "A",
+      "title": "單規格商品",
+      "line": 19,
+      "tables": [
+        "ec_02_a.product"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "商品與 SKU",
+      "line": 63,
+      "tables": [
+        "ec_02_b.product",
+        "ec_02_b.sku"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "組合商品",
+      "line": 127,
+      "tables": [
+        "ec_02_c.bundle_component",
+        "ec_02_c.sku"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_02_a",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "code",
+          "text",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (code)",
+          "cols": [
+            "code"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON ec_02_a.product USING btree (id)",
+        "CREATE UNIQUE INDEX product_code_key ON ec_02_a.product USING btree (code)"
+      ],
+      "samples": [
+        [
+          "1",
+          "BRUSH",
+          "牙刷"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_02_b",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON ec_02_b.product USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "棉質上衣"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_02_b",
+      "name": "sku",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "product_id",
+          "bigint",
+          true
+        ],
+        [
+          "color",
+          "text",
+          true
+        ],
+        [
+          "size",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (product_id, color, size)",
+          "cols": [
+            "product_id",
+            "color",
+            "size"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES ec_02_b.product(id)",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "ec_02_b",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sku_pkey ON ec_02_b.sku USING btree (id)",
+        "CREATE UNIQUE INDEX sku_product_id_color_size_key ON ec_02_b.sku USING btree (product_id, color, size)"
+      ],
+      "samples": [
+        [
+          "11",
+          "1",
+          "白",
+          "M"
+        ],
+        [
+          "12",
+          "1",
+          "白",
+          "L"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_02_c",
+      "name": "bundle_component",
+      "kind": "r",
+      "columns": [
+        [
+          "bundle_id",
+          "bigint",
+          true
+        ],
+        [
+          "component_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (bundle_id) REFERENCES sku(id)",
+          "cols": [
+            "bundle_id"
+          ],
+          "target": "sku",
+          "targetSchema": "ec_02_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((bundle_id <> component_id))",
+          "cols": [
+            "bundle_id",
+            "component_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (component_id) REFERENCES sku(id)",
+          "cols": [
+            "component_id"
+          ],
+          "target": "sku",
+          "targetSchema": "ec_02_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (bundle_id, component_id)",
+          "cols": [
+            "bundle_id",
+            "component_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX bundle_component_pkey ON ec_02_c.bundle_component USING btree (bundle_id, component_id)"
+      ],
+      "samples": [
+        [
+          "21",
+          "11",
+          2
+        ]
+      ]
+    },
+    {
+      "schema": "ec_02_c",
+      "name": "sku",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sku_pkey ON ec_02_c.sku USING btree (id)"
+      ],
+      "samples": [
+        [
+          "11",
+          "牙刷"
+        ],
+        [
+          "21",
+          "雙入牙刷禮盒"
+        ]
+      ]
+    }
+  ]
+}

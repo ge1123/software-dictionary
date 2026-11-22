@@ -1,0 +1,499 @@
+{
+  "intro": "兩件衣服先退一件，隔天再退另一件。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 整單退款",
+      "只允許一次全額退款。",
+      "退款金額由原付款取得，無法部分退款。"
+    ],
+    [
+      "B 多次部分退款",
+      "依退貨品項分次退現金。",
+      "SUM 上限由交易保障；unknown 不能立即釋放額度。"
+    ],
+    [
+      "C 多支付來源退款",
+      "原單使用禮物卡及信用卡。",
+      "點數退還另接點數模組；每來源額度與原單歸屬需交易核對。"
+    ]
+  ],
+  "labSha256": "ae97835581649bea46044725613687ab050d52d4c717ce74d10a87a97e8b33ab",
+  "plans": [
+    {
+      "code": "A",
+      "title": "整單退款",
+      "line": 19,
+      "tables": [
+        "ec_18_a.payment",
+        "ec_18_a.refund"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "多次部分退款",
+      "line": 79,
+      "tables": [
+        "ec_18_b.payment",
+        "ec_18_b.refund"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "多支付來源退款",
+      "line": 144,
+      "tables": [
+        "ec_18_c.payment_source",
+        "ec_18_c.refund_case",
+        "ec_18_c.refund_part"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_18_a",
+      "name": "payment",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX payment_pkey ON ec_18_a.payment USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "900"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_18_a",
+      "name": "refund",
+      "kind": "r",
+      "columns": [
+        [
+          "payment_id",
+          "bigint",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (payment_id) REFERENCES ec_18_a.payment(id)",
+          "cols": [
+            "payment_id"
+          ],
+          "target": "payment",
+          "targetSchema": "ec_18_a",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (payment_id)",
+          "cols": [
+            "payment_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX refund_pkey ON ec_18_a.refund USING btree (payment_id)",
+        "CREATE UNIQUE INDEX refund_request_key_key ON ec_18_a.refund USING btree (request_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "refund-1",
+          "pending"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_18_b",
+      "name": "payment",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX payment_pkey ON ec_18_b.payment USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "900"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_18_b",
+      "name": "refund",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "payment_id",
+          "bigint",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (payment_id) REFERENCES ec_18_b.payment(id)",
+          "cols": [
+            "payment_id"
+          ],
+          "target": "payment",
+          "targetSchema": "ec_18_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((state = ANY (ARRAY['pending'::text, 'unknown'::text, 'failed'::text, 'succeeded'::text])))",
+          "cols": [
+            "state"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX refund_pkey ON ec_18_b.refund USING btree (id)",
+        "CREATE UNIQUE INDEX refund_request_key_key ON ec_18_b.refund USING btree (request_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "refund-1",
+          "450",
+          "succeeded"
+        ],
+        [
+          "2",
+          "1",
+          "refund-2",
+          "450",
+          "pending"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_18_c",
+      "name": "payment_source",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "method",
+          "text",
+          true
+        ],
+        [
+          "paid",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((paid > 0))",
+          "cols": [
+            "paid"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX payment_source_pkey ON ec_18_c.payment_source USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "gift_card",
+          "100"
+        ],
+        [
+          "2",
+          "card",
+          "900"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_18_c",
+      "name": "refund_case",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "return_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (return_id)",
+          "cols": [
+            "return_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX refund_case_pkey ON ec_18_c.refund_case USING btree (id)",
+        "CREATE UNIQUE INDEX refund_case_return_id_key ON ec_18_c.refund_case USING btree (return_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "201"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_18_c",
+      "name": "refund_part",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "case_id",
+          "bigint",
+          true
+        ],
+        [
+          "source_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (case_id) REFERENCES refund_case(id)",
+          "cols": [
+            "case_id"
+          ],
+          "target": "refund_case",
+          "targetSchema": "ec_18_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (source_id) REFERENCES payment_source(id)",
+          "cols": [
+            "source_id"
+          ],
+          "target": "payment_source",
+          "targetSchema": "ec_18_c",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX refund_part_pkey ON ec_18_c.refund_part USING btree (id)",
+        "CREATE UNIQUE INDEX refund_part_request_key_key ON ec_18_c.refund_part USING btree (request_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "1",
+          "50",
+          "succeeded",
+          "r1-gift"
+        ],
+        [
+          "2",
+          "1",
+          "2",
+          "450",
+          "pending",
+          "r1-card"
+        ]
+      ]
+    }
+  ]
+}

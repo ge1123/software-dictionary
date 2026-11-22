@@ -1,0 +1,350 @@
+{
+  "intro": "會員編號在通路內唯一，跨通路可重複。",
+  "comparison": [
+    [
+      "面向",
+      "A 流水號而已",
+      "B 複合自然鍵",
+      "C 流水號＋唯一鍵"
+    ],
+    [
+      "跨通路同號",
+      "允許",
+      "允許",
+      "允許"
+    ],
+    [
+      "同通路重複",
+      "仍允許",
+      "拒絕",
+      "拒絕"
+    ],
+    [
+      "子表關聯欄位",
+      "一個ID",
+      "通路＋會員號",
+      "一個ID"
+    ],
+    [
+      "業務改號",
+      "關聯穩定但仍可重複",
+      "級聯更新子表",
+      "原ID不變"
+    ],
+    [
+      "索引成本",
+      "最少但需求不足",
+      "主鍵索引",
+      "主鍵＋業務唯一索引"
+    ]
+  ],
+  "labSha256": "453fe52117f6040e7df504b892af1376216dd1c081a7269a074791831f5f0e40",
+  "plans": [
+    {
+      "code": "A",
+      "title": "只使用流水號主鍵",
+      "line": 11,
+      "tables": [
+        "lab15_a.member"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "通路＋會員號當自然複合主鍵",
+      "line": 39,
+      "tables": [
+        "lab15_b.member",
+        "lab15_b.orders"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "穩定內部ID＋範圍唯一鍵",
+      "line": 79,
+      "tables": [
+        "lab15_c.member",
+        "lab15_c.orders"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab15_a",
+      "name": "member",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "member_no",
+          "text",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX member_pkey ON lab15_a.member USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "0007",
+          "王先生"
+        ],
+        [
+          "2",
+          "1",
+          "0007",
+          "王先生"
+        ]
+      ]
+    },
+    {
+      "schema": "lab15_b",
+      "name": "member",
+      "kind": "r",
+      "columns": [
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "member_no",
+          "text",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(member_no) <> ''::text))",
+          "cols": [
+            "member_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (channel_id, member_no)",
+          "cols": [
+            "channel_id",
+            "member_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX member_pkey ON lab15_b.member USING btree (channel_id, member_no)"
+      ],
+      "samples": [
+        [
+          "2",
+          "0007",
+          "李小姐"
+        ],
+        [
+          "1",
+          "A0007",
+          "王先生"
+        ]
+      ]
+    },
+    {
+      "schema": "lab15_b",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "member_no",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (channel_id, member_no) REFERENCES lab15_b.member(channel_id, member_no) ON UPDATE CASCADE",
+          "cols": [
+            "channel_id",
+            "member_no"
+          ],
+          "target": "member",
+          "targetSchema": "lab15_b",
+          "refs": [
+            "channel_id",
+            "member_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab15_b.orders USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "A0007"
+        ]
+      ]
+    },
+    {
+      "schema": "lab15_c",
+      "name": "member",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "channel_id",
+          "bigint",
+          true
+        ],
+        [
+          "member_no",
+          "text",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (channel_id, member_no)",
+          "cols": [
+            "channel_id",
+            "member_no"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(member_no) <> ''::text))",
+          "cols": [
+            "member_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX member_pkey ON lab15_c.member USING btree (id)",
+        "CREATE UNIQUE INDEX member_channel_id_member_no_key ON lab15_c.member USING btree (channel_id, member_no)"
+      ],
+      "samples": [
+        [
+          "2",
+          "2",
+          "0007",
+          "李小姐"
+        ],
+        [
+          "1",
+          "1",
+          "A0007",
+          "王先生"
+        ]
+      ]
+    },
+    {
+      "schema": "lab15_c",
+      "name": "orders",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "member_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (member_id) REFERENCES lab15_c.member(id)",
+          "cols": [
+            "member_id"
+          ],
+          "target": "member",
+          "targetSchema": "lab15_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX orders_pkey ON lab15_c.orders USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1"
+        ]
+      ]
+    }
+  ]
+}

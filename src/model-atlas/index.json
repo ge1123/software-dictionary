@@ -1,0 +1,541 @@
+{
+  "revision": "1074f9176e7342880756c957f5d56860cd2defb9",
+  "chapters": [
+    {
+      "slug": "core-01-business-parties",
+      "group": "core",
+      "title": "公司與業務角色",
+      "source": "01-business-parties",
+      "term": "commerce/supplier",
+      "plans": "ABC"
+    },
+    {
+      "slug": "core-02-product-sku",
+      "group": "core",
+      "title": "商品與 SKU",
+      "source": "02-product-sku",
+      "term": "commerce/product-variant",
+      "plans": "ABC"
+    },
+    {
+      "slug": "core-03-channel-pricing",
+      "group": "core",
+      "title": "通路價格",
+      "source": "03-channel-pricing",
+      "term": "commerce/channel-pricing",
+      "plans": "ABC"
+    },
+    {
+      "slug": "core-04-tiered-effective-pricing",
+      "group": "core",
+      "title": "級距與有效期",
+      "source": "04-tiered-effective-pricing",
+      "term": "commerce/channel-pricing",
+      "plans": "ABC"
+    },
+    {
+      "slug": "core-05-order-snapshots",
+      "group": "core",
+      "title": "訂單快照",
+      "source": "05-order-snapshots",
+      "term": "commerce/price-snapshot",
+      "plans": "ABC"
+    },
+    {
+      "slug": "core-06-split-shipments",
+      "group": "core",
+      "title": "分批出貨",
+      "source": "06-split-shipments",
+      "term": "commerce/partial-shipment",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-07-inventory-reservations",
+      "group": "core",
+      "title": "庫存預留",
+      "source": "07-inventory-reservations",
+      "term": "commerce/inventory-reservation",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-08-inventory-ledger",
+      "group": "core",
+      "title": "庫存流水",
+      "source": "08-inventory-ledger",
+      "term": "commerce/on-hand-quantity",
+      "plans": "ABC"
+    },
+    {
+      "slug": "core-09-payments-refunds",
+      "group": "core",
+      "title": "付款與退款",
+      "source": "09-payments-refunds",
+      "term": "commerce/payment-attempt",
+      "plans": "ABC"
+    },
+    {
+      "slug": "core-10-voucher-redemption",
+      "group": "core",
+      "title": "票券核銷",
+      "source": "10-voucher-redemption",
+      "term": "commerce/voucher-redemption",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-11-commission-settlement",
+      "group": "core",
+      "title": "分潤與結算",
+      "source": "11-commission-settlement",
+      "term": "commerce/supplier-settlement",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-12-order-idempotency",
+      "group": "core",
+      "title": "重送與冪等",
+      "source": "12-order-idempotency",
+      "term": "backend/idempotency-key",
+      "plans": "ABC"
+    },
+    {
+      "slug": "core-13-tenant-isolation",
+      "group": "core",
+      "title": "多租戶隔離",
+      "source": "13-tenant-isolation",
+      "term": "backend/tenant-isolation",
+      "plans": "ABC"
+    },
+    {
+      "slug": "core-14-change-audit",
+      "group": "core",
+      "title": "資料異動稽核",
+      "source": "14-change-audit",
+      "term": "backend/cdc",
+      "plans": "ABC"
+    },
+    {
+      "slug": "core-15-identity-uniqueness",
+      "group": "core",
+      "title": "識別碼與唯一性",
+      "source": "15-identity-uniqueness",
+      "term": "unique",
+      "plans": "ABC"
+    },
+    {
+      "slug": "core-16-deletion-archiving",
+      "group": "core",
+      "title": "刪除與封存",
+      "source": "16-deletion-archiving",
+      "term": "commerce/channel-listing",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-17-addresses-defaults",
+      "group": "core",
+      "title": "地址與預設值",
+      "source": "17-addresses-defaults",
+      "term": "pg-partial-index",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-18-product-subtypes",
+      "group": "core",
+      "title": "商品子類型",
+      "source": "18-product-subtypes",
+      "term": "commerce/product-variant",
+      "plans": "ABC"
+    },
+    {
+      "slug": "core-19-dynamic-attributes",
+      "group": "core",
+      "title": "動態屬性",
+      "source": "19-dynamic-attributes",
+      "term": "commerce/product-variant",
+      "plans": "ABC"
+    },
+    {
+      "slug": "core-20-order-state-model",
+      "group": "core",
+      "title": "訂單狀態模型",
+      "source": "20-order-state-model",
+      "term": "commerce/order-state",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-21-approval-workflow",
+      "group": "core",
+      "title": "核准流程",
+      "source": "21-approval-workflow",
+      "term": "commerce/purchase-order",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-22-promotion-targets",
+      "group": "core",
+      "title": "促銷適用範圍",
+      "source": "22-promotion-targets",
+      "term": "commerce/promotion-eligibility",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-23-business-system-time",
+      "group": "core",
+      "title": "業務與系統時間",
+      "source": "23-business-system-time",
+      "term": "commerce/price-snapshot",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-24-corrections-reversals",
+      "group": "core",
+      "title": "更正與沖回",
+      "source": "24-corrections-reversals",
+      "term": "commerce/payment-reversal",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-25-money-currency-rounding",
+      "group": "core",
+      "title": "金額與幣別",
+      "source": "25-money-currency-rounding",
+      "term": "commerce/discount-allocation",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-26-external-identifiers",
+      "group": "core",
+      "title": "外部編號映射",
+      "source": "26-external-identifiers",
+      "term": "commerce/channel-sku-mapping",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-27-import-staging",
+      "group": "core",
+      "title": "批次匯入",
+      "source": "27-import-staging",
+      "term": "transaction",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-28-reporting-models",
+      "group": "core",
+      "title": "報表模型",
+      "source": "28-reporting-models",
+      "term": "backend/read-model",
+      "plans": "ABC"
+    },
+    {
+      "slug": "core-29-schema-evolution",
+      "group": "core",
+      "title": "Schema 演進",
+      "source": "29-schema-evolution",
+      "term": "backend/expand-contract",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-30-rbac",
+      "group": "core",
+      "title": "RBAC 角色權限",
+      "source": "30-rbac",
+      "term": "backend/authorization",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-31-tenant-custom-roles",
+      "group": "core",
+      "title": "租戶自訂角色",
+      "source": "31-tenant-custom-roles",
+      "term": "backend/multi-tenancy",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-32-tenant-memberships",
+      "group": "core",
+      "title": "跨租戶成員身分",
+      "source": "32-tenant-memberships",
+      "term": "backend/multi-tenancy",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-33-authorization-scopes",
+      "group": "core",
+      "title": "資料授權範圍",
+      "source": "33-authorization-scopes",
+      "term": "backend/authorization",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-34-abac-policies",
+      "group": "core",
+      "title": "ABAC 屬性政策",
+      "source": "34-abac-policies",
+      "term": "backend/authorization",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-35-temporary-delegation",
+      "group": "core",
+      "title": "期限與代理授權",
+      "source": "35-temporary-delegation",
+      "term": "backend/authorization",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-36-separation-of-duties",
+      "group": "core",
+      "title": "職務分離",
+      "source": "36-separation-of-duties",
+      "term": "backend/authorization",
+      "plans": "AB"
+    },
+    {
+      "slug": "core-37-authorization-audit",
+      "group": "core",
+      "title": "授權判斷稽核",
+      "source": "37-authorization-audit",
+      "term": "backend/authorization",
+      "plans": "AB"
+    },
+    {
+      "slug": "commerce-01-customer",
+      "group": "commerce",
+      "title": "會員與購買人",
+      "source": "e-commerce_order/01-customer",
+      "term": "commerce/cart",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-02-product-sku",
+      "group": "commerce",
+      "title": "商品與規格",
+      "source": "e-commerce_order/02-product-sku",
+      "term": "commerce/product-variant",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-03-catalog-channel",
+      "group": "commerce",
+      "title": "分類與通路上架",
+      "source": "e-commerce_order/03-catalog-channel",
+      "term": "commerce/channel-listing",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-04-pricing",
+      "group": "commerce",
+      "title": "售價與價表",
+      "source": "e-commerce_order/04-pricing",
+      "term": "commerce/channel-pricing",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-05-cart",
+      "group": "commerce",
+      "title": "購物車",
+      "source": "e-commerce_order/05-cart",
+      "term": "commerce/cart",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-06-promotion",
+      "group": "commerce",
+      "title": "促銷活動",
+      "source": "e-commerce_order/06-promotion",
+      "term": "commerce/promotion-eligibility",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-07-coupon",
+      "group": "commerce",
+      "title": "優惠券",
+      "source": "e-commerce_order/07-coupon",
+      "term": "commerce/promotion-eligibility",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-08-loyalty-points",
+      "group": "commerce",
+      "title": "點數折抵與贈點",
+      "source": "e-commerce_order/08-loyalty-points",
+      "term": "commerce/loyalty-redemption",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-09-store-credit",
+      "group": "commerce",
+      "title": "購物金與禮物卡",
+      "source": "e-commerce_order/09-store-credit",
+      "term": "commerce/refund",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-10-checkout",
+      "group": "commerce",
+      "title": "結帳與報價",
+      "source": "e-commerce_order/10-checkout",
+      "term": "commerce/cart",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-11-order",
+      "group": "commerce",
+      "title": "訂單主檔與明細",
+      "source": "e-commerce_order/11-order",
+      "term": "commerce/split-order",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-12-order-amount",
+      "group": "commerce",
+      "title": "訂單金額與分攤",
+      "source": "e-commerce_order/12-order-amount",
+      "term": "commerce/discount-allocation",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-13-order-address",
+      "group": "commerce",
+      "title": "訂單地址與收件人",
+      "source": "e-commerce_order/13-order-address",
+      "term": "commerce/channel-order",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-14-order-state",
+      "group": "commerce",
+      "title": "訂單狀態與變更",
+      "source": "e-commerce_order/14-order-state",
+      "term": "commerce/order-state",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-15-inventory",
+      "group": "commerce",
+      "title": "庫存",
+      "source": "e-commerce_order/15-inventory",
+      "term": "commerce/on-hand-quantity",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-16-inventory-reservation",
+      "group": "commerce",
+      "title": "庫存保留",
+      "source": "e-commerce_order/16-inventory-reservation",
+      "term": "commerce/inventory-reservation",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-17-payment",
+      "group": "commerce",
+      "title": "付款",
+      "source": "e-commerce_order/17-payment",
+      "term": "commerce/payment-attempt",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-18-refund",
+      "group": "commerce",
+      "title": "退款",
+      "source": "e-commerce_order/18-refund",
+      "term": "commerce/refund",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-19-fulfillment",
+      "group": "commerce",
+      "title": "履約分配",
+      "source": "e-commerce_order/19-fulfillment",
+      "term": "commerce/drop-shipping",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-20-shipping",
+      "group": "commerce",
+      "title": "包裹與物流",
+      "source": "e-commerce_order/20-shipping",
+      "term": "commerce/partial-shipment",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-21-cancellation",
+      "group": "commerce",
+      "title": "取消訂單",
+      "source": "e-commerce_order/21-cancellation",
+      "term": "commerce/order-state",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-22-return",
+      "group": "commerce",
+      "title": "退貨與驗收",
+      "source": "e-commerce_order/22-return",
+      "term": "commerce/return-receipt",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-23-exchange",
+      "group": "commerce",
+      "title": "換貨",
+      "source": "e-commerce_order/23-exchange",
+      "term": "commerce/exchange-order",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-24-invoice",
+      "group": "commerce",
+      "title": "發票與折讓",
+      "source": "e-commerce_order/24-invoice",
+      "term": "commerce/outstanding-amount",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-25-seller-settlement",
+      "group": "commerce",
+      "title": "賣家分潤與結算",
+      "source": "e-commerce_order/25-seller-settlement",
+      "term": "commerce/supplier-settlement",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-26-reconciliation",
+      "group": "commerce",
+      "title": "金流對帳",
+      "source": "e-commerce_order/26-reconciliation",
+      "term": "commerce/payment-reconciliation",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-27-subscription",
+      "group": "commerce",
+      "title": "訂閱與定期購",
+      "source": "e-commerce_order/27-subscription",
+      "term": "commerce/payment-attempt",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-28-external-reference",
+      "group": "commerce",
+      "title": "外部系統編號與同步",
+      "source": "e-commerce_order/28-external-reference",
+      "term": "commerce/channel-sku-mapping",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-29-idempotency-events",
+      "group": "commerce",
+      "title": "冪等與事件一致性",
+      "source": "e-commerce_order/29-idempotency-events",
+      "term": "backend/outbox",
+      "plans": "ABC"
+    },
+    {
+      "slug": "commerce-30-audit-history",
+      "group": "commerce",
+      "title": "操作稽核與歷史",
+      "source": "e-commerce_order/30-audit-history",
+      "term": "backend/cdc",
+      "plans": "ABC"
+    }
+  ]
+}

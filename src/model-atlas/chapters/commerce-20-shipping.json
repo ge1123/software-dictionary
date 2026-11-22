@@ -1,0 +1,430 @@
+{
+  "intro": "同訂單分兩個包裹，第一包到店，第二包配送失敗。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 訂單物流欄位",
+      "全單只有一個包裹。",
+      "無法表示拆包與重新配送歷史。"
+    ],
+    [
+      "B 包裹與內容",
+      "一張訂單分裝多箱。",
+      "包裹數量總和需與履約出貨核對；單號唯一範圍依承運商調整。"
+    ],
+    [
+      "C 運輸段與事件",
+      "跨倉轉運後由末端物流送達。",
+      "事件可能亂序；依事件時間及狀態規則更新目前狀態。"
+    ]
+  ],
+  "labSha256": "fa9a4775117452ed1e40ae8935a53b4a131fdaa00865cdcb88831b2061bdc01d",
+  "plans": [
+    {
+      "code": "A",
+      "title": "訂單物流欄位",
+      "line": 19,
+      "tables": [
+        "ec_20_a.order_shipping"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "包裹與內容",
+      "line": 64,
+      "tables": [
+        "ec_20_b.parcel",
+        "ec_20_b.parcel_item"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "運輸段與事件",
+      "line": 129,
+      "tables": [
+        "ec_20_c.parcel",
+        "ec_20_c.tracking_event",
+        "ec_20_c.transport_leg"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_20_a",
+      "name": "order_shipping",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "carrier",
+          "text",
+          true
+        ],
+        [
+          "tracking_no",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (carrier, tracking_no)",
+          "cols": [
+            "carrier",
+            "tracking_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_shipping_pkey ON ec_20_a.order_shipping USING btree (order_id)",
+        "CREATE UNIQUE INDEX order_shipping_carrier_tracking_no_key ON ec_20_a.order_shipping USING btree (carrier, tracking_no)"
+      ],
+      "samples": [
+        [
+          "101",
+          "demo-carrier",
+          "T001"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_20_b",
+      "name": "parcel",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "tracking_no",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (tracking_no)",
+          "cols": [
+            "tracking_no"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX parcel_pkey ON ec_20_b.parcel USING btree (id)",
+        "CREATE UNIQUE INDEX parcel_tracking_no_key ON ec_20_b.parcel USING btree (tracking_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101",
+          "T001"
+        ],
+        [
+          "2",
+          "101",
+          "T002"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_20_b",
+      "name": "parcel_item",
+      "kind": "r",
+      "columns": [
+        [
+          "parcel_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_line_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (parcel_id) REFERENCES ec_20_b.parcel(id)",
+          "cols": [
+            "parcel_id"
+          ],
+          "target": "parcel",
+          "targetSchema": "ec_20_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (parcel_id, order_line_id)",
+          "cols": [
+            "parcel_id",
+            "order_line_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX parcel_item_pkey ON ec_20_b.parcel_item USING btree (parcel_id, order_line_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1001",
+          1
+        ],
+        [
+          "2",
+          "1001",
+          1
+        ]
+      ]
+    },
+    {
+      "schema": "ec_20_c",
+      "name": "parcel",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX parcel_pkey ON ec_20_c.parcel USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_20_c",
+      "name": "tracking_event",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "leg_id",
+          "bigint",
+          true
+        ],
+        [
+          "external_event_key",
+          "text",
+          true
+        ],
+        [
+          "occurred_at",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "received_at",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "status",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (leg_id, external_event_key)",
+          "cols": [
+            "leg_id",
+            "external_event_key"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (leg_id) REFERENCES transport_leg(id)",
+          "cols": [
+            "leg_id"
+          ],
+          "target": "transport_leg",
+          "targetSchema": "ec_20_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX tracking_event_pkey ON ec_20_c.tracking_event USING btree (id)",
+        "CREATE UNIQUE INDEX tracking_event_leg_id_external_event_key_key ON ec_20_c.tracking_event USING btree (leg_id, external_event_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "2",
+          "E1",
+          "2026-11-18T09:00:00.000Z",
+          "2026-11-18T09:02:00.000Z",
+          "delivery_failed"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_20_c",
+      "name": "transport_leg",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "parcel_id",
+          "bigint",
+          true
+        ],
+        [
+          "leg_no",
+          "integer",
+          true
+        ],
+        [
+          "carrier",
+          "text",
+          true
+        ],
+        [
+          "tracking_no",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((leg_no > 0))",
+          "cols": [
+            "leg_no"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (parcel_id) REFERENCES parcel(id)",
+          "cols": [
+            "parcel_id"
+          ],
+          "target": "parcel",
+          "targetSchema": "ec_20_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (parcel_id, leg_no)",
+          "cols": [
+            "parcel_id",
+            "leg_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX transport_leg_pkey ON ec_20_c.transport_leg USING btree (id)",
+        "CREATE UNIQUE INDEX transport_leg_parcel_id_leg_no_key ON ec_20_c.transport_leg USING btree (parcel_id, leg_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          1,
+          "幹線",
+          "T001"
+        ],
+        [
+          "2",
+          "1",
+          2,
+          "末端",
+          "D001"
+        ]
+      ]
+    }
+  ]
+}

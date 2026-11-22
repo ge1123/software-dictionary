@@ -1,0 +1,372 @@
+{
+  "intro": "衣服打九折；滿千折百；指定品牌不能同時套用兩個活動。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 商品折價",
+      "每個商品同時只有一個促銷價。",
+      "無法表達滿額贈品與活動疊加。"
+    ],
+    [
+      "B 門檻與作用商品",
+      "滿 1,000 元折 100 元。",
+      "贈品需另建 gift_rule，記錄贈品 SKU 與數量。"
+    ],
+    [
+      "C 版本與互斥群組",
+      "品牌活動與全站活動有套用次序。",
+      "互斥及計算順序由計價服務保障；版本表需補適用對象與生效期間才可排程。"
+    ]
+  ],
+  "labSha256": "449b4fa5ee779c02a1498422036f757de5612c05457a88b7edf797c911e7e780",
+  "plans": [
+    {
+      "code": "A",
+      "title": "商品折價",
+      "line": 19,
+      "tables": [
+        "ec_06_a.sale_price"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "門檻與作用商品",
+      "line": 66,
+      "tables": [
+        "ec_06_b.promotion",
+        "ec_06_b.promotion_sku"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "版本與互斥群組",
+      "line": 127,
+      "tables": [
+        "ec_06_c.order_promotion",
+        "ec_06_c.promotion_version"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_06_a",
+      "name": "sale_price",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ],
+        [
+          "starts_at",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "ends_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((ends_at > starts_at))",
+          "cols": [
+            "ends_at",
+            "starts_at"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sale_price_pkey ON ec_06_a.sale_price USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          "450",
+          "2026-11-01T00:00:00.000Z",
+          "2026-12-01T00:00:00.000Z"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_06_b",
+      "name": "promotion",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "threshold_amount",
+          "bigint",
+          true
+        ],
+        [
+          "discount_amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((discount_amount >= 0))",
+          "cols": [
+            "discount_amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((threshold_amount >= 0))",
+          "cols": [
+            "threshold_amount"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX promotion_pkey ON ec_06_b.promotion USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1000",
+          "100"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_06_b",
+      "name": "promotion_sku",
+      "kind": "r",
+      "columns": [
+        [
+          "promotion_id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (promotion_id, sku_id)",
+          "cols": [
+            "promotion_id",
+            "sku_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (promotion_id) REFERENCES ec_06_b.promotion(id)",
+          "cols": [
+            "promotion_id"
+          ],
+          "target": "promotion",
+          "targetSchema": "ec_06_b",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX promotion_sku_pkey ON ec_06_b.promotion_sku USING btree (promotion_id, sku_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "11"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_06_c",
+      "name": "order_promotion",
+      "kind": "r",
+      "columns": [
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "version_id",
+          "bigint",
+          true
+        ],
+        [
+          "applied_amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((applied_amount >= 0))",
+          "cols": [
+            "applied_amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (order_id, version_id)",
+          "cols": [
+            "order_id",
+            "version_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (version_id) REFERENCES promotion_version(id)",
+          "cols": [
+            "version_id"
+          ],
+          "target": "promotion_version",
+          "targetSchema": "ec_06_c",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX order_promotion_pkey ON ec_06_c.order_promotion USING btree (order_id, version_id)"
+      ],
+      "samples": [
+        [
+          "101",
+          "1",
+          "100"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_06_c",
+      "name": "promotion_version",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "promotion_code",
+          "text",
+          true
+        ],
+        [
+          "version",
+          "integer",
+          true
+        ],
+        [
+          "priority",
+          "integer",
+          true
+        ],
+        [
+          "exclusive_group",
+          "text",
+          false
+        ],
+        [
+          "discount_amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((discount_amount >= 0))",
+          "cols": [
+            "discount_amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (promotion_code, version)",
+          "cols": [
+            "promotion_code",
+            "version"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((version > 0))",
+          "cols": [
+            "version"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX promotion_version_pkey ON ec_06_c.promotion_version USING btree (id)",
+        "CREATE UNIQUE INDEX promotion_version_promotion_code_version_key ON ec_06_c.promotion_version USING btree (promotion_code, version)"
+      ],
+      "samples": [
+        [
+          "1",
+          "NOV",
+          1,
+          10,
+          "brand",
+          "100"
+        ],
+        [
+          "2",
+          "VIP",
+          1,
+          20,
+          "brand",
+          "50"
+        ]
+      ]
+    }
+  ]
+}

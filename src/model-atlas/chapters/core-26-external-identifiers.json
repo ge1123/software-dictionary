@@ -1,0 +1,343 @@
+{
+  "intro": "同商品在各供應商與通路有不同編號。",
+  "comparison": [
+    [
+      "面向",
+      "A 商品外部欄位",
+      "B 映射表"
+    ],
+    [
+      "多來源",
+      "每次增加欄位或覆蓋",
+      "增加來源與映射列"
+    ],
+    [
+      "同碼異義",
+      "無來源可區分",
+      "複合主鍵區分"
+    ],
+    [
+      "多別名",
+      "不方便",
+      "多列指同商品"
+    ],
+    [
+      "查詢",
+      "單表",
+      "用來源與碼查映射"
+    ],
+    [
+      "歷史單據",
+      "容易被重新解析",
+      "保存解析結果"
+    ]
+  ],
+  "labSha256": "f0e48a8dec1b44011757e7c7c2dcb50ffa2279a9deebda8be912a7dbd58bf5e1",
+  "plans": [
+    {
+      "code": "A",
+      "title": "商品上直接放一個外部編號",
+      "line": 11,
+      "tables": [
+        "lab26_a.product"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "來源命名空間＋編號映射",
+      "line": 40,
+      "tables": [
+        "lab26_b.mapping",
+        "lab26_b.product",
+        "lab26_b.received_line",
+        "lab26_b.source"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab26_a",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ],
+        [
+          "external_code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (external_code)",
+          "cols": [
+            "external_code"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab26_a.product USING btree (id)",
+        "CREATE UNIQUE INDEX product_external_code_key ON lab26_a.product USING btree (external_code)"
+      ],
+      "samples": [
+        [
+          100,
+          "紅色上衣",
+          "CH-B-99"
+        ]
+      ]
+    },
+    {
+      "schema": "lab26_b",
+      "name": "mapping",
+      "kind": "r",
+      "columns": [
+        [
+          "source_id",
+          "integer",
+          true
+        ],
+        [
+          "external_code",
+          "text",
+          true
+        ],
+        [
+          "product_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((btrim(external_code) <> ''::text))",
+          "cols": [
+            "external_code"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (source_id, external_code)",
+          "cols": [
+            "source_id",
+            "external_code"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES lab26_b.product(id)",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "lab26_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (source_id) REFERENCES lab26_b.source(id)",
+          "cols": [
+            "source_id"
+          ],
+          "target": "source",
+          "targetSchema": "lab26_b",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX mapping_pkey ON lab26_b.mapping USING btree (source_id, external_code)"
+      ],
+      "samples": [
+        [
+          2,
+          "001",
+          200
+        ],
+        [
+          2,
+          "RED-99",
+          100
+        ]
+      ]
+    },
+    {
+      "schema": "lab26_b",
+      "name": "product",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX product_pkey ON lab26_b.product USING btree (id)"
+      ],
+      "samples": [
+        [
+          100,
+          "紅色上衣"
+        ],
+        [
+          200,
+          "藍色上衣"
+        ]
+      ]
+    },
+    {
+      "schema": "lab26_b",
+      "name": "received_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "source_id",
+          "integer",
+          true
+        ],
+        [
+          "external_code_snapshot",
+          "text",
+          true
+        ],
+        [
+          "product_id",
+          "integer",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (product_id) REFERENCES lab26_b.product(id)",
+          "cols": [
+            "product_id"
+          ],
+          "target": "product",
+          "targetSchema": "lab26_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (source_id) REFERENCES lab26_b.source(id)",
+          "cols": [
+            "source_id"
+          ],
+          "target": "source",
+          "targetSchema": "lab26_b",
+          "refs": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX received_line_pkey ON lab26_b.received_line USING btree (id)"
+      ],
+      "samples": [
+        [
+          1,
+          1,
+          "001",
+          100
+        ]
+      ]
+    },
+    {
+      "schema": "lab26_b",
+      "name": "source",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "integer",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (name)",
+          "cols": [
+            "name"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX source_pkey ON lab26_b.source USING btree (id)",
+        "CREATE UNIQUE INDEX source_name_key ON lab26_b.source USING btree (name)"
+      ],
+      "samples": [
+        [
+          1,
+          "供應商A正式環境"
+        ],
+        [
+          2,
+          "通路B正式環境"
+        ]
+      ]
+    }
+  ]
+}

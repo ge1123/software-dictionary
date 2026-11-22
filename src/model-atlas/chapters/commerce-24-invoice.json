@@ -1,0 +1,429 @@
+{
+  "intro": "兩次出貨分次開票，退其中一件需記折讓。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A 一單一票",
+      "單次開票。",
+      "稅額與法定欄位依所在地規則另訂。"
+    ],
+    [
+      "B 多票與品項對應",
+      "依出貨批次開票。",
+      "發票與履約對應可加 fulfillment_line_id，避免同次出貨重開。"
+    ],
+    [
+      "C 折讓與作廢重開",
+      "原票部分退貨或開立資料更正。",
+      "本章是單據關聯模型；作廢期限、稅額、點數稅務處理由業務規則補入。"
+    ]
+  ],
+  "labSha256": "b658fc261c536b1f7e6dcf4af98b9e0680e59bb7e4e453f06cac2cb3a1800a71",
+  "plans": [
+    {
+      "code": "A",
+      "title": "一單一票",
+      "line": 19,
+      "tables": [
+        "ec_24_a.invoice"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "多票與品項對應",
+      "line": 68,
+      "tables": [
+        "ec_24_b.invoice",
+        "ec_24_b.invoice_line"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "折讓與作廢重開",
+      "line": 136,
+      "tables": [
+        "ec_24_c.allowance",
+        "ec_24_c.invoice"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_24_a",
+      "name": "invoice",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "issuer_id",
+          "bigint",
+          true
+        ],
+        [
+          "invoice_no",
+          "text",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (issuer_id, invoice_no)",
+          "cols": [
+            "issuer_id",
+            "invoice_no"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (order_id)",
+          "cols": [
+            "order_id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX invoice_pkey ON ec_24_a.invoice USING btree (id)",
+        "CREATE UNIQUE INDEX invoice_order_id_key ON ec_24_a.invoice USING btree (order_id)",
+        "CREATE UNIQUE INDEX invoice_issuer_id_invoice_no_key ON ec_24_a.invoice USING btree (issuer_id, invoice_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101",
+          "8",
+          "INV001",
+          "1000"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_24_b",
+      "name": "invoice",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "order_id",
+          "bigint",
+          true
+        ],
+        [
+          "invoice_no",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (invoice_no)",
+          "cols": [
+            "invoice_no"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX invoice_pkey ON ec_24_b.invoice USING btree (id)",
+        "CREATE UNIQUE INDEX invoice_invoice_no_key ON ec_24_b.invoice USING btree (invoice_no)"
+      ],
+      "samples": [
+        [
+          "1",
+          "101",
+          "INV001"
+        ],
+        [
+          "2",
+          "101",
+          "INV002"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_24_b",
+      "name": "invoice_line",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "invoice_id",
+          "bigint",
+          true
+        ],
+        [
+          "order_line_id",
+          "bigint",
+          true
+        ],
+        [
+          "qty",
+          "integer",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (invoice_id) REFERENCES ec_24_b.invoice(id)",
+          "cols": [
+            "invoice_id"
+          ],
+          "target": "invoice",
+          "targetSchema": "ec_24_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((qty > 0))",
+          "cols": [
+            "qty"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX invoice_line_pkey ON ec_24_b.invoice_line USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "1001",
+          1,
+          "500"
+        ],
+        [
+          "2",
+          "2",
+          "1001",
+          1,
+          "500"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_24_c",
+      "name": "allowance",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "invoice_id",
+          "bigint",
+          true
+        ],
+        [
+          "request_key",
+          "text",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount > 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (invoice_id) REFERENCES invoice(id)",
+          "cols": [
+            "invoice_id"
+          ],
+          "target": "invoice",
+          "targetSchema": "ec_24_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (request_key)",
+          "cols": [
+            "request_key"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX allowance_pkey ON ec_24_c.allowance USING btree (id)",
+        "CREATE UNIQUE INDEX allowance_request_key_key ON ec_24_c.allowance USING btree (request_key)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1",
+          "allowance-201",
+          "500"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_24_c",
+      "name": "invoice",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ],
+        [
+          "state",
+          "text",
+          true
+        ],
+        [
+          "replaces_id",
+          "bigint",
+          false
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((replaces_id IS NULL) OR (replaces_id <> id)))",
+          "cols": [
+            "replaces_id",
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (replaces_id) REFERENCES invoice(id)",
+          "cols": [
+            "replaces_id"
+          ],
+          "target": "invoice",
+          "targetSchema": "ec_24_c",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (replaces_id)",
+          "cols": [
+            "replaces_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX invoice_pkey ON ec_24_c.invoice USING btree (id)",
+        "CREATE UNIQUE INDEX invoice_replaces_id_key ON ec_24_c.invoice USING btree (replaces_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "1000",
+          "issued",
+          null
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,613 @@
+{
+  "intro": "同一人是 A 公司採購員、B 公司財務。",
+  "comparison": [
+    [
+      "面向",
+      "A User帶租戶",
+      "B Membership"
+    ],
+    [
+      "一人多公司",
+      "需不同帳號或覆寫",
+      "多筆成員關係"
+    ],
+    [
+      "公司角色",
+      "帳號單一角色",
+      "角色綁成員身分"
+    ],
+    [
+      "單一公司離職",
+      "容易誤停整個帳號",
+      "改該 membership"
+    ],
+    [
+      "全域停權",
+      "停一個帳號",
+      "帳號 enabled=false"
+    ],
+    [
+      "租戶資料限制",
+      "尚需API驗證",
+      "仍需API驗證"
+    ]
+  ],
+  "labSha256": "c7912e7944ef6653e807ead4f73749e95bed6bdb4b39a8ca8e70bf844ae645a3",
+  "plans": [
+    {
+      "code": "A",
+      "title": "User 直接帶 TenantId 與 Role",
+      "line": 13,
+      "tables": [
+        "lab32_a.app_user",
+        "lab32_a.tenant"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "User＋Tenant＋Membership",
+      "line": 55,
+      "tables": [
+        "lab32_b.app_user",
+        "lab32_b.membership",
+        "lab32_b.membership_role",
+        "lab32_b.permission",
+        "lab32_b.role",
+        "lab32_b.role_permission",
+        "lab32_b.tenant"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "lab32_a",
+      "name": "app_user",
+      "kind": "r",
+      "columns": [
+        [
+          "user_id",
+          "bigint",
+          true
+        ],
+        [
+          "issuer",
+          "text",
+          true
+        ],
+        [
+          "subject",
+          "text",
+          true
+        ],
+        [
+          "tenant_id",
+          "bigint",
+          true
+        ],
+        [
+          "role_code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (issuer, subject)",
+          "cols": [
+            "issuer",
+            "subject"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (user_id)",
+          "cols": [
+            "user_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((role_code = ANY (ARRAY['buyer'::text, 'finance'::text])))",
+          "cols": [
+            "role_code"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id) REFERENCES lab32_a.tenant(tenant_id)",
+          "cols": [
+            "tenant_id"
+          ],
+          "target": "tenant",
+          "targetSchema": "lab32_a",
+          "refs": [
+            "tenant_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX app_user_pkey ON lab32_a.app_user USING btree (user_id)",
+        "CREATE UNIQUE INDEX app_user_issuer_subject_key ON lab32_a.app_user USING btree (issuer, subject)"
+      ],
+      "samples": [
+        [
+          "100",
+          "demo-idp",
+          "wang",
+          "2",
+          "finance"
+        ]
+      ]
+    },
+    {
+      "schema": "lab32_a",
+      "name": "tenant",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id)",
+          "cols": [
+            "tenant_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX tenant_pkey ON lab32_a.tenant USING btree (tenant_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "A公司"
+        ],
+        [
+          "2",
+          "B公司"
+        ]
+      ]
+    },
+    {
+      "schema": "lab32_b",
+      "name": "app_user",
+      "kind": "r",
+      "columns": [
+        [
+          "user_id",
+          "bigint",
+          true
+        ],
+        [
+          "issuer",
+          "text",
+          true
+        ],
+        [
+          "subject",
+          "text",
+          true
+        ],
+        [
+          "enabled",
+          "boolean",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "u",
+          "sql": "UNIQUE (issuer, subject)",
+          "cols": [
+            "issuer",
+            "subject"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (user_id)",
+          "cols": [
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX app_user_pkey ON lab32_b.app_user USING btree (user_id)",
+        "CREATE UNIQUE INDEX app_user_issuer_subject_key ON lab32_b.app_user USING btree (issuer, subject)"
+      ],
+      "samples": [
+        [
+          "100",
+          "demo-idp",
+          "wang",
+          false
+        ]
+      ]
+    },
+    {
+      "schema": "lab32_b",
+      "name": "membership",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "bigint",
+          true
+        ],
+        [
+          "user_id",
+          "bigint",
+          true
+        ],
+        [
+          "status",
+          "text",
+          true
+        ],
+        [
+          "joined_at",
+          "timestamp with time zone",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, user_id)",
+          "cols": [
+            "tenant_id",
+            "user_id"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((status = ANY (ARRAY['active'::text, 'suspended'::text, 'left'::text])))",
+          "cols": [
+            "status"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id) REFERENCES lab32_b.tenant(tenant_id)",
+          "cols": [
+            "tenant_id"
+          ],
+          "target": "tenant",
+          "targetSchema": "lab32_b",
+          "refs": [
+            "tenant_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (user_id) REFERENCES lab32_b.app_user(user_id)",
+          "cols": [
+            "user_id"
+          ],
+          "target": "app_user",
+          "targetSchema": "lab32_b",
+          "refs": [
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX membership_pkey ON lab32_b.membership USING btree (tenant_id, user_id)"
+      ],
+      "samples": [
+        [
+          "2",
+          "100",
+          "active",
+          "2026-10-01T16:00:00.000Z"
+        ],
+        [
+          "1",
+          "100",
+          "left",
+          "2026-09-30T16:00:00.000Z"
+        ]
+      ]
+    },
+    {
+      "schema": "lab32_b",
+      "name": "membership_role",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "bigint",
+          true
+        ],
+        [
+          "user_id",
+          "bigint",
+          true
+        ],
+        [
+          "role_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, user_id, role_id)",
+          "cols": [
+            "tenant_id",
+            "user_id",
+            "role_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, role_id) REFERENCES lab32_b.role(tenant_id, role_id)",
+          "cols": [
+            "tenant_id",
+            "role_id"
+          ],
+          "target": "role",
+          "targetSchema": "lab32_b",
+          "refs": [
+            "tenant_id",
+            "role_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, user_id) REFERENCES lab32_b.membership(tenant_id, user_id)",
+          "cols": [
+            "tenant_id",
+            "user_id"
+          ],
+          "target": "membership",
+          "targetSchema": "lab32_b",
+          "refs": [
+            "tenant_id",
+            "user_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX membership_role_pkey ON lab32_b.membership_role USING btree (tenant_id, user_id, role_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "100",
+          "10"
+        ],
+        [
+          "2",
+          "100",
+          "20"
+        ]
+      ]
+    },
+    {
+      "schema": "lab32_b",
+      "name": "permission",
+      "kind": "r",
+      "columns": [
+        [
+          "permission_code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (permission_code)",
+          "cols": [
+            "permission_code"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX permission_pkey ON lab32_b.permission USING btree (permission_code)"
+      ],
+      "samples": [
+        [
+          "order.create"
+        ],
+        [
+          "ledger.read"
+        ]
+      ]
+    },
+    {
+      "schema": "lab32_b",
+      "name": "role",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "bigint",
+          true
+        ],
+        [
+          "role_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, role_id)",
+          "cols": [
+            "tenant_id",
+            "role_id"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id) REFERENCES lab32_b.tenant(tenant_id)",
+          "cols": [
+            "tenant_id"
+          ],
+          "target": "tenant",
+          "targetSchema": "lab32_b",
+          "refs": [
+            "tenant_id"
+          ]
+        },
+        {
+          "type": "u",
+          "sql": "UNIQUE (tenant_id, name)",
+          "cols": [
+            "tenant_id",
+            "name"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX role_pkey ON lab32_b.role USING btree (tenant_id, role_id)",
+        "CREATE UNIQUE INDEX role_tenant_id_name_key ON lab32_b.role USING btree (tenant_id, name)"
+      ],
+      "samples": [
+        [
+          "1",
+          "10",
+          "採購員"
+        ],
+        [
+          "2",
+          "20",
+          "財務"
+        ]
+      ]
+    },
+    {
+      "schema": "lab32_b",
+      "name": "role_permission",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "bigint",
+          true
+        ],
+        [
+          "role_id",
+          "bigint",
+          true
+        ],
+        [
+          "permission_code",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (permission_code) REFERENCES lab32_b.permission(permission_code)",
+          "cols": [
+            "permission_code"
+          ],
+          "target": "permission",
+          "targetSchema": "lab32_b",
+          "refs": [
+            "permission_code"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id, role_id, permission_code)",
+          "cols": [
+            "tenant_id",
+            "role_id",
+            "permission_code"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (tenant_id, role_id) REFERENCES lab32_b.role(tenant_id, role_id)",
+          "cols": [
+            "tenant_id",
+            "role_id"
+          ],
+          "target": "role",
+          "targetSchema": "lab32_b",
+          "refs": [
+            "tenant_id",
+            "role_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX role_permission_pkey ON lab32_b.role_permission USING btree (tenant_id, role_id, permission_code)"
+      ],
+      "samples": [
+        [
+          "1",
+          "10",
+          "order.create"
+        ],
+        [
+          "2",
+          "20",
+          "ledger.read"
+        ]
+      ]
+    },
+    {
+      "schema": "lab32_b",
+      "name": "tenant",
+      "kind": "r",
+      "columns": [
+        [
+          "tenant_id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (tenant_id)",
+          "cols": [
+            "tenant_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX tenant_pkey ON lab32_b.tenant USING btree (tenant_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "A公司"
+        ],
+        [
+          "2",
+          "B公司"
+        ]
+      ]
+    }
+  ]
+}

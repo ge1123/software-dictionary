@@ -1,0 +1,360 @@
+{
+  "intro": "衣服原價 500 元，會員價 450 元，批量採購每件 400 元。",
+  "comparison": [
+    [
+      "方案",
+      "適用需求",
+      "代價與邊界"
+    ],
+    [
+      "A SKU 固定價",
+      "售價不分客群。",
+      "改價會覆蓋目前價；歷史價格由訂單快照保留。"
+    ],
+    [
+      "B 價目表與客群",
+      "一般會員與 VIP 使用不同價目表。",
+      "需定義缺價時拒絕或回退一般價。"
+    ],
+    [
+      "C 數量級距與時間版本",
+      "十件以上每件 400 元，活動下月開始。",
+      "此 DDL 未阻止跨列區間重疊；寫入需鎖 SKU 檢查，或加 PostgreSQL exclusion constraint。"
+    ]
+  ],
+  "labSha256": "98d7f2aa602f108a60a352bfa4899f7fd26e3b70eb5dd6be46ebee2edeea2604",
+  "plans": [
+    {
+      "code": "A",
+      "title": "SKU 固定價",
+      "line": 19,
+      "tables": [
+        "ec_04_a.sku_price"
+      ]
+    },
+    {
+      "code": "B",
+      "title": "價目表與客群",
+      "line": 63,
+      "tables": [
+        "ec_04_b.audience_price",
+        "ec_04_b.price_item",
+        "ec_04_b.price_list"
+      ]
+    },
+    {
+      "code": "C",
+      "title": "數量級距與時間版本",
+      "line": 142,
+      "tables": [
+        "ec_04_c.price_rule"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schema": "ec_04_a",
+      "name": "sku_price",
+      "kind": "r",
+      "columns": [
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ],
+        [
+          "currency",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (sku_id)",
+          "cols": [
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX sku_price_pkey ON ec_04_a.sku_price USING btree (sku_id)"
+      ],
+      "samples": [
+        [
+          "11",
+          "500",
+          "TWD"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_04_b",
+      "name": "audience_price",
+      "kind": "r",
+      "columns": [
+        [
+          "audience",
+          "text",
+          true
+        ],
+        [
+          "list_id",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (list_id) REFERENCES ec_04_b.price_list(id)",
+          "cols": [
+            "list_id"
+          ],
+          "target": "price_list",
+          "targetSchema": "ec_04_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (audience)",
+          "cols": [
+            "audience"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX audience_price_pkey ON ec_04_b.audience_price USING btree (audience)"
+      ],
+      "samples": [
+        [
+          "VIP",
+          "2"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_04_b",
+      "name": "price_item",
+      "kind": "r",
+      "columns": [
+        [
+          "list_id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "f",
+          "sql": "FOREIGN KEY (list_id) REFERENCES ec_04_b.price_list(id)",
+          "cols": [
+            "list_id"
+          ],
+          "target": "price_list",
+          "targetSchema": "ec_04_b",
+          "refs": [
+            "id"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (list_id, sku_id)",
+          "cols": [
+            "list_id",
+            "sku_id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX price_item_pkey ON ec_04_b.price_item USING btree (list_id, sku_id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "11",
+          "500"
+        ],
+        [
+          "2",
+          "11",
+          "450"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_04_b",
+      "name": "price_list",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "name",
+          "text",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX price_list_pkey ON ec_04_b.price_list USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "一般"
+        ],
+        [
+          "2",
+          "VIP"
+        ]
+      ]
+    },
+    {
+      "schema": "ec_04_c",
+      "name": "price_rule",
+      "kind": "r",
+      "columns": [
+        [
+          "id",
+          "bigint",
+          true
+        ],
+        [
+          "sku_id",
+          "bigint",
+          true
+        ],
+        [
+          "min_qty",
+          "integer",
+          true
+        ],
+        [
+          "max_qty",
+          "integer",
+          false
+        ],
+        [
+          "starts_at",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "ends_at",
+          "timestamp with time zone",
+          true
+        ],
+        [
+          "amount",
+          "bigint",
+          true
+        ]
+      ],
+      "constraints": [
+        {
+          "type": "c",
+          "sql": "CHECK ((amount >= 0))",
+          "cols": [
+            "amount"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK (((max_qty IS NULL) OR (max_qty > min_qty)))",
+          "cols": [
+            "max_qty",
+            "min_qty"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((ends_at > starts_at))",
+          "cols": [
+            "ends_at",
+            "starts_at"
+          ]
+        },
+        {
+          "type": "c",
+          "sql": "CHECK ((min_qty > 0))",
+          "cols": [
+            "min_qty"
+          ]
+        },
+        {
+          "type": "p",
+          "sql": "PRIMARY KEY (id)",
+          "cols": [
+            "id"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX price_rule_pkey ON ec_04_c.price_rule USING btree (id)"
+      ],
+      "samples": [
+        [
+          "1",
+          "11",
+          1,
+          10,
+          "2026-12-01T00:00:00.000Z",
+          "2027-01-01T00:00:00.000Z",
+          "500"
+        ],
+        [
+          "2",
+          "11",
+          10,
+          null,
+          "2026-12-01T00:00:00.000Z",
+          "2027-01-01T00:00:00.000Z",
+          "400"
+        ]
+      ]
+    }
+  ]
+}

@@ -47,3 +47,19 @@ const properties = {
 export const terms = Object.entries(sections).flatMap(([category, rows]) =>
   rows.map(([id, en, zh, definition, example]) => ({ id, en, zh, definition, example, category, sqlExample: examples[id], ...(properties[id] && { properties: properties[id] }) }))
 );
+
+// Store each relationship once. Both entries use it for navigation.
+export const relations = [
+  ['conditional-update', 'lost-update'],
+  ['conditional-update', 'transaction'],
+  ['lost-update', 'write-skew'],
+  ['left-join', 'inner-join'],
+  ['left-join', 'null'],
+  ['group-by', 'having'],
+  ['group-by', 'window']
+];
+
+export function relatedTerms(id) {
+  const neighbors = relations.filter(pair => pair.includes(id)).flat();
+  return terms.filter(term => term.id !== id && neighbors.includes(term.id));
+}

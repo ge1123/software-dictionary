@@ -1,5 +1,5 @@
 import { createApp, computed, watch, onUnmounted, ref } from 'vue/dist/vue.esm-bundler.js';
-import { sections, terms } from './terms.js';
+import { relatedTerms, sections, terms } from './terms.js';
 import './style.css';
 
 const sorted = [...terms].sort((a, b) => a.en.localeCompare(b.en, 'en'));
@@ -36,8 +36,7 @@ createApp({
         document.getElementById(previous.id)?.focus();
       }
     }, { immediate: true, flush: 'post' });
-    const related = computed(() => (selected.value?.sqlExample?.links ?? [])
-      .map(id => terms.find(term => term.id === id)));
+    const related = computed(() => relatedTerms(slug.value));
     return { related, query, category, categories, filtered, reset, selected, title };
   }
 }).mount('#app');

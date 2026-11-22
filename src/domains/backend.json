@@ -221,22 +221,6 @@
       "example": "保留下單流程，先把通知查詢導向新服務。比對新舊結果、確認資料歸屬後，再切換下一項能力。"
     },
     {
-      "id": "binary-search",
-      "en": "Binary Search",
-      "zh": "二分搜尋",
-      "category": "資料結構與演算法",
-      "definition": "利用已排序資料或單調條件，每次排除一半候選範圍。",
-      "example": "在已按時間排序的事件陣列找報表區間，分別定位起點與終點。定位為對數成本，輸出命中的 K 筆仍要走訪 K 筆。"
-    },
-    {
-      "id": "priority-queue",
-      "en": "Priority Queue",
-      "zh": "優先佇列",
-      "category": "資料結構與演算法",
-      "definition": "讓最高優先級的元素先被取出；相同優先級的順序取決於實作與比較規則。",
-      "example": "計算銷量前 K 名時維護容量 K 的最小堆積，堆頂是目前入選門檻。銷量相同時用商品 ID 決定名次。"
-    },
-    {
       "id": "graceful-shutdown",
       "en": "Graceful Shutdown",
       "zh": "優雅關機",
@@ -614,102 +598,6 @@
       "category": "可觀測性與部署",
       "definition": "在可控環境刻意引入指定失敗，檢查恢復行為。",
       "example": "讓工作端在資料提交後、訊息確認前停止，再觀察重送是否多扣一次庫存。"
-    },
-    {
-      "id": "complexity",
-      "en": "Computational Complexity",
-      "zh": "演算法複雜度",
-      "category": "資料結構與演算法",
-      "definition": "用輸入規模描述時間或額外空間的成長速度。",
-      "example": "逐筆比對兩份各 n 筆清單可能做 n² 次比對；先建雜湊索引可以用額外記憶體換查詢時間。"
-    },
-    {
-      "id": "dynamic-array",
-      "en": "Dynamic Array",
-      "zh": "動態陣列",
-      "category": "資料結構與演算法",
-      "definition": "以連續位置保存元素，容量不足時配置較大的空間並搬移。",
-      "example": "用索引查第十筆訂單很快；頻繁插入開頭則要移動後面的元素。"
-    },
-    {
-      "id": "hash-map",
-      "en": "Hash Map",
-      "zh": "雜湊表",
-      "category": "資料結構與演算法",
-      "definition": "用鍵的雜湊值定位儲存位置，再比對鍵取得對應值。",
-      "example": "建立 SKU 到售價的對照表，逐筆對帳時可重用；鍵的相等規則要符合商品編號規則。"
-    },
-    {
-      "id": "hash-set",
-      "en": "Hash Set",
-      "zh": "雜湊集合",
-      "category": "資料結構與演算法",
-      "definition": "保存互異的值，支援依雜湊與相等規則判斷成員資格。",
-      "example": "匯入時用集合找出檔內重複訂單編號；跨程序重複仍由資料庫唯一約束處理。"
-    },
-    {
-      "id": "sorting",
-      "en": "Sorting",
-      "zh": "排序",
-      "category": "資料結構與演算法",
-      "definition": "依比較規則排列資料，以支援顯示、搜尋或後續計算。",
-      "example": "依建立時間分頁時再加訂單編號作為同時建立時的排序鍵。"
-    },
-    {
-      "id": "queue-stack",
-      "en": "Queue and Stack",
-      "zh": "佇列與堆疊",
-      "category": "資料結構與演算法",
-      "definition": "佇列先進先出，堆疊後進先出。",
-      "example": "逐層走訪分類樹使用佇列；退回上一層路徑可以使用堆疊。"
-    },
-    {
-      "id": "graph-traversal",
-      "en": "Graph Traversal",
-      "zh": "圖走訪",
-      "category": "資料結構與演算法",
-      "definition": "沿節點之間的邊探索可達節點；廣度優先逐層探索，深度優先先沿一路往下。",
-      "example": "找無權重圖的最少轉乘次數時逐層展開，並記錄已拜訪站點避免繞圈。"
-    },
-    {
-      "id": "topological-sort",
-      "en": "Topological Sort",
-      "zh": "拓撲排序",
-      "category": "資料結構與演算法",
-      "definition": "將有向無環圖排成每個前置節點都先於依賴者的順序。",
-      "example": "先執行沒有前置依賴的匯入工作，完成後減少後續工作的待完成數；仍有工作卻無法選下一個時應檢查循環。"
-    },
-    {
-      "id": "sliding-window",
-      "en": "Sliding Window",
-      "zh": "滑動視窗",
-      "category": "資料結構與演算法",
-      "definition": "在有序輸入上移動區間邊界並重用前一個區間的計算。",
-      "example": "按時間掃描訂單，右側加入新訂單，左側移出超過五分鐘的資料；兩端各走一次即可統計尖峰。"
-    },
-    {
-      "id": "greedy",
-      "en": "Greedy Algorithm",
-      "zh": "貪婪演算法",
-      "category": "資料結構與演算法",
-      "definition": "每步選擇當下符合規則的選項，最優性取決於問題條件。",
-      "example": "一間會議室要容納最多場不重疊會議，可先選最早結束者；改成最大總收益就需重新評估。"
-    },
-    {
-      "id": "backtracking",
-      "en": "Backtracking",
-      "zh": "回溯搜尋",
-      "category": "資料結構與演算法",
-      "definition": "逐步建立候選解，遇到不可能滿足條件的分支就退回改選。",
-      "example": "找出恰好符合預算的商品組合，每項最多用一次；價格皆為正時，超出預算就能停止該分支。"
-    },
-    {
-      "id": "dynamic-programming",
-      "en": "Dynamic Programming",
-      "zh": "動態規劃",
-      "category": "資料結構與演算法",
-      "definition": "把問題拆成可重用的子問題，記錄子問題結果再組合答案。",
-      "example": "固定整數預算下選商品使價值最大，逐項更新各預算可達的最大值；每件限選一次時，一維陣列要從高預算往低更新。"
     },
     {
       "id": "modular-monolith",
@@ -1128,54 +1016,6 @@
     [
       "fault-injection",
       "mq/idempotent-consumer"
-    ],
-    [
-      "complexity",
-      "hash-map"
-    ],
-    [
-      "dynamic-array",
-      "complexity"
-    ],
-    [
-      "hash-map",
-      "hash-set"
-    ],
-    [
-      "hash-set",
-      "sql/unique"
-    ],
-    [
-      "sorting",
-      "binary-search"
-    ],
-    [
-      "queue-stack",
-      "graph-traversal"
-    ],
-    [
-      "graph-traversal",
-      "topological-sort"
-    ],
-    [
-      "topological-sort",
-      "background-job"
-    ],
-    [
-      "sliding-window",
-      "rate-limiting"
-    ],
-    [
-      "greedy",
-      "dynamic-programming"
-    ],
-    [
-      "backtracking",
-      "dynamic-programming"
-    ],
-    [
-      "dynamic-programming",
-      "complexity"
     ],
     [
       "modular-monolith",

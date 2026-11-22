@@ -8,16 +8,39 @@ import mq from './domains/mq.json' with { type: 'json' };
 import dotnet from './domains/dotnet.json' with { type: 'json' };
 
 import commerce from './domains/commerce.json' with { type: 'json' };
-export const domains = [sql, backend, dotnet, redis, mq, commerce];
+import algorithms from './domains/algorithms.json' with { type: 'json' };
 
-// Bookmarks published before the commerce topic was introduced.
-const formerBackendSlugs = new Set([
-  'sku', 'price-snapshot', 'inventory-reservation', 'refund', 'cart', 'order-state'
+export const domains = [sql, backend, dotnet, redis, mq, commerce, algorithms];
+
+// Only previously published URLs belong in this lookup.
+const formerBackendTopics = new Map([
+  ['sku', 'commerce'],
+  ['price-snapshot', 'commerce'],
+  ['inventory-reservation', 'commerce'],
+  ['refund', 'commerce'],
+  ['cart', 'commerce'],
+  ['order-state', 'commerce'],
+  ['backtracking', 'algorithms'],
+  ['binary-search', 'algorithms'],
+  ['complexity', 'algorithms'],
+  ['dynamic-array', 'algorithms'],
+  ['dynamic-programming', 'algorithms'],
+  ['graph-traversal', 'algorithms'],
+  ['greedy', 'algorithms'],
+  ['hash-map', 'algorithms'],
+  ['hash-set', 'algorithms'],
+  ['priority-queue', 'algorithms'],
+  ['queue-stack', 'algorithms'],
+  ['sliding-window', 'algorithms'],
+  ['sorting', 'algorithms'],
+  ['topological-sort', 'algorithms'],
 ]);
 
 export function resolveEntryId(id) {
+  if (!id.startsWith('backend/')) return id;
   const slug = id.slice('backend/'.length);
-  return id.startsWith('backend/') && formerBackendSlugs.has(slug) ? 'commerce/' + slug : id;
+  const topic = formerBackendTopics.get(slug);
+  return topic ? topic + '/' + slug : id;
 }
 
 export const plannedTopics = Object.entries({

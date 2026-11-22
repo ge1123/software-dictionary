@@ -36,6 +36,14 @@
         <h2>參考文件</h2>
         <ul class="references"><li v-for="[name, url] in selected.practice.sources" :key="url"><a :href="url">{{ name }}</a></li></ul>
       </template>
+      <section v-if="selected.scale">
+        <h2>大量資料時的取捨</h2>
+        <dl>
+          <dt>何時受益</dt><dd>{{ selected.scale.benefit }}</dd>
+          <dt>何時代價變高</dt><dd>{{ selected.scale.cost }}</dd>
+          <dt>怎麼判斷</dt><dd>{{ selected.scale.measure }}</dd>
+        </dl>
+      </section>
       <template v-if="related.length">
         <h2>相關詞條</h2>
         <ul class="references">

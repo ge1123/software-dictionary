@@ -42,3 +42,7 @@ for (const { id, practice, sample } of terms) {
   assert.ok(sample && practice.steps.length && practice.steps.every(step => step.trim()), id);
   assert.ok(practice.sources.length && practice.sources.every(([name, url]) => name.trim() && new URL(url).protocol === 'https:'), id);
 }
+for (const { id, scale } of terms) {
+  if (scale === undefined) continue;
+  for (const key of ['benefit', 'cost', 'measure']) assert.ok(scale?.[key]?.trim(), id);
+}

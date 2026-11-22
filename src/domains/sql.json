@@ -76,6 +76,11 @@
         "setup": "payments 有三筆付款：通路 A 收到 100 元與 50 元，通路 B 收到 80 元。",
         "code": "SELECT channel_id, SUM(amount) AS total\nFROM payments\nGROUP BY channel_id\nORDER BY channel_id;",
         "result": "輸出兩列：(A, 150)、(B, 80)。如果報表只想看合計達 100 元的通路，接著查 HAVING。"
+      },
+      "scale": {
+        "benefit": "先在資料庫把大量明細按通路彙總，應用程式只需接收每個通路的合計。",
+        "cost": "若分組鍵接近每列唯一，結果縮減有限；雜湊或排序可能超出記憶體，轉而使用暫存磁碟。",
+        "measure": "比較輸入列數與輸出群組數，在 PostgreSQL 的實際計畫觀察 HashAggregate 的批次與磁碟使用量，或 Sort 的排序方法。"
       }
     },
     {
@@ -224,7 +229,12 @@
       "zh": "複合索引",
       "definition": "以多個欄位作為同一索引的鍵。鍵的排列順序會影響可利用的查詢方式。",
       "example": "索引 (channel_id, created_at) 可支援指定通路後依日期範圍查訂單。",
-      "category": "索引與效能"
+      "category": "索引與效能",
+      "scale": {
+        "benefit": "當單一通路的短日期區間只佔全表一小部分，(channel_id, created_at) 能把讀取集中在相鄰的索引範圍。",
+        "cost": "跨所有通路做全年報表時，讀到的比例可能很高；額外索引也會增加匯入訂單的寫入與空間成本。",
+        "measure": "對短區間及全年區間各跑 EXPLAIN (ANALYZE, BUFFERS)，比較符合筆數和讀頁量；再以相同批次測匯入耗時。"
+      }
     },
     {
       "id": "execution-plan",
@@ -526,6 +536,11 @@
         "setup": "在 psql 或 pgAdmin 開一個新連線，依序執行整段。範例使用連線專屬的暫存表。",
         "code": "CREATE TEMP TABLE lab_queue AS\nSELECT n AS id, CASE WHEN n % 1000 = 0 THEN 'pending' ELSE 'done' END AS status\nFROM generate_series(1, 100000) AS n;\nANALYZE lab_queue;\nEXPLAIN (ANALYZE, BUFFERS)\nSELECT id FROM lab_queue WHERE status = 'pending' ORDER BY id LIMIT 10;\n\nCREATE INDEX lab_pending_id ON lab_queue (id) WHERE status = 'pending';\nEXPLAIN (ANALYZE, BUFFERS)\nSELECT id FROM lab_queue WHERE status = 'pending' ORDER BY id LIMIT 10;\nSELECT id FROM lab_queue WHERE status = 'pending' ORDER BY id LIMIT 10;",
         "result": "兩次查詢的前十個 id 都是 1000、2000，一直到 10000。"
+      },
+      "scale": {
+        "benefit": "待處理只佔少數時，索引只保存這批列。即使歷史訂單持續成長，索引大小主要隨待處理筆數變化。",
+        "cost": "若積壓使大部分訂單都在等待，索引縮小的收益會下降；訂單進出 pending 狀態也會產生索引維護工作。",
+        "measure": "用平時與尖峰積壓兩組資料，記錄待處理比例、pg_relation_size 的索引大小、取十筆的 Buffers，以及相同寫入量下的延遲。"
       }
     },
     {
@@ -556,6 +571,11 @@
         "setup": "在 psql 或 pgAdmin 開一個新連線，依序執行整段。範例使用連線專屬的暫存表。",
         "code": "CREATE TEMP TABLE lab_feed (id int PRIMARY KEY, created_at timestamp NOT NULL);\nINSERT INTO lab_feed VALUES\n  (1,'2026-02-01 09:00'), (2,'2026-02-01 10:00'), (3,'2026-02-01 10:00'),\n  (4,'2026-02-01 10:00'), (5,'2026-02-01 11:00');\nCREATE INDEX ON lab_feed (created_at DESC, id DESC);\nSELECT id, created_at FROM lab_feed ORDER BY created_at DESC, id DESC LIMIT 2;\nSELECT id, created_at FROM lab_feed\nWHERE (created_at, id) < (timestamp '2026-02-01 10:00', 4)\nORDER BY created_at DESC, id DESC LIMIT 2;",
         "result": "第一頁為 5、4，第二頁為 3、2。若游標只比時間，第二頁會漏掉同時間的 3 和 2。"
+      },
+      "scale": {
+        "benefit": "連續往後翻頁時，上一頁已提供游標。索引可從該位置繼續取資料，頁碼變深也不必逐列略過前面的結果。",
+        "cost": "直接跳到第 4,501 頁時，通常沒有上一頁末筆的鍵。若先用深 OFFSET 找游標，這次請求仍要支付略過資料的成本。",
+        "measure": "PostgreSQL 18.7 實測：10 萬列、每頁 20 筆、依 (時間, id) 降冪建立索引。OFFSET 90000 與使用已知游標都回傳 id 10000～9981；Limit 下方索引節點分別輸出 90,020 與 20 列。此數字是節點列數，並非毫秒或磁碟頁數。"
       }
     },
     {
@@ -586,6 +606,11 @@
         "setup": "在 psql 或 pgAdmin 開一個新連線，依序執行整段。範例使用連線專屬的暫存表。",
         "code": "CREATE TEMP TABLE lab_inbox (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  channel_id int NOT NULL, external_id text NOT NULL, amount int NOT NULL,\n  UNIQUE (channel_id, external_id)\n);\nINSERT INTO lab_inbox (channel_id, external_id, amount) VALUES (7,'A-1',500)\nON CONFLICT (channel_id, external_id) DO NOTHING RETURNING id;\nINSERT INTO lab_inbox (channel_id, external_id, amount) VALUES (7,'A-1',500)\nON CONFLICT (channel_id, external_id) DO NOTHING RETURNING id;\nSELECT count(*) AS orders, sum(amount) AS total FROM lab_inbox;",
         "result": "第一次回傳新 id，第二次回傳零列。最後仍是一張訂單，合計 500。"
+      },
+      "scale": {
+        "benefit": "大量不同單號寫入時，唯一索引可直接判斷該通路單號是否已存在；即使重送，也能維持每個單號只有一列。",
+        "cost": "重送若集中在同一個單號，後到的寫入可能等待未提交的競爭交易。資料表總筆數與熱門鍵競爭是兩個不同因素。",
+        "measure": "分別用分散單號、集中單號重播相同請求量，核對唯一訂單數、成功插入數、每秒完成數及 p95 延遲；保留唯一約束來保障正確性。"
       }
     },
     {

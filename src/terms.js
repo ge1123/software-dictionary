@@ -1,3 +1,5 @@
+import { examples } from './sql-examples.js';
+
 // slug, English, 中文, 定義, 使用情境
 export const sections = {
   '資料模型': [
@@ -10,7 +12,7 @@ export const sections = {
   '查詢與彙總': [
     ['inner-join','INNER JOIN','內部連接','回傳兩邊符合連接條件的資料列組合。','訂單連接明細後，一張含三筆明細的訂單會產生三列。'],
     ['left-join','LEFT JOIN','左外部連接','保留左表的每一列。沒有配對時，右表欄位以 NULL 補齊。','從訂單左連接退款單，可同時列出已退款和從未退款的訂單。'],
-    ['group-by','GROUP BY','分組彙總','將相同分組鍵的資料列歸成一組，搭配聚合函式計算各組結果。','SELECT channel_id, SUM(amount) FROM payments GROUP BY channel_id'],
+    ['group-by','GROUP BY','分組彙總','將相同分組鍵的資料列歸成一組，搭配聚合函式計算各組結果。','財務想知道每個通路各收了多少款項，一個通路只需要一列合計。'],
     ['having','HAVING','篩選群組','在分組後依條件保留群組，可引用聚合結果。','查重複外部單號：GROUP BY external_order_id HAVING COUNT(*) > 1。'],
     ['window','Window Function','視窗函式','在一組相關資料列上計算，同時保留目前每一列。','SUM(amount) OVER (PARTITION BY account_id ORDER BY entry_id ROWS UNBOUNDED PRECEDING) 可計算各帳戶逐筆累計金額。'],
     ['cte','Common Table Expression (CTE)','通用資料表運算式','用 WITH 為單一陳述式內的查詢結果命名。','先以 CTE 彙總各訂單的退款金額，再與訂單主檔連接。']
@@ -24,7 +26,7 @@ export const sections = {
     ['lost-update','Lost Update','遺失更新','兩個交易根據同一舊值計算後寫回，後寫入的值覆蓋先前更新。','兩人各從庫存 10 算出 9 並寫回，兩次扣庫存只留下扣一次的結果。'],
     ['write-skew','Write Skew','寫入偏差','並行交易依同一組舊資料做決策，各自修改不同列，合併後破壞跨列規則。','兩名值班者都看到另一人在班，各自將自己改為休假，最後無人值班。'],
     ['deadlock','Deadlock','死鎖','交易形成循環等待，每個交易都等另一個釋放資源。','交易 A 鎖訂單再等庫存，交易 B 鎖庫存再等訂單。統一鎖定順序可減少這類死鎖。'],
-    ['conditional-update','Conditional Update','條件式更新','在同一個 UPDATE 內檢查條件並更新符合的列。','UPDATE inventory SET available = available - 1 WHERE sku_id = 42 AND available >= 1；依受影響列數判斷是否扣庫存成功。']
+    ['conditional-update','Conditional Update','條件式更新','在同一個 UPDATE 內檢查條件並更新符合的列。','庫存只剩一件時，兩個櫃台同時結帳，系統必須判斷哪一筆成功保留商品。']
   ],
   '索引與效能': [
     ['index','Index','索引','維護額外的資料結構，協助資料庫找到符合條件的列。更新資料也可能需要維護索引。','常用訂單編號查詢時，可替 order_no 建索引並檢查執行計畫。'],
@@ -43,5 +45,5 @@ const properties = {
 };
 
 export const terms = Object.entries(sections).flatMap(([category, rows]) =>
-  rows.map(([id, en, zh, definition, example]) => ({ id, en, zh, definition, example, category, ...(properties[id] && { properties: properties[id] }) }))
+  rows.map(([id, en, zh, definition, example]) => ({ id, en, zh, definition, example, category, sqlExample: examples[id], ...(properties[id] && { properties: properties[id] }) }))
 );

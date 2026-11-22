@@ -10,3 +10,8 @@ for (const term of terms) {
 }
 assert.ok(ids.size);
 console.log('Validated', ids.size, 'SQL entries.');
+for (const { id, sqlExample } of terms) {
+  if (!sqlExample) continue;
+  for (const key of ['setup', 'sql', 'result']) assert.ok(sqlExample[key]?.trim(), id);
+  for (const target of sqlExample.links) assert.ok(ids.has(target) && target !== id, id);
+}

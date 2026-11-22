@@ -36,6 +36,8 @@ createApp({
         document.getElementById(previous.id)?.focus();
       }
     }, { immediate: true, flush: 'post' });
-    return { query, category, categories, filtered, reset, selected, title };
+    const related = computed(() => (selected.value?.sqlExample?.links ?? [])
+      .map(id => terms.find(term => term.id === id)));
+    return { related, query, category, categories, filtered, reset, selected, title };
   }
 }).mount('#app');

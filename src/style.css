@@ -29,3 +29,6 @@ button[aria-pressed=true] { background: #254d3d; border-color: #254d3d; color: w
 .detail p { margin: 0; overflow-wrap: anywhere; }
 dt { font-weight: 650; margin-top: 12px; }
 dd { margin: 2px 0 0; }
+.detail pre { background: #edf0e9; padding: 1rem; overflow-x: auto; border-radius: 5px; font: .875rem/1.65 monospace; }
+.references { margin: 0; padding-inline-start: 1.2rem; }
+.references a { color: #37664d; text-decoration: underline; }

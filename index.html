@@ -19,6 +19,16 @@
       </dl>
       <h2>使用情境</h2>
       <p>{{ selected.example }}</p>
+      <template v-if="selected.sqlExample">
+        <h2>SQL 範例</h2>
+        <p>{{ selected.sqlExample.setup }}</p>
+        <pre tabindex="0" aria-label="SQL 程式碼"><code>{{ selected.sqlExample.sql }}</code></pre>
+        <p><strong>預期結果</strong>　{{ selected.sqlExample.result }}</p>
+        <h2>相關詞條</h2>
+        <ul class="references">
+          <li v-for="term in related" :key="term.id"><a :href="'#'+term.id">{{ term.en }} · {{ term.zh }}</a></li>
+        </ul>
+      </template>
     </section>
     <section v-else>
       <h1>SQL 詞典<span>.</span></h1>

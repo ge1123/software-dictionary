@@ -19,11 +19,11 @@
       </dl>
       <h2>使用情境</h2>
       <p>{{ selected.example }}</p>
-      <template v-if="selected.sqlExample">
-        <h2>SQL 範例</h2>
-        <p>{{ selected.sqlExample.setup }}</p>
-        <pre tabindex="0" aria-label="SQL 程式碼"><code>{{ selected.sqlExample.sql }}</code></pre>
-        <p><strong>預期結果</strong>　{{ selected.sqlExample.result }}</p>
+      <template v-if="selected.sample">
+        <h2>{{ selected.sample.language }} 範例</h2>
+        <p>{{ selected.sample.setup }}</p>
+        <pre tabindex="0" aria-label="範例程式碼"><code>{{ selected.sample.code }}</code></pre>
+        <p><strong>預期結果</strong>　{{ selected.sample.result }}</p>
       </template>
       <template v-if="related.length">
         <h2>相關詞條</h2>
@@ -33,7 +33,8 @@
       </template>
     </section>
     <section v-else>
-      <h1>SQL 詞典<span>.</span></h1>
+      <label v-if="domains.length > 1">領域 <select v-model="domainId" @change="reset"><option v-for="domain in domains" :value="domain.id" :key="domain.id">{{ domain.name }}</option></select></label>
+      <h1>{{ domainName }} 詞典<span>.</span></h1>
       <input type="search" v-model="query" aria-label="搜尋詞條" placeholder="搜尋英文名詞、中文名稱或關鍵字…">
       <nav aria-label="詞條分類">
         <button v-for="name in categories" :key="name" :aria-pressed="category === name" @click="category = name">{{ name }}</button>

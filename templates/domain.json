@@ -1,0 +1,21 @@
+{
+  "id": "redis",
+  "name": "Redis",
+  "terms": [
+    {
+      "id": "ttl",
+      "en": "Time to Live (TTL)",
+      "zh": "存活時間",
+      "category": "鍵與到期",
+      "definition": "鍵可以保留的剩餘時間。到期後，讀取該鍵會得到鍵不存在的結果。",
+      "example": "一次性驗證碼只接受五分鐘內的輸入，建立時就為它設定到期時間。",
+      "sample": {
+        "language": "Redis CLI",
+        "setup": "在測試資料庫挑一個未使用的示範鍵。",
+        "code": "SET demo:code 123456 EX 300\nTTL demo:code",
+        "result": "SET 回傳 OK。立即執行 TTL 會看到接近 300 的剩餘秒數。"
+      }
+    }
+  ],
+  "relations": []
+}

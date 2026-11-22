@@ -1,0 +1,508 @@
+{
+  "id": "sql",
+  "name": "SQL",
+  "terms": [
+    {
+      "id": "primary-key",
+      "en": "Primary Key",
+      "zh": "主鍵",
+      "definition": "唯一識別每一列資料的一個或多個欄位，值不可為 NULL。",
+      "example": "訂單明細用 (order_id, line_no) 作為複合主鍵，同一訂單內的行號不能重複。",
+      "category": "資料模型"
+    },
+    {
+      "id": "foreign-key",
+      "en": "Foreign Key",
+      "zh": "外鍵",
+      "definition": "限制子表的參照值必須對應父表中受唯一性約束的鍵。",
+      "example": "order_items.order_id 參照 orders.id，可阻止明細指向不存在的訂單。",
+      "category": "資料模型"
+    },
+    {
+      "id": "unique",
+      "en": "Unique Constraint",
+      "zh": "唯一約束",
+      "definition": "由資料庫保證指定欄位組合不會出現重複鍵。NULL 的處理依資料庫而異。",
+      "example": "對非空的 (channel_id, external_order_id) 建立唯一約束，避免同一通路訂單重複入庫。",
+      "category": "資料模型"
+    },
+    {
+      "id": "null",
+      "en": "NULL",
+      "zh": "空值",
+      "definition": "表示值未知或缺失。一般比較遇到 NULL 會得到 UNKNOWN。",
+      "example": "找尚未付款的訂單可寫 WHERE paid_at IS NULL。",
+      "category": "資料模型"
+    },
+    {
+      "id": "normalization",
+      "en": "Normalization",
+      "zh": "正規化",
+      "definition": "依鍵與資料之間的相依關係拆分資料表，減少重複與更新異常。",
+      "example": "供應商地址放在供應商主檔，商品透過 supplier_id 參照。",
+      "category": "資料模型"
+    },
+    {
+      "id": "inner-join",
+      "en": "INNER JOIN",
+      "zh": "內部連接",
+      "definition": "回傳兩邊符合連接條件的資料列組合。",
+      "example": "訂單連接明細後，一張含三筆明細的訂單會產生三列。",
+      "category": "查詢與彙總"
+    },
+    {
+      "id": "left-join",
+      "en": "LEFT JOIN",
+      "zh": "左外部連接",
+      "definition": "保留左表的每一列。沒有配對時，右表欄位以 NULL 補齊。",
+      "example": "從訂單左連接退款單，可同時列出已退款和從未退款的訂單。",
+      "category": "查詢與彙總",
+      "sample": {
+        "language": "SQL",
+        "setup": "orders 有訂單 101、102。refunds 只有一筆退款，id 為 7，屬於訂單 101。",
+        "code": "SELECT o.id AS order_id, r.id AS refund_id\nFROM orders AS o\nLEFT JOIN refunds AS r ON r.order_id = o.id\nORDER BY o.id;",
+        "result": "回傳 (101, 7) 和 (102, NULL)。訂單 102 沒有退款，仍出現在清單中。換成 INNER JOIN 就只剩第一列。"
+      }
+    },
+    {
+      "id": "group-by",
+      "en": "GROUP BY",
+      "zh": "分組彙總",
+      "definition": "將相同分組鍵的資料列歸成一組，搭配聚合函式計算各組結果。",
+      "example": "財務想知道每個通路各收了多少款項，一個通路只需要一列合計。",
+      "category": "查詢與彙總",
+      "sample": {
+        "language": "SQL",
+        "setup": "payments 有三筆付款：通路 A 收到 100 元與 50 元，通路 B 收到 80 元。",
+        "code": "SELECT channel_id, SUM(amount) AS total\nFROM payments\nGROUP BY channel_id\nORDER BY channel_id;",
+        "result": "輸出兩列：(A, 150)、(B, 80)。如果報表只想看合計達 100 元的通路，接著查 HAVING。"
+      }
+    },
+    {
+      "id": "having",
+      "en": "HAVING",
+      "zh": "篩選群組",
+      "definition": "在分組後依條件保留群組，可引用聚合結果。",
+      "example": "查重複外部單號：GROUP BY external_order_id HAVING COUNT(*) > 1。",
+      "category": "查詢與彙總",
+      "sample": {
+        "language": "SQL",
+        "setup": "沿用通路 A 收到 100 元與 50 元、通路 B 收到 80 元的付款資料。",
+        "code": "SELECT channel_id, SUM(amount) AS total\nFROM payments\nGROUP BY channel_id\nHAVING SUM(amount) >= 100;",
+        "result": "只留下 (A, 150)。若改成 WHERE amount >= 100，會先排除 50 元那筆付款，A 的合計會變成 100。"
+      }
+    },
+    {
+      "id": "window",
+      "en": "Window Function",
+      "zh": "視窗函式",
+      "definition": "在一組相關資料列上計算，同時保留目前每一列。",
+      "example": "SUM(amount) OVER (PARTITION BY account_id ORDER BY entry_id ROWS UNBOUNDED PRECEDING) 可計算各帳戶逐筆累計金額。",
+      "category": "查詢與彙總"
+    },
+    {
+      "id": "cte",
+      "en": "Common Table Expression (CTE)",
+      "zh": "通用資料表運算式",
+      "definition": "用 WITH 為單一陳述式內的查詢結果命名。",
+      "example": "先以 CTE 彙總各訂單的退款金額，再與訂單主檔連接。",
+      "category": "查詢與彙總"
+    },
+    {
+      "id": "transaction",
+      "en": "Transaction",
+      "zh": "交易",
+      "definition": "將多項資料庫操作組成可一起提交或回滾的工作單位。",
+      "example": "建立付款紀錄與更新訂單付款狀態放在同一交易，任一步失敗就回滾。",
+      "category": "交易與併發"
+    },
+    {
+      "id": "acid",
+      "en": "ACID",
+      "zh": "交易的四項特性",
+      "definition": "原子性、一致性、隔離性與持久性，分別描述提交單位、資料約束、並行互動與提交後的保存。",
+      "example": "轉帳要同時完成扣款與入帳。餘額規則仍須透過約束或交易邏輯實作。",
+      "category": "交易與併發",
+      "properties": [
+        [
+          "Atomicity · 原子性",
+          "扣款與入帳放在同一筆交易。若入帳失敗，扣款也一併回滾。"
+        ],
+        [
+          "Consistency · 一致性",
+          "交易提交後，資料仍須滿足已定義的規則，例如訂單明細必須指向有效的訂單。"
+        ],
+        [
+          "Isolation · 隔離性",
+          "隔離等級決定並行交易能看到哪些變更。例如在 Read Committed 下，報表讀不到尚未提交的扣款。"
+        ],
+        [
+          "Durability · 持久性",
+          "在同步持久化設定下，一旦資料庫確認提交成功，當機後仍可復原該筆交易。"
+        ]
+      ]
+    },
+    {
+      "id": "dirty-read",
+      "en": "Dirty Read",
+      "zh": "髒讀",
+      "definition": "交易讀到其他交易尚未提交的變更。",
+      "example": "報表讀到一筆未提交的退款，對方回滾後，報表曾計入的退款消失。",
+      "category": "交易與併發"
+    },
+    {
+      "id": "non-repeatable-read",
+      "en": "Non-repeatable Read",
+      "zh": "不可重複讀",
+      "definition": "同一交易再次讀取同一列，因其他交易已提交修改或刪除而得到不同結果。",
+      "example": "兩次查詢同一訂單的金額，中途有人提交調價。",
+      "category": "交易與併發"
+    },
+    {
+      "id": "phantom-read",
+      "en": "Phantom Read",
+      "zh": "幻讀",
+      "definition": "同一交易重做相同條件查詢時，其他交易提交的變更使符合條件的資料列集合改變。",
+      "example": "兩次查待出貨訂單，第二次多出另一交易剛新增的訂單。",
+      "category": "交易與併發"
+    },
+    {
+      "id": "lost-update",
+      "en": "Lost Update",
+      "zh": "遺失更新",
+      "definition": "兩個交易根據同一舊值計算後寫回，後寫入的值覆蓋先前更新。",
+      "example": "兩人各從庫存 10 算出 9 並寫回，兩次扣庫存只留下扣一次的結果。",
+      "category": "交易與併發",
+      "sample": {
+        "language": "SQL",
+        "setup": "商品 42 有 10 件庫存。在 SQL Server 開兩個連線，使用 READ COMMITTED，按註解順序逐步執行。",
+        "code": "-- ① 連線 A：讀到 10\nBEGIN TRANSACTION;\nSELECT available FROM inventory WHERE sku_id = 42;\n\n-- ② 連線 B：也讀到 10\nBEGIN TRANSACTION;\nSELECT available FROM inventory WHERE sku_id = 42;\n\n-- ③ 連線 A：程式用先前讀到的 10 減 1\nUPDATE inventory SET available = 9 WHERE sku_id = 42;\nCOMMIT;\n\n-- ④ 連線 B：也用先前讀到的 10 減 1\nUPDATE inventory SET available = 9 WHERE sku_id = 42;\nCOMMIT;",
+        "result": "兩筆扣庫存都提交了，庫存卻是 9，正確結果應為 8。點「條件式更新」查看怎麼讓資料庫用當下的庫存扣減。"
+      }
+    },
+    {
+      "id": "write-skew",
+      "en": "Write Skew",
+      "zh": "寫入偏差",
+      "definition": "並行交易依同一組舊資料做決策，各自修改不同列，合併後破壞跨列規則。",
+      "example": "兩名值班者都看到另一人在班，各自將自己改為休假，最後無人值班。",
+      "category": "交易與併發"
+    },
+    {
+      "id": "deadlock",
+      "en": "Deadlock",
+      "zh": "死鎖",
+      "definition": "交易形成循環等待，每個交易都等另一個釋放資源。",
+      "example": "交易 A 鎖訂單再等庫存，交易 B 鎖庫存再等訂單。統一鎖定順序可減少這類死鎖。",
+      "category": "交易與併發"
+    },
+    {
+      "id": "conditional-update",
+      "en": "Conditional Update",
+      "zh": "條件式更新",
+      "definition": "在同一個 UPDATE 內檢查條件並更新符合的列。",
+      "example": "庫存只剩一件時，兩個櫃台同時結帳，系統必須判斷哪一筆成功保留商品。",
+      "category": "交易與併發",
+      "sample": {
+        "language": "SQL",
+        "setup": "inventory 的 sku_id 是主鍵。假設商品 42 只剩 1 件，兩個櫃台各要買 1 件。",
+        "code": "UPDATE inventory\nSET available = available - 1\nWHERE sku_id = 42 AND available >= 1;",
+        "result": "在 SQL Server 的 READ COMMITTED 下，第一筆成功交易更新 1 列，庫存變成 0。第二筆更新 0 列。應用程式要檢查受影響列數，再決定是否接受訂單。"
+      }
+    },
+    {
+      "id": "index",
+      "en": "Index",
+      "zh": "索引",
+      "definition": "維護額外的資料結構，協助資料庫找到符合條件的列。更新資料也可能需要維護索引。",
+      "example": "常用訂單編號查詢時，可替 order_no 建索引並檢查執行計畫。",
+      "category": "索引與效能"
+    },
+    {
+      "id": "composite-index",
+      "en": "Composite Index",
+      "zh": "複合索引",
+      "definition": "以多個欄位作為同一索引的鍵。鍵的排列順序會影響可利用的查詢方式。",
+      "example": "索引 (channel_id, created_at) 可支援指定通路後依日期範圍查訂單。",
+      "category": "索引與效能"
+    },
+    {
+      "id": "execution-plan",
+      "en": "Execution Plan",
+      "zh": "執行計畫",
+      "definition": "資料庫為 SQL 選擇的執行步驟，例如掃描、連接、排序與彙總。",
+      "example": "報表突然變慢時，可比較估計與實際列數，定位哪個步驟處理的資料比預期多。",
+      "category": "索引與效能"
+    },
+    {
+      "id": "covering-index",
+      "en": "Covering Index",
+      "zh": "涵蓋索引",
+      "definition": "對特定查詢而言，索引已含所需欄位，具備只從索引取得欄位值的條件。",
+      "example": "SQL Server 的索引可用 INCLUDE (amount) 帶上報表要讀取的金額。",
+      "category": "索引與效能"
+    },
+    {
+      "id": "isolation-level",
+      "en": "Isolation Level",
+      "zh": "交易隔離等級",
+      "category": "交易與併發",
+      "definition": "規定並行交易可以觀察到哪些變更，以及資料庫必須防止哪些併發異常。",
+      "example": "訂單報表分兩次讀取表頭與明細。若必須看到同一時間點的資料，選等級前要確認快照涵蓋一個陳述式或整筆交易。"
+    },
+    {
+      "id": "read-committed",
+      "en": "Read Committed",
+      "zh": "讀取已提交",
+      "category": "交易與併發",
+      "definition": "阻止讀到其他交易尚未提交的資料；同一交易前後兩次查詢仍可能看到不同結果。",
+      "example": "在 PostgreSQL，第一個 SELECT 看到訂單待付款。另一連線提交付款後，下一個 SELECT 可以看到已付款。"
+    },
+    {
+      "id": "repeatable-read",
+      "en": "Repeatable Read",
+      "zh": "可重複讀",
+      "category": "交易與併發",
+      "definition": "保證同一交易重讀同一筆已讀資料時，不受其他交易已提交的修改影響。不同資料庫對範圍查詢的保證可能不同。",
+      "example": "PostgreSQL 的 Repeatable Read 使用交易快照。即使其他人新增訂單並提交，這筆交易再次查同一批訂單也看不到新列。"
+    },
+    {
+      "id": "serializable",
+      "en": "Serializable",
+      "zh": "可序列化",
+      "category": "交易與併發",
+      "definition": "成功提交的並行交易必須產生等同某個逐筆執行順序的結果。",
+      "example": "兩位值班者同時請假時，PostgreSQL 可能中止其中一筆交易。應用程式須從交易起點重試並重新判斷是否還有人值班。"
+    },
+    {
+      "id": "mvcc",
+      "en": "Multiversion Concurrency Control (MVCC)",
+      "zh": "多版本並行控制",
+      "category": "交易與併發",
+      "definition": "資料庫保留資料列的多個版本，依交易的可見性規則決定讀者可以看到哪一版。",
+      "example": "PostgreSQL 報表查詢開始後，即使另一筆交易更新金額並提交，正在執行的普通 SELECT 仍可讀取符合其快照的舊版本。"
+    },
+    {
+      "id": "blocking",
+      "en": "Blocking",
+      "zh": "阻塞",
+      "category": "交易與併發",
+      "definition": "一個交易持有資源時，另一個交易因需要不相容的鎖而等待。",
+      "example": "櫃台 A 改了庫存尚未提交，櫃台 B 要改同一列便等待。A 提交後 B 可以繼續；單向等待本身並未形成死鎖。"
+    },
+    {
+      "id": "optimistic-concurrency",
+      "en": "Optimistic Concurrency",
+      "zh": "樂觀並行控制",
+      "category": "交易與併發",
+      "definition": "讀取時記下版本，寫回時檢查版本是否仍相同，以偵測期間發生的更新。",
+      "example": "兩人打開同一張訂單，第一人存檔後，第二人的舊版本更新會影響零列，介面可提示重新載入。",
+      "sample": {
+        "language": "SQL",
+        "setup": "假設 orders.id 是主鍵，訂單 7 的 version_no 為 3。兩位編輯者都讀到版本 3。",
+        "code": "UPDATE orders\nSET note = '更改配送日期', version_no = version_no + 1\nWHERE id = 7 AND version_no = 3;",
+        "result": "第一人更新 1 列，版本變成 4。第二人以相同條件寫回時更新 0 列。"
+      }
+    },
+    {
+      "id": "where",
+      "en": "WHERE",
+      "zh": "資料列篩選",
+      "category": "查詢與彙總",
+      "definition": "分組前逐列判斷條件，只保留結果為 TRUE 的列。",
+      "example": "通路對帳時，先挑出入帳金額大於零的明細，再彙總。",
+      "sample": {
+        "language": "SQL",
+        "setup": "CTE 內含本例所需資料，可直接執行下方查詢。",
+        "code": "WITH payments(amount) AS (SELECT 100 UNION ALL SELECT -20)\nSELECT amount FROM payments WHERE amount > 0;",
+        "result": "只回傳 100。"
+      }
+    },
+    {
+      "id": "exists",
+      "en": "EXISTS",
+      "zh": "存在性判斷",
+      "category": "查詢與彙總",
+      "definition": "子查詢只要回傳至少一列，條件就成立。",
+      "example": "找出有退款的訂單時，每張訂單只需要出現一次。",
+      "sample": {
+        "language": "SQL",
+        "setup": "CTE 內含本例所需資料，可直接執行下方查詢。",
+        "code": "WITH orders(id) AS (SELECT 1 UNION ALL SELECT 2),\nrefunds(order_id) AS (SELECT 2 UNION ALL SELECT 2)\nSELECT id FROM orders AS o\nWHERE EXISTS (SELECT 1 FROM refunds AS r WHERE r.order_id = o.id);",
+        "result": "只回傳訂單 2 一次，兩筆退款不會把訂單複製成兩列。"
+      }
+    },
+    {
+      "id": "coalesce",
+      "en": "COALESCE",
+      "zh": "取第一個非空值",
+      "category": "查詢與彙總",
+      "definition": "從左到右取第一個非 NULL 的運算式值。所有值都是 NULL 時回傳 NULL。",
+      "example": "商品沒有通路專屬價時，顯示預設價。",
+      "sample": {
+        "language": "SQL",
+        "setup": "CTE 內含本例所需資料，可直接執行下方查詢。",
+        "code": "WITH prices(channel_price, base_price) AS (SELECT NULL, 120)\nSELECT COALESCE(channel_price, base_price) AS price FROM prices;",
+        "result": "回傳 120。如果把 NULL 改成 0，則回傳 0。"
+      }
+    },
+    {
+      "id": "union-all",
+      "en": "UNION ALL",
+      "zh": "合併並保留重複列",
+      "category": "查詢與彙總",
+      "definition": "串接多個查詢的結果。各查詢須有相同欄數，對應欄位型別須相容。",
+      "example": "兩個通路各有一筆金額相同的付款，合併流水時應保留兩筆。",
+      "sample": {
+        "language": "SQL",
+        "setup": "CTE 內含本例所需資料，可直接執行下方查詢。",
+        "code": "WITH payments(amount) AS (SELECT 50 UNION ALL SELECT 50)\nSELECT COUNT(*) AS entries, SUM(amount) AS total FROM payments;",
+        "result": "共有 2 筆，合計 100。"
+      }
+    },
+    {
+      "id": "distinct",
+      "en": "DISTINCT",
+      "zh": "相異值",
+      "category": "查詢與彙總",
+      "definition": "依照 SELECT 選取的全部欄位組合移除重複列。",
+      "example": "報表只列出當天有成交的通路，同一通路下的多張訂單只列一次。",
+      "sample": {
+        "language": "SQL",
+        "setup": "CTE 內含本例所需資料，可直接執行下方查詢。",
+        "code": "WITH orders(channel) AS (SELECT 'A' UNION ALL SELECT 'A' UNION ALL SELECT 'B')\nSELECT DISTINCT channel FROM orders ORDER BY channel;",
+        "result": "依序得到 A、B。"
+      }
+    }
+  ],
+  "relations": [
+    [
+      "conditional-update",
+      "lost-update"
+    ],
+    [
+      "conditional-update",
+      "transaction"
+    ],
+    [
+      "lost-update",
+      "write-skew"
+    ],
+    [
+      "left-join",
+      "inner-join"
+    ],
+    [
+      "left-join",
+      "null"
+    ],
+    [
+      "group-by",
+      "having"
+    ],
+    [
+      "group-by",
+      "window"
+    ],
+    [
+      "isolation-level",
+      "acid"
+    ],
+    [
+      "isolation-level",
+      "transaction"
+    ],
+    [
+      "isolation-level",
+      "dirty-read"
+    ],
+    [
+      "read-committed",
+      "isolation-level"
+    ],
+    [
+      "read-committed",
+      "non-repeatable-read"
+    ],
+    [
+      "repeatable-read",
+      "isolation-level"
+    ],
+    [
+      "repeatable-read",
+      "phantom-read"
+    ],
+    [
+      "repeatable-read",
+      "non-repeatable-read"
+    ],
+    [
+      "serializable",
+      "write-skew"
+    ],
+    [
+      "serializable",
+      "isolation-level"
+    ],
+    [
+      "mvcc",
+      "repeatable-read"
+    ],
+    [
+      "mvcc",
+      "read-committed"
+    ],
+    [
+      "blocking",
+      "deadlock"
+    ],
+    [
+      "blocking",
+      "transaction"
+    ],
+    [
+      "optimistic-concurrency",
+      "conditional-update"
+    ],
+    [
+      "optimistic-concurrency",
+      "lost-update"
+    ],
+    [
+      "where",
+      "group-by"
+    ],
+    [
+      "where",
+      "having"
+    ],
+    [
+      "exists",
+      "inner-join"
+    ],
+    [
+      "exists",
+      "left-join"
+    ],
+    [
+      "coalesce",
+      "null"
+    ],
+    [
+      "coalesce",
+      "left-join"
+    ],
+    [
+      "union-all",
+      "group-by"
+    ],
+    [
+      "union-all",
+      "distinct"
+    ],
+    [
+      "distinct",
+      "group-by"
+    ]
+  ]
+}

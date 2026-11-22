@@ -1,9 +1,26 @@
 # Software Dictionary
 
-繁體中文軟體工程詞典。第一版收錄 SQL 名詞，每個詞條包含英文名稱、中文定義與使用情境。
+[開啟軟體工程詞典](https://ge1123.github.io/software-dictionary/)
 
-[開啟 SQL 詞典](https://ge1123.github.io/software-dictionary/)
+以繁體中文查英文工程名詞。可依分類或關鍵字搜尋，點詞條閱讀定義、實際情境、程式範例與雙向參照。
 
-使用 Node.js 22.12 以上版本。執行 `npm ci` 安裝套件，`npm run dev` 啟動開發站，`npm run check` 檢查詞條，`npm run build` 建立靜態網站。詞條資料位於 `src/terms.js`。
+## 補充內容
 
-GitHub Actions 會檢查 pull request，main 通過檢查及建置後會部署到 GitHub Pages。部署來源使用 GitHub Actions。
+| 工作 | 入口 |
+| --- | --- |
+| 編輯現有 SQL 詞條 | [SQL 詞庫](src/domains/sql.json) |
+| 確認用詞、版面、範例及關係的寫法 | [詞條維護規範](AGENTS.md) |
+| 新增領域 | 複製 [領域樣板](templates/domain.json) 到 src/domains，再加入 [領域清單](src/terms.js) |
+
+目前上線 SQL。後續的後端、Redis、MQ、Infra、FAE、Frontend、Browser、資安都能使用同一個樣板；加入第二個領域後，首頁會顯示領域選單。只有已登錄的領域會發布。
+
+## 開發與部署
+
+使用 Node.js 22.12 或以上版本。
+
+```sh
+npm ci
+npm run dev
+```
+
+`npm run check` 驗證詞條、範例欄位與雙向參照，`npm run build` 產生靜態站。GitHub Actions 檢查 pull request，main 通過建置後自動部署至 GitHub Pages。

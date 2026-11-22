@@ -177,6 +177,203 @@
           "端點正常回傳的 400 或 409 不會觸發例外處理。若回應已送出標頭，處理器也無法重新指定 HTTP 狀態碼。"
         ]
       ]
+    },
+    {
+      "id": "x-powered-by",
+      "en": "X-Powered-By",
+      "zh": "框架識別回應標頭",
+      "category": "主機與 HTTP 資安",
+      "definition": "HTTP 回應中用來標示網站技術的選用欄位。IIS 可以送出 X-Powered-By: ASP.NET，ASP.NET Core 本身預設不會加入這個欄位。",
+      "example": "維運人員在訂單 API 的回應看見 ASP.NET，但看不出 .NET 版本。若標頭來自 IIS 繼承的設定，可在該站台移除它，減少對外揭露的資訊。框架的安全更新仍要個別檢查。",
+      "aliases": [
+        "x power",
+        "x powered by"
+      ],
+      "sample": {
+        "language": "XML",
+        "setup": "站台從上層 IIS 設定繼承了 X-Powered-By。將 remove 加入 web.config 既有的 system.webServer / httpProtocol / customHeaders 節點。",
+        "code": "<httpProtocol>\n  <customHeaders>\n    <remove name=\"X-Powered-By\" />\n  </customHeaders>\n</httpProtocol>",
+        "result": "重新請求同一支 API，在瀏覽器「網路」面板查看回應標頭。只有這層 IIS 加入該欄位時，X-Powered-By 會消失。Server 由另一項設定控制。"
+      },
+      "sources": [
+        [
+          "Microsoft Learn · YARP 對 Server 與 X-Powered-By 的處理",
+          "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/servers/yarp/header-guidelines?view=aspnetcore-10.0#x-powered-by"
+        ],
+        [
+          "Microsoft Learn · IIS 自訂 HTTP 回應標頭",
+          "https://learn.microsoft.com/en-us/iis/configuration/system.webserver/httpprotocol/customheaders/"
+        ]
+      ]
+    },
+    {
+      "id": "kestrel",
+      "en": "Kestrel",
+      "zh": "ASP.NET Core 網頁伺服器",
+      "category": "主機與 HTTP 資安",
+      "definition": "Kestrel 是 ASP.NET Core 內建的跨平台 HTTP 伺服器。它接收連線、解析 HTTP 請求，再將請求交給應用程式的中介軟體。",
+      "example": "訂單 API 部署在 AKS 時，可以由 Ingress Controller 接收外部 HTTPS，再把請求轉給 Pod 裡的 Kestrel。瀏覽器看到的是通過入口後的回應，入口和 Pod 可能顯示不同的 Server 值。",
+      "aliases": [
+        "kersal"
+      ],
+      "properties": [
+        [
+          "直接裝載",
+          "應用程式可以直接使用 Kestrel 接收 HTTP 或 HTTPS。"
+        ],
+        [
+          "IIS 裝載",
+          "處理序外（out-of-process）模式由 IIS 轉送到 Kestrel。處理序內（in-process）模式由 IISHttpServer 將請求交給應用程式。"
+        ]
+      ],
+      "sources": [
+        [
+          "Microsoft Learn · Kestrel 網頁伺服器",
+          "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/servers/kestrel?view=aspnetcore-10.0"
+        ],
+        [
+          "Microsoft Learn · IIS 處理序內裝載",
+          "https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/iis/in-process-hosting?view=aspnetcore-10.0"
+        ]
+      ]
+    },
+    {
+      "id": "server-header",
+      "en": "Server",
+      "zh": "伺服器識別回應標頭",
+      "category": "主機與 HTTP 資安",
+      "definition": "HTTP 回應中的 Server 欄位用來標示伺服器軟體，有時也包含版本。Server: Kestrel 中的欄位名稱是 Server，值是 Kestrel。",
+      "example": "團隊要讓訂單 API 少揭露一項主機資訊。先關閉 Kestrel 自動加入的 Server，再比較直接連到本機服務與經過測試站入口的回應。若只有入口仍顯示代理產品名稱，就檢查代理的設定。",
+      "sample": {
+        "language": "C#",
+        "setup": "在使用 Kestrel 的 ASP.NET Core 專案中，將這段放在 Program.cs 的 builder.Build() 前。",
+        "code": "builder.WebHost.ConfigureKestrel(options =>\n{\n    options.AddServerHeader = false;\n});",
+        "result": "重新啟動服務後，直接對本機端點送出 GET。若應用程式沒有另外設定 Server，回應就不會包含 Server: Kestrel。"
+      },
+      "sources": [
+        [
+          "Microsoft Learn · KestrelServerOptions.AddServerHeader",
+          "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.server.kestrel.core.kestrelserveroptions.addserverheader?view=aspnetcore-10.0"
+        ],
+        [
+          "MDN · Server 回應標頭",
+          "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Server"
+        ]
+      ]
+    },
+    {
+      "id": "forwarded-headers-middleware",
+      "en": "Forwarded Headers Middleware",
+      "zh": "轉送標頭中介軟體",
+      "category": "主機與 HTTP 資安",
+      "definition": "ASP.NET Core 用這個中介軟體讀取受信任代理送來的轉送標頭，更新 HttpContext 裡的連線資訊，讓後續元件知道外部請求使用的 IP 與通訊協定。",
+      "example": "訂單 API 前面有一層反向代理。只有該代理能連到後端，入口會覆寫用戶端傳入的轉送標頭。API 在 HTTPS 重新導向與讀取來源 IP 的日誌元件之前處理這些欄位。",
+      "sample": {
+        "language": "C#",
+        "setup": "ASP.NET Core 10 的 Program.cs。假設後端以 IPv4 看到唯一入口代理 10.0.0.10，代理會設定 X-Forwarded-For 與 X-Forwarded-Proto。依部署環境填入實際位址。",
+        "code": "using Microsoft.AspNetCore.HttpOverrides;\nusing System.Net;\n\nvar builder = WebApplication.CreateBuilder(args);\nvar app = builder.Build();\n\napp.UseForwardedHeaders(new ForwardedHeadersOptions\n{\n    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,\n    KnownProxies = { IPAddress.Parse(\"10.0.0.10\") },\n    ForwardLimit = 1\n});\napp.UseHttpsRedirection();\n// 接著註冊端點，再呼叫 app.Run()。",
+        "result": "外部 HTTPS 請求經該代理轉入後，後續元件讀到的 Request.Scheme 為 https，Connection.RemoteIpAddress 為代理轉交的來源 IP。"
+      },
+      "sources": [
+        [
+          "Microsoft Learn · ASP.NET Core 的反向代理與負載平衡器設定",
+          "https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/proxy-load-balancer?view=aspnetcore-10.0"
+        ],
+        [
+          "Microsoft Learn · 忽略未知代理的轉送標頭",
+          "https://learn.microsoft.com/en-us/aspnet/core/breaking-changes/8/forwarded-headers-unknown-proxies?view=aspnetcore-10.0"
+        ]
+      ]
+    },
+    {
+      "id": "x-forwarded-for",
+      "en": "X-Forwarded-For (XFF)",
+      "zh": "來源 IP 轉送標頭",
+      "category": "主機與 HTTP 資安",
+      "definition": "反向代理用這個 HTTP 請求標頭傳遞來源 IP。請求經過多層代理時，欄位可能包含以逗號分隔的一串位址。",
+      "example": "兩家通路的請求都經過 10.0.0.10，API 的日誌原本只記到這個代理 IP。若入口從連線取得來源 203.0.113.8 並覆寫 X-Forwarded-For，應用程式信任這一跳後，便能從 Connection.RemoteIpAddress 讀到 203.0.113.8。",
+      "properties": [
+        [
+          "多層代理怎麼讀",
+          "ASP.NET Core 從右向左處理，ForwardLimit 預設為一跳。依實際代理鏈設定信任範圍和跳數。"
+        ],
+        [
+          "用於限流時",
+          "用戶端能自行填入標頭。以 IP 分組前，先在入口處理外來值，並讓應用程式只採信已知代理轉來的位址。"
+        ]
+      ],
+      "sources": [
+        [
+          "Microsoft Learn · ASP.NET Core 的反向代理與負載平衡器設定",
+          "https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/proxy-load-balancer?view=aspnetcore-10.0"
+        ],
+        [
+          "MDN · X-Forwarded-For",
+          "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For"
+        ]
+      ]
+    },
+    {
+      "id": "x-forwarded-proto",
+      "en": "X-Forwarded-Proto",
+      "zh": "原始通訊協定轉送標頭",
+      "category": "主機與 HTTP 資安",
+      "definition": "反向代理用這個 HTTP 請求標頭告知後端，用戶端連到代理時使用 http 或 https。代理到後端的連線可以使用另一種協定。",
+      "example": "使用者以 HTTPS 開啟通路後台，入口終止 TLS 後以 HTTP 轉給 Kestrel。如果 API 一直依內部的 http 判斷，就可能反覆重新導向同一個 HTTPS 網址。先處理受信任代理傳來的 X-Forwarded-Proto: https，後續元件便能讀到正確的 Request.Scheme。",
+      "sources": [
+        [
+          "Microsoft Learn · ASP.NET Core 的反向代理與負載平衡器設定",
+          "https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/proxy-load-balancer?view=aspnetcore-10.0"
+        ],
+        [
+          "MDN · X-Forwarded-Proto",
+          "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-Proto"
+        ]
+      ]
+    },
+    {
+      "id": "hsts",
+      "en": "HTTP Strict Transport Security (HSTS)",
+      "zh": "HTTP 嚴格傳輸安全",
+      "category": "主機與 HTTP 資安",
+      "definition": "網站透過 HTTPS 回應送出 Strict-Transport-Security，要求瀏覽器在 max-age 指定的秒數內，自動以 HTTPS 連到同一主機。",
+      "example": "使用者先用 HTTPS 登入通路後台，再從舊書籤開啟該站的 HTTP 網址。若 HSTS 仍有效，瀏覽器會先改用 HTTPS 才發送請求。首次造訪時，若瀏覽器還沒有該站的政策或預載紀錄，HTTP 請求仍可能送出。",
+      "sample": {
+        "language": "HTTP",
+        "setup": "已正確設定 HTTPS 的測試站，在成功的 HTTPS 回應中送出以下標頭。ASP.NET Core 可用 UseHsts() 送出政策，也可由對外入口統一設定。",
+        "code": "Strict-Transport-Security: max-age=300",
+        "result": "收到回應的瀏覽器會在接下來 300 秒內自動升級該主機的 HTTP 網址。範例省略 includeSubDomains，政策只涵蓋這個主機。"
+      },
+      "sources": [
+        [
+          "Microsoft Learn · 在 ASP.NET Core 強制使用 HTTPS",
+          "https://learn.microsoft.com/en-us/aspnet/core/security/enforcing-ssl?view=aspnetcore-10.0"
+        ],
+        [
+          "MDN · Strict-Transport-Security",
+          "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security"
+        ]
+      ]
+    },
+    {
+      "id": "x-content-type-options",
+      "en": "X-Content-Type-Options",
+      "zh": "禁止猜測內容類型的回應標頭",
+      "category": "主機與 HTTP 資安",
+      "definition": "值為 nosniff 時，瀏覽器依回應宣告的 Content-Type 解讀內容。載入指令碼或樣式表時，若宣告的 MIME 類型不符，瀏覽器會封鎖該資源。",
+      "example": "通路後台載入 /js/orders.js 時畫面空白。網路面板顯示狀態 200，但回應是登入頁的 text/html。瀏覽器依 nosniff 拒絕執行。修正靜態檔案路由，讓該網址傳回真正的 JavaScript 檔與對應類型。",
+      "sample": {
+        "language": "HTTP",
+        "setup": "頁面用 script 標籤載入 orders.js。修正路由後，檢查這個檔案本身的回應標頭。",
+        "code": "Content-Type: text/javascript\nX-Content-Type-Options: nosniff",
+        "result": "指令碼的 MIME 類型符合瀏覽器要求，這個檔案可通過 nosniff 的類型檢查。"
+      },
+      "sources": [
+        [
+          "MDN · X-Content-Type-Options",
+          "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Content-Type-Options"
+        ]
+      ]
     }
   ],
   "relations": [
@@ -275,6 +472,58 @@
     [
       "exception-handler",
       "commerce/payment-pending"
+    ],
+    [
+      "x-powered-by",
+      "server-header",
+      {
+        "forward": "看到 Server: Kestrel，要改哪個 Kestrel 設定？",
+        "reverse": "看到 X-Powered-By: ASP.NET，要從哪裡移除 IIS 繼承的標頭？"
+      }
+    ],
+    [
+      "kestrel",
+      "server-header"
+    ],
+    [
+      "kestrel",
+      "infra/ingress"
+    ],
+    [
+      "kestrel",
+      "middleware"
+    ],
+    [
+      "kestrel",
+      "forwarded-headers-middleware"
+    ],
+    [
+      "forwarded-headers-middleware",
+      "middleware"
+    ],
+    [
+      "forwarded-headers-middleware",
+      "x-forwarded-for"
+    ],
+    [
+      "forwarded-headers-middleware",
+      "x-forwarded-proto"
+    ],
+    [
+      "x-forwarded-for",
+      "backend/rate-limiting"
+    ],
+    [
+      "x-forwarded-proto",
+      "hsts"
+    ],
+    [
+      "x-content-type-options",
+      "x-powered-by",
+      {
+        "forward": "同樣以 X- 開頭，哪個回應標頭會揭露框架名稱？",
+        "reverse": "哪個回應標頭指示瀏覽器依宣告的內容類型載入資源？"
+      }
     ]
   ]
 }

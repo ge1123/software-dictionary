@@ -36,7 +36,7 @@ createApp({
       const text = query.value.trim().toLowerCase();
       return domainTerms.value.filter(term =>
         (category.value === '全部' || term.category === category.value) &&
-        [term.en, term.zh, term.lookupQuestion ?? '', term.category, term.definition, term.example, ...(term.practice ? [term.practice.principle, ...term.practice.steps, term.practice.verify, term.practice.tradeoff] : [])].some(value => value.toLowerCase().includes(text))
+        [term.en, term.zh, ...(term.aliases ?? []), term.lookupQuestion ?? '', term.category, term.definition, term.example, ...(term.practice ? [term.practice.principle, ...term.practice.steps, term.practice.verify, term.practice.tradeoff] : [])].some(value => value.toLowerCase().includes(text))
       );
     });
     function reset() {

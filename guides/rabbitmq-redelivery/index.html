@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>已入帳卻來不及 ACK，重送會再加一次嗎？ · Software Dictionary</title>
+  <link rel="stylesheet" href="../../src/style.css"><link rel="stylesheet" href="../../cases/case.css">
+</head>
+<body>
+<header><a href="../../"><b>Software Dictionary</b></a><a href="../../#/topics/mq">MQ詞典</a></header>
+<main class="model-case">
+  <h1>已入帳卻來不及 ACK，重送會再加一次嗎？</h1>
+
+  <p>本詞典的 .NET 實驗有一個帳戶，期初餘額為 0。發布端送出訊息 <code>credit-17</code>，內容要求入帳 250 個最小貨幣單位。消費者提交 PostgreSQL 交易後立刻退出，刻意把故障放在 COMMIT 與 RabbitMQ 的 ACK 之間。</p>
+  <h2>同一個事件的兩次投遞</h2>
+  <div class="data-scroll" tabindex="0" role="region" aria-label="兩次投遞的觀察結果"><table>
+    <thead><tr><th>觀察點</th><th>第一次處理</th><th>程序重啟後</th></tr></thead>
+    <tbody>
+      <tr><th>MessageId</th><td>credit-17</td><td>credit-17</td></tr>
+      <tr><th>RabbitMQ 的 Redelivered</th><td>false</td><td>true</td></tr>
+      <tr><th>資料庫</th><td>登記事件、餘額加 250，一起提交</td><td>事件主鍵已存在，本次更新 0 列</td></tr>
+      <tr><th>消費確認</th><td>提交後以代碼 42 結束程序</td><td>完成重複檢查後 ACK</td></tr>
+    </tbody></table></div>
+  <h2>為什麼只入帳一次？</h2>
+  <p><code>processed_events.event_id</code> 是主鍵。寫入新鍵時，<code>RETURNING</code> 產生一列，餘額更新才符合條件。相同鍵再次抵達時，<code>ON CONFLICT DO NOTHING</code> 傳回零列。事件登記和餘額更新使用同一筆交易，兩者一起提交或一起回滾。</p>
+  <details><summary>看 PostgreSQL 的入帳條件</summary>
+    <pre tabindex="0"><code>WITH first_delivery AS (
+    INSERT INTO processed_events (event_id) VALUES (@id)
+    ON CONFLICT (event_id) DO NOTHING RETURNING event_id
+)
+UPDATE account SET balance_minor = balance_minor + @amount
+WHERE account_id = 1 AND EXISTS (SELECT 1 FROM first_delivery)</code></pre>
+    <p><code>@id</code> 和 <code>@amount</code> 是 .NET 傳給 Npgsql 的參數。實驗預先建立帳戶 1，同一事件的每次投遞都使用相同 ID 與金額。</p>
+  </details>
+  <h2>壞訊息去哪裡？</h2>
+  <p>實驗接著送一筆 ID 為 <code>malformed-1</code>、內容只有左大括號的訊息。解析 JSON 失敗時，消費者回覆 <code>BasicNack(requeue: false)</code>。工作佇列已設定死信路由，驗收程式從 <code>credits.dead</code> 讀回相同 ID 和內容並確認收件。餘額仍為 250，已處理事件仍只有一筆。</p>
+  <h2>自己重跑</h2>
+  <p>在有 Docker Compose v2 的電腦，從詞典專案根目錄執行下列指令。每次會建立獨立的 Compose 專案，結束後清除該次容器和資料卷。</p>
+  <pre tabindex="0"><code>bash labs/rabbitmq-redelivery/run.sh</code></pre>
+  <p>通過時最後一個消費者會印出 <code>PASS redelivered=true; balance_minor=250; processed_events=1; DLQ=malformed-1</code>。測試要求 broker 真正重送、資料庫餘額正確、兩個佇列都已讀完。</p>
+  <p>這份驗收涵蓋單一帳戶及同一 PostgreSQL 交易內的副作用。若處理動作還包括呼叫外部扣款 API，該呼叫要另外驗證自己的冪等機制。</p>
+  <p><a href="https://github.com/ge1123/software-dictionary/tree/main/labs/rabbitmq-redelivery">實驗原始碼與 Compose 設定</a> · <a href="https://www.rabbitmq.com/docs/confirms#automatic-requeueing">RabbitMQ 的未確認投遞</a> · <a href="https://www.rabbitmq.com/docs/dlx">RabbitMQ 死信路由</a></p>
+  <p><a href="../../#mq/consumer-ack">消費確認</a> · <a href="../../#mq/idempotent-consumer">冪等消費者</a> · <a href="../../#mq/dead-letter-queue">死信佇列</a></p>
+
+</main></body></html>

@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: lab
+      POSTGRES_PASSWORD: lab
+      POSTGRES_DB: redelivery
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lab -d redelivery"]
+      interval: 2s
+      timeout: 5s
+      retries: 40
+  broker:
+    image: rabbitmq:4.2
+    environment:
+      RABBITMQ_DEFAULT_USER: lab
+      RABBITMQ_DEFAULT_PASS: lab
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 4s
+      timeout: 10s
+      retries: 30
+  runner:
+    build: .
+    environment:
+      DB: Host=db;Database=redelivery;Username=lab;Password=lab
+      AMQP: amqp://lab:lab@broker:5672/

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>付款逾時，這筆可以再扣一次嗎？ · Software Dictionary</title>
+  <link rel="stylesheet" href="../../src/style.css"><link rel="stylesheet" href="../../cases/case.css">
+</head>
+<body>
+<header><a href="../../"><b>Software Dictionary</b></a><a href="../../#/topics/commerce">電商業務詞典</a></header>
+<main class="model-case">
+  <h1>付款逾時，這筆可以再扣一次嗎？</h1>
+
+  <p>Kill Bill 的 <code>createPurchase</code> 測試送出 10 AED，刻意讓模擬外掛比時限多等 100 毫秒。呼叫端收到 <code>PAYMENT_PLUGIN_TIMEOUT</code>。這個測試到此結束，沒有斷言扣款成功或失敗。<a href="https://github.com/killbill/killbill/blob/8881b6617a7ef2d0bd5e1dd354d37405eb1362d6/payment/src/test/java/org/killbill/billing/payment/api/TestPaymentApi.java#L2019-L2032">看逾時測試</a></p>
+  <h2>先找回原付款</h2>
+  <p>這筆測試有兩個外部鍵。<code>ohhhh</code> 識別整筆付款，<code>naaahhh</code> 識別這次交易。處理這個案例時，可用前者查付款，再在傳回的交易中核對後者。查詢範例如下。<a href="https://github.com/killbill/killbill/blob/8881b6617a7ef2d0bd5e1dd354d37405eb1362d6/jaxrs/src/main/java/org/killbill/billing/jaxrs/resources/PaymentResource.java#L139-L157">查詢 API 的參數與回傳</a></p>
+  <pre tabindex="0"><code>GET /1.0/kb/payments?externalKey=ohhhh&amp;withPluginInfo=true&amp;withAttempts=true</code></pre>
+  <p>Kill Bill 的背景查核工作用原付款 ID 向外掛取得交易清單，再用本地交易 ID 配對外掛的 <code>kbTransactionPaymentId</code>。若外掛查詢出錯或沒有相符交易，這次查核就缺少可確認的新結果。<a href="https://github.com/killbill/killbill/blob/8881b6617a7ef2d0bd5e1dd354d37405eb1362d6/payment/src/main/java/org/killbill/billing/payment/core/janitor/IncompletePaymentTransactionTask.java#L224-L257">看交易配對與查詢失敗分支</a></p>
+  <h2>查到什麼，能決定什麼？</h2>
+  <dl>
+    <dt>原交易為 SUCCESS</dt><dd>成功的購買已有結果。再次以該交易外部鍵建立購買，交易鍵檢查會拒絕，回傳 <code>PAYMENT_ACTIVE_TRANSACTION_KEY_EXISTS</code>。<a href="https://github.com/killbill/killbill/blob/8881b6617a7ef2d0bd5e1dd354d37405eb1362d6/payment/src/main/java/org/killbill/billing/payment/core/PaymentProcessor.java#L327-L336">看成功交易的重複鍵檢查</a></dd>
+    <dt>原交易仍是 UNKNOWN 或 PENDING</dt><dd>繼續查原交易。若試圖完成一筆仍為 UNKNOWN 的交易，處理器會拋出 <code>PAYMENT_INVALID_OPERATION</code>。PENDING 可以在多輪背景查核後仍維持原狀。<a href="https://github.com/killbill/killbill/blob/8881b6617a7ef2d0bd5e1dd354d37405eb1362d6/payment/src/main/java/org/killbill/billing/payment/core/PaymentProcessor.java#L297-L313">看 UNKNOWN 的保護條件</a> · <a href="https://github.com/killbill/killbill/blob/8881b6617a7ef2d0bd5e1dd354d37405eb1362d6/payment/src/test/java/org/killbill/billing/payment/TestJanitor.java#L486-L539">看 PENDING 的排程測試</a></dd>
+    <dt>查到明確失敗</dt><dd>先核對失敗類型與正在執行的付款操作，再決定是否依該流程重試。Kill Bill 另有付款控制測試，先驗證 <code>PLUGIN_FAILURE</code> 和已處理金額為零，再以相同交易外部鍵重試。最後仍是一筆付款，有兩個交易紀錄，第一筆為 PLUGIN_FAILURE，第二筆為 SUCCESS。這個分支的起點是已確認的外掛失敗。<a href="https://github.com/killbill/killbill/blob/8881b6617a7ef2d0bd5e1dd354d37405eb1362d6/payment/src/test/java/org/killbill/billing/payment/api/TestPaymentApi.java#L1046-L1099">看失敗交易與重試參數</a></dd>
+  </dl>
+  <details><summary>查核能改變哪一筆紀錄？</summary>
+    <p>另一個獨立測試先完成一次授權，再把原交易的本地狀態設為 UNKNOWN。測試推進時鐘，等候背景查核，重新讀取同一付款後，原授權交易恢復為 SUCCESS。這個斷言驗證的是授權狀態修正。前面 10 AED 購買的最終扣款結果仍未知。<a href="https://github.com/killbill/killbill/blob/8881b6617a7ef2d0bd5e1dd354d37405eb1362d6/payment/src/test/java/org/killbill/billing/payment/TestJanitor.java#L344-L371">看授權交易的前後狀態</a></p>
+  </details>
+  <p><a href="../../#commerce/payment-attempt">付款嘗試</a> · <a href="../../#commerce/payment-pending">付款待確認</a> · <a href="../../#backend/timeout">逾時</a> · <a href="../../#commerce/payment-reconciliation">比較 ERPNext 的銀行對帳</a></p>
+
+</main></body></html>

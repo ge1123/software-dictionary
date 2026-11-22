@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
+import { guides } from '../src/guides.js';
 import { domains, relations, relatedTerms, terms } from '../src/terms.js';
 const slug = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 assert.equal(new Set(domains.map(domain => domain.id)).size, domains.length);
@@ -79,8 +80,8 @@ for (const { id, scale } of terms) {
   for (const key of ['benefit', 'cost', 'measure']) assert.ok(scale?.[key]?.trim(), id);
 }
 
-for (const term of b2b2c) {
-  assert.ok(relatedTerms(term.id).length, term.id);
+for (const term of b2b2c) assert.ok(relatedTerms(term.id).length, term.id);
+for (const term of terms.filter(t => t.domain === 'commerce')) {
   assert.ok(Array.isArray(term.sources) && term.sources.length > 0, term.id);
   for (const [name, url] of term.sources) {
     assert.ok(name.trim(), term.id);
@@ -88,4 +89,10 @@ for (const term of b2b2c) {
   }
 }
 
+assert.equal(new Set(guides.map(g => g.id)).size, guides.length);
+for (const guide of guides) {
+  assert.match(guide.id, slug);
+  assert.ok(guide.title.trim() && guide.terms.length && guide.terms.every(id => ids.has(id)), guide.id);
+  assert.ok(existsSync(new URL('../guides/' + guide.id + '/index.html', import.meta.url)), guide.id);
+}
 await import('./atlas/check.mjs');

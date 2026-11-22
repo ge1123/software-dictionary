@@ -30,9 +30,16 @@ jobs:
         with:
           path: dist
 
+  redelivery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash labs/rabbitmq-redelivery/run.sh
+
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: build
+    needs: [build, redelivery]
     runs-on: ubuntu-latest
     concurrency:
       group: github-pages

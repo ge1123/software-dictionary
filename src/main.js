@@ -1,5 +1,5 @@
 import { createApp, computed, watch, onUnmounted, ref } from 'vue/dist/vue.esm-bundler.js';
-import { relatedTerms, domains, plannedTopics, terms } from './terms.js';
+import { resolveEntryId, relatedTerms, domains, plannedTopics, terms } from './terms.js';
 import './style.css';
 
 const sorted = [...terms].sort((a, b) => a.en.localeCompare(b.en, 'en'));
@@ -7,7 +7,7 @@ createApp({
   setup() {
     const query = ref('');
     const category = ref('全部');
-    const slug = ref(location.hash.slice(1));
+    const slug = ref(resolveEntryId(location.hash.slice(1)));
     const title = ref(null);
     const selected = computed(() => terms.find(term => term.id === slug.value));
     const domain = computed(() => domains.find(item =>
@@ -27,7 +27,7 @@ createApp({
       query.value = '';
     }
     function readHash() {
-      slug.value = location.hash.slice(1);
+      slug.value = resolveEntryId(location.hash.slice(1));
     }
     window.addEventListener('hashchange', readHash);
     onUnmounted(() => window.removeEventListener('hashchange', readHash));

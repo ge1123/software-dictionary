@@ -1,0 +1,80 @@
+{
+  "id": "commerce",
+  "name": "電商業務",
+  "terms": [
+    {
+      "id": "sku",
+      "en": "Stock Keeping Unit (SKU)",
+      "zh": "庫存單位",
+      "category": "商品與定價",
+      "definition": "用來識別可獨立管理庫存的商品單位。只有單一規格的商品也可以有自己的 SKU。",
+      "example": "同一件衣服是 Product，紅色 M 與藍色 L 是不同 SKU，可有不同價格。每種規格各有一列，找低庫存商品就能共用同一個數量條件。"
+    },
+    {
+      "id": "price-snapshot",
+      "en": "Price Snapshot",
+      "zh": "成交價快照",
+      "category": "商品與定價",
+      "definition": "建立訂單時保存本次交易採用的價格，讓歷史明細能重現成交時的金額。",
+      "example": "紅色 M 以 100 元成交，明天目錄調到 120 元，昨天的訂單仍用 100 元對帳。"
+    },
+    {
+      "id": "inventory-reservation",
+      "en": "Inventory Reservation",
+      "zh": "庫存預留",
+      "category": "庫存",
+      "definition": "替特定訂單暫時占用可售數量，並追蹤預留的確認、取消或到期。",
+      "example": "下單先占用 SKU 可售數量，付款確認才扣除實體帳面庫存；取消或逾期只解除占用。這個模型中，可售量等於帳面量減有效預留量。"
+    },
+    {
+      "id": "refund",
+      "en": "Refund",
+      "zh": "退款",
+      "category": "付款與退款",
+      "definition": "將已收取款項部分或全部退回並記錄獨立結果。",
+      "example": "同一訂單可分次退款，送出前檢查已退與處理中總額；金流逾時保留退款編號供查詢。"
+    },
+    {
+      "id": "cart",
+      "en": "Shopping Cart",
+      "zh": "購物車",
+      "category": "購物車與訂單",
+      "definition": "在結帳前保存使用者選擇的商品與數量。",
+      "example": "加入購物車後商品可能調價；結帳時重查售價及庫存，再把成交價存入明細。"
+    },
+    {
+      "id": "order-state",
+      "en": "Order State Machine",
+      "zh": "訂單狀態機",
+      "category": "購物車與訂單",
+      "definition": "用明確的狀態與轉移條件約束訂單生命週期。",
+      "example": "取消與出貨同時送達時，兩個操作都檢查目前狀態，只有符合條件的更新能成功。"
+    }
+  ],
+  "relations": [
+    [
+      "sku",
+      "price-snapshot"
+    ],
+    [
+      "sku",
+      "inventory-reservation"
+    ],
+    [
+      "inventory-reservation",
+      "backend/compensation"
+    ],
+    [
+      "refund",
+      "backend/compensation"
+    ],
+    [
+      "cart",
+      "price-snapshot"
+    ],
+    [
+      "order-state",
+      "sql/conditional-update"
+    ]
+  ]
+}

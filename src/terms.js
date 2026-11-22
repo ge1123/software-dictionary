@@ -7,7 +7,18 @@ import mq from './domains/mq.json' with { type: 'json' };
 
 import dotnet from './domains/dotnet.json' with { type: 'json' };
 
-export const domains = [sql, backend, dotnet, redis, mq];
+import commerce from './domains/commerce.json' with { type: 'json' };
+export const domains = [sql, backend, dotnet, redis, mq, commerce];
+
+// Bookmarks published before the commerce topic was introduced.
+const formerBackendSlugs = new Set([
+  'sku', 'price-snapshot', 'inventory-reservation', 'refund', 'cart', 'order-state'
+]);
+
+export function resolveEntryId(id) {
+  const slug = id.slice('backend/'.length);
+  return id.startsWith('backend/') && formerBackendSlugs.has(slug) ? 'commerce/' + slug : id;
+}
 
 export const plannedTopics = Object.entries({
   backend: '後端', mq: 'MQ', infra: 'Infra', fae: 'FAE',

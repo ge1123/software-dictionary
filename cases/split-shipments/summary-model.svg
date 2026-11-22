@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 244" role="img" aria-labelledby="title desc">
+  <title id="title">方案 A：訂單明細單表</title>
+  <desc id="desc">order_line 以 line_id 為主鍵。每筆訂單明細同時保存商品、供應商、訂購數量、累計出貨數量及最後物流號。</desc>
+  <style>
+    text { font: 15px monospace; fill: #263b30; }
+    .heading { font: bold 18px monospace; fill: #254d3d; }
+    .type { text-anchor: end; fill: #456b52; }
+  </style>
+  <rect x="1" y="1" width="318" height="242" rx="5" fill="#fffef8" stroke="#83988c"/>
+  <text class="heading" x="16" y="28">order_line</text>
+  <path d="M1 40h318" stroke="#426451"/>
+  <g transform="translate(16 66)">
+    <text>line_id</text><text class="type" x="288">bigint · PK</text>
+    <text y="26">order_id</text><text class="type" x="288" y="26">bigint</text>
+    <text y="52">product_name</text><text class="type" x="288" y="52">text</text>
+    <text y="78">supplier_name</text><text class="type" x="288" y="78">text</text>
+    <text y="104">ordered_qty</text><text class="type" x="288" y="104">int</text>
+    <text y="130">shipped_qty</text><text class="type" x="288" y="130">int</text>
+    <text y="156">last_tracking_no</text><text class="type" x="288" y="156">text</text>
+  </g>
+</svg>

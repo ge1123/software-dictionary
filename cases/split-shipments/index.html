@@ -26,6 +26,11 @@
         <p>每批建立一張 <code>shipment</code>，用 <code>shipment_item</code> 記下各明細這次寄出的數量。可以逐包追溯，寫入時要一併維護明細與累計數。</p>
       </section>
     </div>
+    <h2 id="model-a">方案 A 的 ER 圖</h2>
+    <figure>
+      <img class="single-entity" src="./summary-model.svg" width="320" height="244" alt="方案 A 只有 order_line 一張表，主鍵為 line_id。shipped_qty 與 last_tracking_no 都保存在同一筆訂單明細。">
+      <figcaption>每列對應一筆訂單明細。每次出貨都更新同一列的累計數量與最後物流號。</figcaption>
+    </figure>
     <div class="data-scroll" tabindex="0" role="region" aria-label="方案 A 出貨摘要">
       <table>
         <caption>方案 A · 衣服明細在兩個時間點的值</caption>
@@ -37,6 +42,19 @@
       </table>
     </div>
     <p>這兩列是同一筆資料在不同時間的快照。最後只看得到累計 3 件；即使知道最後一個物流號，也無法從這列還原第一包寄了幾件。</p>
+
+    <details>
+      <summary>看 SQL · 方案 A 的單表與數量限制</summary>
+      <pre tabindex="0"><code>CREATE TABLE lab06_a.order_line (
+ line_id bigint PRIMARY KEY,
+ order_id bigint NOT NULL,
+ product_name text NOT NULL,
+ supplier_name text NOT NULL,
+ ordered_qty int NOT NULL CHECK (ordered_qty &gt; 0),
+ shipped_qty int NOT NULL CHECK (shipped_qty &gt;= 0 AND shipped_qty &lt;= ordered_qty),
+ last_tracking_no text
+);</code></pre>
+    </details>
 
     <h2>方案 B 的 ER 圖</h2>
     <figure>

@@ -122,13 +122,17 @@
       "id": "b2b2c",
       "en": "Business-to-Business-to-Consumer (B2B2C)",
       "zh": "企業透過合作企業服務消費者",
-      "category": "B2B2C 通路營運",
+      "category": "B2B2C 合作與商品",
       "definition": "一家企業與另一家企業合作，把商品或服務交付給最終消費者。釐清一筆交易時，先辨認誰供貨、誰接單、誰履約，以及消費者遇到問題要找誰。",
       "example": "海港餐廳提供雙人餐券，旅遊通路在 App 接單收取 1,000 元，票券平台發券並彙整核銷紀錄，消費者最後到餐廳用餐。這個案例有三個企業角色；實務上一家公司也可以兼任平台與通路。",
       "properties": [
         [
           "角色分工",
           "消費者沒收到券，先找通路客服；通路用訂單號請平台查發券結果。若已領券但門市無法兌換，就要核對餐廳與門市的適用條件。"
+        ],
+        [
+          "實體商品怎麼走",
+          "品牌把咖啡機上架到福利網，福利網接單，平台依通路貨號轉成供應商出貨單。品牌倉直接寄給消費者，簽收後按合約週期結算；部分退貨另走逆物流與結算調整。"
         ]
       ]
     },
@@ -136,7 +140,7 @@
       "id": "supplier",
       "en": "Supplier",
       "zh": "供應商",
-      "category": "B2B2C 通路營運",
+      "category": "B2B2C 合作與商品",
       "definition": "提供商品或履約能力的合作方。合作資料通常需要標明能供應哪些品項、在哪些地點履約，以及如何與平台結算。",
       "example": "海港餐廳提供雙人套餐，約定平日可在甲、乙兩家門市核銷。品牌旗下新開的丙店若尚未加入合作，就不能直接接受這張券。",
       "properties": [
@@ -150,7 +154,7 @@
       "id": "sales-channel",
       "en": "Sales Channel",
       "zh": "銷售通路",
-      "category": "B2B2C 通路營運",
+      "category": "B2B2C 合作與商品",
       "definition": "消費者接觸商品並下單的銷售管道。B2B2C 平台須能辨認訂單來自哪個合作通路，以套用該通路的價格、客服與結算條件。",
       "example": "同一張餐券可在旅遊 App 或員工福利網販售。兩邊都可能產生訂單 42，客服查單時要同時帶上通路與通路訂單號。",
       "properties": [
@@ -164,7 +168,7 @@
       "id": "channel-listing",
       "en": "Channel Listing",
       "zh": "通路上架",
-      "category": "B2B2C 通路營運",
+      "category": "B2B2C 合作與商品",
       "definition": "把指定商品發布到某個通路銷售，約定販售期間、商品內容與適用條件。每個通路可有自己的上架狀態。",
       "example": "雙人餐券在旅遊 App 販售到 6 月 30 日，已售券可使用到 8 月 31 日。7 月 1 日停止接新單，6 月買券的客人仍可依原條件到店。",
       "properties": [
@@ -178,7 +182,7 @@
       "id": "channel-pricing",
       "en": "Channel Pricing",
       "zh": "通路定價",
-      "category": "B2B2C 通路營運",
+      "category": "B2B2C 價格與促銷",
       "definition": "依通路及生效期間決定商品的銷售價格。同一 SKU 可有多份價表，每筆訂單要能追溯成交時採用的價格。",
       "example": "旅遊 App 的雙人餐券售價為 1,000 元，福利網為 950 元。下個月 App 改售 1,050 元，六月成交的那張仍依 1,000 元計算本例佣金。",
       "properties": [
@@ -192,7 +196,7 @@
       "id": "voucher-issuance",
       "en": "Voucher Issuance",
       "zh": "發券",
-      "category": "B2B2C 通路營運",
+      "category": "B2B2C 履約與配送",
       "definition": "依訂單明細產生可供消費者使用的憑證，並保存券號、權益內容、適用條件與使用期限。",
       "example": "旅遊 App 確認訂單 42 已付款，平台為其中一份雙人套餐發出券 V1。若通知信寄送失敗，客服可重寄 V1；多發一張新券會增加可兌換的權益。",
       "properties": [
@@ -206,7 +210,7 @@
       "id": "voucher-redemption",
       "en": "Voucher Redemption",
       "zh": "票券核銷",
-      "category": "B2B2C 通路營運",
+      "category": "B2B2C 履約與配送",
       "definition": "履約方接受票券、提供對應服務並留下使用紀錄。是否允許多次或部分使用，依票種而定。",
       "example": "消費者持 V1 到甲店用餐。這是一次性餐券，第一次核銷留下門市與核銷編號；再掃同一張時，櫃台能查到先前結果。",
       "properties": [
@@ -220,7 +224,7 @@
       "id": "channel-commission",
       "en": "Channel Commission",
       "zh": "通路佣金",
-      "category": "B2B2C 通路營運",
+      "category": "B2B2C 售後與結算",
       "definition": "依通路合作條件計算的銷售報酬。要約定計算基礎、費率、何時取得佣金，以及退款或撤銷時如何調整。",
       "example": "本例約定依有效核銷的成交價分配：每張 1,000 元餐券，通路取得 10% 即 100 元，平台服務費 50 元，供應商應得 850 元。案例略去稅費與金流手續費。",
       "properties": [
@@ -234,7 +238,7 @@
       "id": "supplier-settlement",
       "en": "Supplier Settlement",
       "zh": "供應商結算",
-      "category": "B2B2C 通路營運",
+      "category": "B2B2C 售後與結算",
       "definition": "依合作合約與結算週期，逐筆彙整供應商應收金額及調整項目，產生可核對的結算明細。撥款後再記錄實際支付結果。",
       "example": "六月售出 10 張千元券，月底有 8 張有效核銷。本例以核銷結算，合計 8,000 元，其中供應商 6,800 元、通路佣金 800 元、平台服務費 400 元。剩下 2 張留待符合條件時處理。",
       "properties": [
@@ -243,6 +247,206 @@
           "若七月核准撤銷六月其中一筆已結算核銷，且合約約定全額回沖，可在七月加列供應商 −850 元調整並引用原明細。六月已出具的結算單仍可追溯。"
         ]
       ]
+    },
+    {
+      "id": "merchant-onboarding",
+      "en": "Merchant Onboarding",
+      "zh": "商家進駐",
+      "category": "B2B2C 合作與商品",
+      "definition": "平台審核合作商家的身分、收款資料、可售範圍與營運條件，決定何時開放銷售。",
+      "example": "家電商已簽約，但退貨地址未確認，平台可以先讓它建商品草稿，待履約資料齊全再開賣。"
+    },
+    {
+      "id": "distribution-agreement",
+      "en": "Distribution Agreement",
+      "zh": "通路合作合約",
+      "category": "B2B2C 合作與商品",
+      "definition": "約定哪些商品可在哪些通路銷售，以及價格權限、售後分工與生效期間。",
+      "example": "品牌開放福利網販售咖啡機，但保留官網獨家色。通路有合作資格，仍要逐品確認可售範圍。"
+    },
+    {
+      "id": "wholesale-price",
+      "en": "Wholesale Price",
+      "zh": "供貨價",
+      "category": "B2B2C 合作與商品",
+      "definition": "供應商向採購方供貨時約定的單價，可依數量、通路或生效日期調整。",
+      "example": "通路以每台 800 元買斷，再以 1,000 元售出。計算進銷差額時要扣進貨成本；抽佣模式則依佣金合約拆分。"
+    },
+    {
+      "id": "consignment",
+      "en": "Consignment",
+      "zh": "寄售",
+      "category": "B2B2C 合作與商品",
+      "definition": "供應商委託合作方代售，按約定的實銷數量結算，並約定未售商品如何退回。",
+      "example": "寄出 100 台咖啡機到通路倉，月底售出 12 台。依實銷合約，先核對 12 台應付貨款與 88 台存貨。"
+    },
+    {
+      "id": "product-variant",
+      "en": "Product Variant",
+      "zh": "商品規格款式",
+      "category": "B2B2C 合作與商品",
+      "definition": "同一商品由顏色、尺寸或容量等屬性組合形成的可選款式。",
+      "example": "同款咖啡機有黑、白兩色，各自有 SKU 和庫存。黑色缺貨時仍可接受白色訂單。"
+    },
+    {
+      "id": "channel-sku-mapping",
+      "en": "Channel SKU Mapping",
+      "zh": "通路貨號對照",
+      "category": "B2B2C 合作與商品",
+      "definition": "保存通路貨號與平台 SKU 的對應關係，供接單、庫存更新與退貨時辨識同一品項。",
+      "example": "福利網傳來 W-88，平台對應到白色咖啡機 CM-W。另一通路也使用 W-88，查找時須包含通路識別碼。"
+    },
+    {
+      "id": "promotion-eligibility",
+      "en": "Promotion Eligibility",
+      "zh": "促銷適用條件",
+      "category": "B2B2C 價格與促銷",
+      "definition": "判斷訂單或明細能否參加優惠的條件，如通路、商品、會員身分及活動期間。",
+      "example": "福利網滿千折百，排除禮券。購物車中咖啡機 900 元、禮券 200 元，可計入金額只有 900 元。"
+    },
+    {
+      "id": "promotion-stacking",
+      "en": "Promotion Stacking",
+      "zh": "優惠併用",
+      "category": "B2B2C 價格與促銷",
+      "definition": "多項優惠同時符合時，依活動規則決定能否並用、套用順序與折扣上限。",
+      "example": "商品先打九折再減 100 元，原價 1,000 元成交為 800 元。若活動只准擇優，這兩項單獨都折 100 元。"
+    },
+    {
+      "id": "discount-allocation",
+      "en": "Discount Allocation",
+      "zh": "折扣分攤",
+      "category": "B2B2C 價格與促銷",
+      "definition": "把整單折扣依指定基準分配到明細，使部分退貨、對帳與結算能沿用成交時的折扣。",
+      "example": "兩件商品原價 600 與 400 元，整單折 100 元並按原價比例分攤。單退第一件時，依此案例的規則退 540 元。"
+    },
+    {
+      "id": "promotion-funding",
+      "en": "Promotion Funding",
+      "zh": "促銷費用分擔",
+      "category": "B2B2C 價格與促銷",
+      "definition": "約定折扣由供應商、平台或通路各自負擔多少，作為合作方結算依據。",
+      "example": "消費者折 100 元，通路補貼 60 元、供應商負擔 40 元。結算時供應商的扣項只計 40 元。"
+    },
+    {
+      "id": "loyalty-redemption",
+      "en": "Loyalty Points Redemption",
+      "zh": "點數折抵",
+      "category": "B2B2C 價格與促銷",
+      "definition": "按活動兌換比例與上限，使用會員點數支付訂單的部分金額。",
+      "example": "一張 1,000 元訂單以 100 點抵 100 元、刷卡 900 元。取消時依活動規則分別處理退點與退刷。"
+    },
+    {
+      "id": "available-to-promise",
+      "en": "Available to Promise (ATP)",
+      "zh": "可承諾量",
+      "category": "B2B2C 庫存與通路接單",
+      "definition": "依指定交付日期，根據庫存、既有承諾及可納入的預計到貨，計算還能承諾給客戶的數量。",
+      "example": "今天現貨 10 台，已預留 4 台，另保留安全量 2 台，今天可承諾 4 台。下週才到的貨不能拿來承諾今天出貨。"
+    },
+    {
+      "id": "channel-allocation",
+      "en": "Channel Inventory Allocation",
+      "zh": "通路庫存配額",
+      "category": "B2B2C 庫存與通路接單",
+      "definition": "把一部分可售庫存分配給特定通路，限制各通路接受訂單的數量。",
+      "example": "總量 20 台，App 配 12 台、福利網配 8 台。福利網售罄後，是否可用 App 的餘量取決於調撥規則。"
+    },
+    {
+      "id": "backorder",
+      "en": "Backorder",
+      "zh": "缺貨待補訂單",
+      "category": "B2B2C 庫存與通路接單",
+      "definition": "現貨不足時，仍接受客戶訂購並安排補貨後交付。",
+      "example": "福利網願意讓客人等七天，就先記錄承諾日期；若該通路只賣現貨，同一 SKU 應顯示售罄。"
+    },
+    {
+      "id": "channel-order",
+      "en": "Channel Order",
+      "zh": "通路訂單",
+      "category": "B2B2C 庫存與通路接單",
+      "definition": "由銷售通路建立並傳交平台處理的訂單，須保留原通路、外部訂單號與通路明細號。",
+      "example": "App 在逾時後重傳訂單 42。平台用通路與外部訂單號找回既有訂單，退單時仍可對應原通路明細。"
+    },
+    {
+      "id": "split-order",
+      "en": "Order Splitting",
+      "zh": "訂單拆分",
+      "category": "B2B2C 履約與配送",
+      "definition": "將一筆消費者訂單依供應商、倉別或履約方式拆成可獨立作業的子單。",
+      "example": "一張訂單含餐券與咖啡機。平台拆為發券子單與宅配子單，咖啡機缺貨時仍能查到已發出的券。"
+    },
+    {
+      "id": "drop-shipping",
+      "en": "Drop Shipping",
+      "zh": "供應商直送",
+      "category": "B2B2C 履約與配送",
+      "definition": "通路接單後由供應商直接出貨給消費者，平台或通路負責交換訂單、物流與售後資訊。",
+      "example": "品牌倉直接寄出咖啡機，旅遊 App 仍是消費者的訂單查詢入口。平台用履約子單把物流單號回傳給 App。"
+    },
+    {
+      "id": "partial-shipment",
+      "en": "Partial Shipment",
+      "zh": "分批出貨",
+      "category": "B2B2C 履約與配送",
+      "definition": "同一筆訂購數量分成多批寄出，各批有自己的內容、數量與物流進度。",
+      "example": "訂三箱耗材，今天先寄兩箱，明天寄一箱。首批的物流單號只能證明兩箱已交寄。"
+    },
+    {
+      "id": "proof-of-delivery",
+      "en": "Proof of Delivery (POD)",
+      "zh": "交付證明",
+      "category": "B2B2C 履約與配送",
+      "definition": "用以確認貨件於何時、何地及以何種方式完成交付的紀錄。",
+      "example": "宅配系統回傳簽收時間與貨件號。若訂單有兩件包裹，客服應按貨件核對，避免將一件簽收解讀成整單到齊。"
+    },
+    {
+      "id": "return-authorization",
+      "en": "Return Merchandise Authorization (RMA)",
+      "zh": "退貨授權",
+      "category": "B2B2C 售後與結算",
+      "definition": "受理退貨申請後，識別可退的訂單明細、數量、退回目的地與後續處理方式。",
+      "example": "客人訂兩台只退一台。客服建立一件的退貨單並提供指定倉地址，倉庫據此點收。"
+    },
+    {
+      "id": "reverse-logistics",
+      "en": "Reverse Logistics",
+      "zh": "逆物流",
+      "category": "B2B2C 售後與結算",
+      "definition": "讓商品從消費者端回到供應商、平台倉或維修點的取件、運輸與點收流程。",
+      "example": "物流已到府取件，供應商尚未入庫驗收。客服可以分開查取件、簽收與驗收，依約定時點啟動退款。"
+    },
+    {
+      "id": "exchange-order",
+      "en": "Exchange Order",
+      "zh": "換貨單",
+      "category": "B2B2C 售後與結算",
+      "definition": "以原訂單明細為依據，追蹤收回舊品與交付替代品的售後單據。",
+      "example": "白色咖啡機有瑕疵，客人要求換同款。平台分別追蹤舊機取件與新機出貨，並先確認替換庫存。"
+    },
+    {
+      "id": "settlement-cycle",
+      "en": "Settlement Cycle",
+      "zh": "結算週期",
+      "category": "B2B2C 售後與結算",
+      "definition": "買賣雙方約定依特定時區、截止日與業務事件，把交易歸入某一期結算。",
+      "example": "合約採簽收月結。6 月 30 日下單、7 月 2 日簽收的咖啡機列入七月；餐券若採核銷月結，則看核銷日期。"
+    },
+    {
+      "id": "settlement-adjustment",
+      "en": "Settlement Adjustment",
+      "zh": "結算調整",
+      "category": "B2B2C 售後與結算",
+      "definition": "透過連回原交易的加項或減項，記錄已結算交易後續發生的退貨、補貼差額或人工更正。",
+      "example": "六月已結算的咖啡機七月退貨。七月明細新增負向調整，保留六月結算單號與退貨單號，方便供應商查帳。"
+    },
+    {
+      "id": "supplier-payout",
+      "en": "Supplier Payout",
+      "zh": "供應商撥款",
+      "category": "B2B2C 售後與結算",
+      "definition": "依已核准的應付金額實際向供應商付款，並以撥款編號追蹤成功、退匯或待確認狀態。",
+      "example": "月結單核准 6,800 元，銀行退匯。該期金額已結算但尚未付清；補正帳戶資料後，新的撥款紀錄仍連回同一張結算單。"
     }
   ],
   "relations": [
@@ -373,6 +577,230 @@
     [
       "supplier-settlement",
       "payment-reconciliation"
+    ],
+    [
+      "merchant-onboarding",
+      "supplier"
+    ],
+    [
+      "merchant-onboarding",
+      "channel-listing"
+    ],
+    [
+      "distribution-agreement",
+      "sales-channel"
+    ],
+    [
+      "distribution-agreement",
+      "channel-listing"
+    ],
+    [
+      "wholesale-price",
+      "channel-pricing"
+    ],
+    [
+      "wholesale-price",
+      "channel-commission"
+    ],
+    [
+      "consignment",
+      "supplier-settlement"
+    ],
+    [
+      "consignment",
+      "wholesale-price"
+    ],
+    [
+      "product-variant",
+      "sku"
+    ],
+    [
+      "product-variant",
+      "channel-listing"
+    ],
+    [
+      "channel-sku-mapping",
+      "sku"
+    ],
+    [
+      "channel-sku-mapping",
+      "sales-channel"
+    ],
+    [
+      "promotion-eligibility",
+      "cart"
+    ],
+    [
+      "promotion-eligibility",
+      "channel-pricing"
+    ],
+    [
+      "promotion-stacking",
+      "promotion-eligibility"
+    ],
+    [
+      "promotion-stacking",
+      "price-snapshot"
+    ],
+    [
+      "discount-allocation",
+      "price-snapshot"
+    ],
+    [
+      "discount-allocation",
+      "refund"
+    ],
+    [
+      "promotion-funding",
+      "discount-allocation"
+    ],
+    [
+      "promotion-funding",
+      "supplier-settlement"
+    ],
+    [
+      "loyalty-redemption",
+      "refund"
+    ],
+    [
+      "loyalty-redemption",
+      "discount-allocation"
+    ],
+    [
+      "available-to-promise",
+      "inventory-reservation"
+    ],
+    [
+      "channel-allocation",
+      "available-to-promise"
+    ],
+    [
+      "channel-allocation",
+      "sales-channel"
+    ],
+    [
+      "backorder",
+      "available-to-promise"
+    ],
+    [
+      "backorder",
+      "order-state"
+    ],
+    [
+      "channel-order",
+      "sales-channel"
+    ],
+    [
+      "channel-order",
+      "order-state"
+    ],
+    [
+      "channel-order",
+      "backend/idempotency-key"
+    ],
+    [
+      "split-order",
+      "channel-order"
+    ],
+    [
+      "split-order",
+      "voucher-issuance"
+    ],
+    [
+      "drop-shipping",
+      "supplier"
+    ],
+    [
+      "drop-shipping",
+      "split-order"
+    ],
+    [
+      "partial-shipment",
+      "split-order"
+    ],
+    [
+      "partial-shipment",
+      "backorder"
+    ],
+    [
+      "proof-of-delivery",
+      "partial-shipment"
+    ],
+    [
+      "return-authorization",
+      "channel-order"
+    ],
+    [
+      "return-authorization",
+      "refund"
+    ],
+    [
+      "reverse-logistics",
+      "return-authorization"
+    ],
+    [
+      "reverse-logistics",
+      "drop-shipping"
+    ],
+    [
+      "exchange-order",
+      "reverse-logistics"
+    ],
+    [
+      "exchange-order",
+      "inventory-reservation"
+    ],
+    [
+      "settlement-cycle",
+      "supplier-settlement"
+    ],
+    [
+      "settlement-cycle",
+      "proof-of-delivery"
+    ],
+    [
+      "settlement-cycle",
+      "voucher-redemption"
+    ],
+    [
+      "settlement-adjustment",
+      "supplier-settlement"
+    ],
+    [
+      "settlement-adjustment",
+      "return-authorization"
+    ],
+    [
+      "settlement-adjustment",
+      "promotion-funding"
+    ],
+    [
+      "supplier-payout",
+      "supplier-settlement"
+    ],
+    [
+      "supplier-payout",
+      "payment-reconciliation"
+    ],
+    [
+      "b2b2c",
+      "distribution-agreement"
+    ],
+    [
+      "b2b2c",
+      "promotion-funding"
+    ],
+    [
+      "b2b2c",
+      "channel-order"
+    ],
+    [
+      "b2b2c",
+      "split-order"
+    ],
+    [
+      "b2b2c",
+      "return-authorization"
     ]
   ]
 }

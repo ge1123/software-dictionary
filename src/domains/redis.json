@@ -15,7 +15,175 @@
         "code": "SET demo:code 123456 EX 300\nTTL demo:code",
         "result": "SET 回傳 OK。立即執行 TTL 會看到接近 300 的剩餘秒數。"
       }
+    },
+    {
+      "id": "key-expiration",
+      "en": "Key Expiration",
+      "zh": "鍵到期",
+      "category": "鍵與到期",
+      "definition": "Redis 在鍵的有效期限結束後，對讀取者視該鍵為不存在。回收方式包括存取時檢查，以及背景主動檢查。",
+      "example": "商品 42 的快取只保留一秒。到期後第一個讀者收到快取未命中，應用程式才向 PostgreSQL 查商品。",
+      "properties": [
+        [
+          "怎麼讀 TTL",
+          "TTL 回傳剩餘秒數。-1 表示鍵存在但沒有設定到期，-2 表示鍵不存在。單看 -2 無法得知鍵消失的原因。"
+        ]
+      ],
+      "sample": {
+        "language": "Redis CLI",
+        "setup": "在練習用 redis-cli 執行前兩行，等至少兩秒再執行後兩行。",
+        "code": "SET demo:sku:42 800 EX 1\nGET demo:sku:42\nGET demo:sku:42\nTTL demo:sku:42",
+        "result": "立即讀到 800，等待後 GET 回傳 nil，TTL 回傳 -2。"
+      }
+    },
+    {
+      "id": "key-eviction",
+      "en": "Key Eviction",
+      "zh": "記憶體淘汰",
+      "category": "記憶體管理",
+      "definition": "設有記憶體上限時，Redis 可依淘汰策略提前移除鍵，騰出空間。",
+      "example": "商品 42 的快取原本還有五分鐘，匯入大量其他商品後卻讀不到。先比對記憶體與淘汰指標，再追查商品服務的回源查詢。",
+      "properties": [
+        [
+          "怎麼區分到期與淘汰",
+          "在同一個 Redis 實例對同一時段取兩次 INFO stats。expired_keys 的差值表示到期數，evicted_keys 的差值表示淘汰數。兩者都是整個實例的統計，不能單獨證明某個 SKU 的消失原因。"
+        ]
+      ],
+      "sample": {
+        "language": "Redis CLI",
+        "setup": "在商品匯入前後，各執行一次。",
+        "code": "INFO stats\nINFO memory",
+        "result": "比較 evicted_keys、expired_keys、keyspace_misses 的增量，配合 used_memory、maxmemory 與同時段 PostgreSQL 查詢量判讀。"
+      }
+    },
+    {
+      "id": "maxmemory-policy",
+      "en": "maxmemory-policy",
+      "zh": "記憶體淘汰策略",
+      "category": "記憶體管理",
+      "definition": "Redis 用 maxmemory 設定記憶體上限，用 maxmemory-policy 決定超過上限時可淘汰哪些鍵，或拒絕需要更多記憶體的寫入。",
+      "example": "若實例專存可從 PostgreSQL 重建的商品，可考慮 allkeys-lru。若還共用購物車資料，先確認購物車能否承受被淘汰。",
+      "properties": [
+        [
+          "allkeys-lru",
+          "從所有鍵中近似選出近期較少使用的鍵；無 TTL 的鍵也可能被淘汰。"
+        ],
+        [
+          "volatile-lru",
+          "候選範圍只有設了到期時間的鍵。若沒有合適鍵可回收，需要更多記憶體的寫入可能失敗。"
+        ],
+        [
+          "noeviction",
+          "不透過淘汰騰空間。超限時需處理寫入錯誤，先前已存在的鍵仍可讀取。"
+        ]
+      ],
+      "sample": {
+        "language": "Redis CLI",
+        "setup": "使用有權讀取設定的練習實例。",
+        "code": "CONFIG GET maxmemory\nCONFIG GET maxmemory-policy",
+        "result": "第一項為設定的位元組上限，0 代表未設定上限。第二項為目前策略。"
+      },
+      "scale": {
+        "benefit": "工作集有冷熱差異時，淘汰冷鍵可讓有限容量留給常讀商品。",
+        "cost": "若活躍商品總量大於容量，熱門資料也可能反覆回源。",
+        "measure": "固定讀寫比例比較命中率、每秒淘汰數、寫入錯誤數與資料庫查詢量。"
+      }
+    },
+    {
+      "id": "cache-stampede",
+      "en": "Cache Stampede",
+      "zh": "快取擊穿",
+      "category": "回源控制",
+      "definition": "同一熱門資料失去可用快取時，多個請求同時未命中，各自向來源重建同一份資料。",
+      "example": "商品 42 到期，三台 .NET API 同時收到請求。若每台只在程序內合併請求，各台仍可能各查一次 PostgreSQL。",
+      "properties": [
+        [
+          "同一鍵合併回源",
+          "由一個取得重建資格的請求查詢並回填。其他讀者短暫等待後重查快取，並設定等待上限。租期過短時可能重複重建。"
+        ],
+        [
+          "多鍵同時到期",
+          "分散 TTL 可降低整批商品同時失效的機會。單一熱門 SKU 到期時，仍需控制同一鍵的回源併發。"
+        ]
+      ],
+      "sample": {
+        "language": "Redis CLI",
+        "setup": "在練習實例選未使用的示範鍵，兩個 redis-cli 視窗 A、B 在十秒內依序各執行一行。此片段只示範競爭重建資格。",
+        "code": "SET demo:fill:42 worker-A NX EX 10\nSET demo:fill:42 worker-B NX EX 10",
+        "result": "A 回 OK，B 回 nil。正式實作每次取得資格時使用唯一 token，提前釋放時須原子地比對持有者。"
+      },
+      "scale": {
+        "benefit": "同一熱門鍵同時被讀取時，合併回源可減少重複查詢。",
+        "cost": "等待者的延遲受重建耗時影響，須限制等待與重試。",
+        "measure": "依 SKU 記錄同一秒的未命中數、實際回源次數、重建耗時與 API p95 延遲。"
+      }
+    },
+    {
+      "id": "negative-caching",
+      "en": "Negative Caching",
+      "zh": "負快取",
+      "category": "回源控制",
+      "definition": "將來源已確認的「查無資料」短暫保存，讓重複查詢相同識別碼的請求可以直接得到相同結果。",
+      "example": "商品頁持續收到對不存在 SKU 999 的查詢。PostgreSQL 確認查無此商品後，API 保存短效的查無商品標記；若查詢逾時，資料是否存在仍未知。",
+      "properties": [
+        [
+          "商品上架時",
+          "寫入成功後使該鍵失效，或接受短 TTL 造成的可見性延遲。庫存為零的既有商品應保留自身商品資料。"
+        ]
+      ],
+      "sample": {
+        "language": "Redis CLI",
+        "setup": "以專用測試鍵示範；正式環境的鍵須涵蓋影響可見性的租戶或通路。",
+        "code": "SET demo:sku:999 NOT_FOUND EX 15\nGET demo:sku:999",
+        "result": "15 秒內 GET 回 NOT_FOUND。應用程式辨識這個值後回覆查無商品，避免再次查庫。到期或主動清除後，下次請求重新查庫。"
+      },
+      "scale": {
+        "benefit": "同一不存在的 SKU 被重複查詢時可減少資料庫負載。",
+        "cost": "大量互異的無效 SKU 會占用空間，且很少再次命中。",
+        "measure": "分開計算負快取命中數、查無結果的回源次數及無效鍵數量。"
+      }
     }
   ],
-  "relations": []
+  "relations": [
+    [
+      "ttl",
+      "key-expiration"
+    ],
+    [
+      "key-expiration",
+      "key-eviction"
+    ],
+    [
+      "key-eviction",
+      "maxmemory-policy"
+    ],
+    [
+      "key-expiration",
+      "cache-stampede"
+    ],
+    [
+      "cache-stampede",
+      "backend/cache-aside"
+    ],
+    [
+      "cache-stampede",
+      "backend/distributed-lock"
+    ],
+    [
+      "cache-stampede",
+      "backend/hot-key"
+    ],
+    [
+      "negative-caching",
+      "key-expiration"
+    ],
+    [
+      "negative-caching",
+      "backend/cache-invalidation"
+    ],
+    [
+      "negative-caching",
+      "backend/cache-aside"
+    ]
+  ]
 }

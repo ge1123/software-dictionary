@@ -537,6 +537,116 @@
           "https://github.com/mercurjs/mercur/blob/752e3d6ee73e437d9250bab907afe9d5d86f5757/docs/PRODUCT.md#L31-L38"
         ]
       ]
+    },
+    {
+      "id": "on-hand-quantity",
+      "en": "Quantity on Hand",
+      "zh": "在手量",
+      "category": "B2B2C 庫存與通路接單",
+      "definition": "Odoo 的 On Hand 表示倉庫目前實際持有的商品數量。要判斷能否供給下一張訂單，還要查這些現貨已預留給哪筆出貨。",
+      "example": "文件中的雙門櫃仍有現貨，但現貨已預留給出貨單 WH/OUT/00011。其他訂單還要等收貨單 WH/IN/00004 的商品到倉。",
+      "sources": [
+        [
+          "Odoo · 庫存預測報表",
+          "https://github.com/odoo/documentation/blob/a394faae5aa5baec38dfb6e3db3e22b8d4b923af/content/applications/inventory_and_mrp/inventory/warehouses_storage/reporting/forecast.rst#L35-L52"
+        ],
+        [
+          "Odoo · 庫存預測報表",
+          "https://github.com/odoo/documentation/blob/a394faae5aa5baec38dfb6e3db3e22b8d4b923af/content/applications/inventory_and_mrp/inventory/warehouses_storage/reporting/forecast.rst#L145-L152"
+        ]
+      ]
+    },
+    {
+      "id": "forecasted-inventory",
+      "en": "Forecasted Inventory",
+      "zh": "預計庫存",
+      "category": "B2B2C 庫存與通路接單",
+      "definition": "Odoo 依已確認及已規劃的庫存作業，按日期列出預計庫存。報表同時列出預計入庫、預計出庫，以及貨品分配給哪一筆作業。",
+      "example": "採購詢價單尚未確認時不會增加預測；採購單確認後才列入預計到貨。已確認的銷售單則按預定交貨日期扣減預計庫存。",
+      "sources": [
+        [
+          "Odoo · 庫存預測報表",
+          "https://github.com/odoo/documentation/blob/a394faae5aa5baec38dfb6e3db3e22b8d4b923af/content/applications/inventory_and_mrp/inventory/warehouses_storage/reporting/forecast.rst#L35-L55"
+        ],
+        [
+          "Odoo · 庫存預測報表",
+          "https://github.com/odoo/documentation/blob/a394faae5aa5baec38dfb6e3db3e22b8d4b923af/content/applications/inventory_and_mrp/inventory/warehouses_storage/reporting/forecast.rst#L109-L122"
+        ]
+      ]
+    },
+    {
+      "id": "purchase-order",
+      "en": "Purchase Order (PO)",
+      "zh": "採購單",
+      "category": "B2B2C 採購與供貨",
+      "definition": "ERPNext 可依銷售單中選取的直送明細，向負責供貨的供應商建立採購單。一張銷售單可以對應多張採購單。",
+      "example": "測試建立兩筆直送明細，各訂 2 件，各由不同供應商供貨。送出銷售單後兩列一起轉採購，測試核對產生兩張採購單，並逐一比對供應商。",
+      "sources": [
+        [
+          "ERPNext · test_sales_order.py",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/selling/doctype/sales_order/test_sales_order.py#L2367-L2402"
+        ]
+      ]
+    },
+    {
+      "id": "sales-order-line",
+      "en": "Sales Order Line",
+      "zh": "銷售單明細",
+      "category": "B2B2C 採購與供貨",
+      "definition": "ERPNext 的銷售單明細記錄單筆商品與數量。轉採購時可用明細識別碼追溯採購品項來自原銷售單的哪一列。",
+      "example": "測試在同一張銷售單上把相同品號分兩列，數量分別為 2、3，並指定不同供應商。轉單後，每張採購單都只含一列，其數量與來源明細識別碼均和原列相符。",
+      "sources": [
+        [
+          "ERPNext · test_sales_order.py",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/selling/doctype/sales_order/test_sales_order.py#L2404-L2430"
+        ]
+      ]
+    },
+    {
+      "id": "outstanding-amount",
+      "en": "Outstanding Amount",
+      "zh": "未付金額",
+      "category": "B2B2C 售後與結算",
+      "definition": "在 ERPNext 的進貨發票上，outstanding_amount 表示這張發票目前尚待沖清的金額。每張發票各自保留餘額。",
+      "example": "測試有兩張各欠 250 的進貨發票。付款單提交後，測試重新從資料庫讀回兩張發票，逐張檢查未付金額都變成 0。",
+      "sources": [
+        [
+          "ERPNext · test_payment_entry.py",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/accounts/doctype/payment_entry/test_payment_entry.py#L314-L337"
+        ]
+      ]
+    },
+    {
+      "id": "payment-allocation",
+      "en": "Payment Allocation",
+      "zh": "付款分配",
+      "category": "B2B2C 售後與結算",
+      "definition": "在 ERPNext，一張付款單可列出多張被沖抵的進貨發票。每列記錄發票識別碼及分配給該發票的金額。",
+      "example": "一筆 500 的付款分配到兩張各欠 250 的發票，各分 250。另一個測試嘗試對未付 250 的發票分配 350，新增付款單時觸發驗證錯誤。",
+      "sources": [
+        [
+          "ERPNext · test_payment_entry.py",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/accounts/doctype/payment_entry/test_payment_entry.py#L314-L337"
+        ],
+        [
+          "ERPNext · test_payment_entry.py",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/accounts/doctype/payment_entry/test_payment_entry.py#L639-L645"
+        ]
+      ]
+    },
+    {
+      "id": "payment-application",
+      "en": "Payment Application",
+      "zh": "付款核銷",
+      "category": "B2B2C 售後與結算",
+      "definition": "在 ERPNext 的付款單流程中，付款依分配明細沖抵指定發票。可從付款單查到分配總額，再從各張進貨發票核對尚欠多少。",
+      "example": "測試先建立引用兩張進貨發票的付款單，儲存並提交。驗證條件有兩個：付款分配總額等於 500，且兩張原發票的未付金額各為 0。",
+      "sources": [
+        [
+          "ERPNext · test_payment_entry.py",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/accounts/doctype/payment_entry/test_payment_entry.py#L314-L337"
+        ]
+      ]
     }
   ],
   "relations": [
@@ -847,6 +957,74 @@
     [
       "b2b2c",
       "return-authorization"
+    ],
+    [
+      "on-hand-quantity",
+      "inventory-reservation"
+    ],
+    [
+      "on-hand-quantity",
+      "available-to-promise"
+    ],
+    [
+      "forecasted-inventory",
+      "on-hand-quantity"
+    ],
+    [
+      "forecasted-inventory",
+      "available-to-promise"
+    ],
+    [
+      "forecasted-inventory",
+      "inventory-reservation"
+    ],
+    [
+      "purchase-order",
+      "drop-shipping"
+    ],
+    [
+      "purchase-order",
+      "supplier"
+    ],
+    [
+      "purchase-order",
+      "forecasted-inventory"
+    ],
+    [
+      "sales-order-line",
+      "purchase-order"
+    ],
+    [
+      "sales-order-line",
+      "channel-order"
+    ],
+    [
+      "outstanding-amount",
+      "supplier-settlement"
+    ],
+    [
+      "payment-allocation",
+      "outstanding-amount"
+    ],
+    [
+      "payment-allocation",
+      "supplier-payout"
+    ],
+    [
+      "payment-application",
+      "payment-allocation"
+    ],
+    [
+      "payment-application",
+      "outstanding-amount"
+    ],
+    [
+      "payment-application",
+      "supplier-settlement"
+    ],
+    [
+      "payment-application",
+      "supplier-payout"
     ]
   ]
 }

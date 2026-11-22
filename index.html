@@ -17,7 +17,7 @@
           <dt>{{ name }}</dt><dd>{{ meaning }}</dd>
         </template>
       </dl>
-      <h2>{{ selected.sources ? "專案實例" : "使用情境" }}</h2>
+      <h2>{{ selected.domain === 'commerce' && selected.sources ? "專案實例" : "使用情境" }}</h2>
       <p>{{ selected.example }}</p>
       <section v-if="linkedGuides.length" class="question-list">
         <h2>實務案例</h2>
@@ -57,7 +57,7 @@
         <ul class="references"><li v-for="[name, url] in selected.practice.sources" :key="url"><a :href="url">{{ name }}</a></li></ul>
       </template>
       <template v-if="selected.sources">
-        <h2>開源專案依據</h2>
+        <h2>{{ selected.domain === 'commerce' ? "開源專案依據" : "參考文件" }}</h2>
         <ul class="references"><li v-for="[name, url] in selected.sources" :key="url"><a :href="url">{{ name }}</a></li></ul>
       </template>
       <section v-if="selected.scale">

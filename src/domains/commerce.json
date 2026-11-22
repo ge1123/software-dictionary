@@ -647,6 +647,94 @@
           "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/accounts/doctype/payment_entry/test_payment_entry.py#L314-L337"
         ]
       ]
+    },
+    {
+      "id": "return-receipt",
+      "en": "Return Receipt",
+      "zh": "退貨收件",
+      "category": "B2B2C 售後與結算",
+      "definition": "在 OCA RMA，倉庫確認退回商品的收貨作業後，退貨授權單進入已收件（received）狀態。",
+      "example": "客服從 RMA 的 Receipt 查看收貨紀錄。若後續選擇退款，要另外建立退款單據；該單據確認後，RMA 才轉為 Refunded。",
+      "sources": [
+        [
+          "OCA RMA · USAGE.md",
+          "https://github.com/OCA/rma/blob/4e5260dffca266529a82ef02bba4658e762716ef/rma/readme/USAGE.md#L3-L20"
+        ]
+      ]
+    },
+    {
+      "id": "replacement-shipment",
+      "en": "Replacement Shipment",
+      "zh": "替換品出貨",
+      "category": "B2B2C 售後與結算",
+      "definition": "OCA RMA 用與退貨授權單相連的交貨單，追蹤寄給客戶的替換商品。",
+      "example": "收件後選 Replace 可建立交貨單。等到關聯交貨單已完成的數量達到 RMA 數量，才會轉為 Replaced；客服可從 Delivery 查看交貨進度。",
+      "sources": [
+        [
+          "OCA RMA · USAGE.md",
+          "https://github.com/OCA/rma/blob/4e5260dffca266529a82ef02bba4658e762716ef/rma/readme/USAGE.md#L9-L26"
+        ]
+      ]
+    },
+    {
+      "id": "discount-basis",
+      "en": "Discount Calculation Basis",
+      "zh": "折扣計算基礎",
+      "category": "B2B2C 價格與促銷",
+      "definition": "在 ERPNext 的多重定價規則中，計算基礎指下一個百分比折扣要套用的價格。同樣的兩個百分比，依設定可相加，也可依序套用。",
+      "example": "測試先允許 20% 和 10% 的規則併用，發票明細的總折扣為 30%。另一個測試在第二條啟用 apply_discount_on_rate，明細的總折扣變為 28%。",
+      "sources": [
+        [
+          "ERPNext · test_pricing_rule.py",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/accounts/doctype/pricing_rule/test_pricing_rule.py#L789-L832"
+        ]
+      ]
+    },
+    {
+      "id": "discounted-price",
+      "en": "Discounted Price",
+      "zh": "折後價",
+      "category": "B2B2C 價格與促銷",
+      "definition": "在 ERPNext 的連續折扣案例中，前一條規則套用後的價格，會作為下一條規則的計算基礎。",
+      "example": "先折 20% 後剩下原價的 80%。第二次在這 80% 上再折 10%，相當於再折原價的 8%；最後剩原價的 72%，與測試斷言的總折扣 28% 一致。",
+      "sources": [
+        [
+          "ERPNext · test_pricing_rule.py",
+          "https://github.com/frappe/erpnext/blob/1b84d39506dbc9f6a554f3c1a1e424ea42361aaf/erpnext/accounts/doctype/pricing_rule/test_pricing_rule.py#L811-L832"
+        ]
+      ]
+    },
+    {
+      "id": "payout-hold",
+      "en": "Payout Hold",
+      "zh": "撥款暫緩",
+      "category": "B2B2C 售後與結算",
+      "definition": "Mercur 發現賣家撥款條件尚未齊備時，會把該筆撥款設為 on_hold，等待後續執行時重新判斷。",
+      "example": "例如付款只有授權、尚未請款時會暫緩。賣家尚無可用的撥款帳戶，或訂單未達要求的履約狀態，也會暫緩；再次執行流程時會重新檢查同一筆撥款。",
+      "sources": [
+        [
+          "Mercur · payout-pipeline.mdx",
+          "https://github.com/mercurjs/mercur/blob/752e3d6ee73e437d9250bab907afe9d5d86f5757/apps/docs/platform/payout/concepts/payout-pipeline.mdx#L28-L45"
+        ]
+      ]
+    },
+    {
+      "id": "payout-reversal",
+      "en": "Payout Reversal",
+      "zh": "賣家撥款沖回",
+      "category": "B2B2C 售後與結算",
+      "definition": "Mercur 會為需要向賣家收回的退款份額建立撥款沖回紀錄。沖回金額等於退款金額減去該筆退款分攤的佣金。",
+      "example": "若退款已在原撥款中扣除，沖回流程會略過這筆退款。若需要另外沖回，紀錄會等原撥款成為 paid，再要求撥款服務商沖回；已完成的沖回不會重做。",
+      "sources": [
+        [
+          "Mercur · payout-pipeline.mdx",
+          "https://github.com/mercurjs/mercur/blob/752e3d6ee73e437d9250bab907afe9d5d86f5757/apps/docs/platform/payout/concepts/payout-pipeline.mdx#L41-L45"
+        ],
+        [
+          "Mercur · payout-pipeline.mdx",
+          "https://github.com/mercurjs/mercur/blob/752e3d6ee73e437d9250bab907afe9d5d86f5757/apps/docs/platform/payout/concepts/payout-pipeline.mdx#L58-L66"
+        ]
+      ]
     }
   ],
   "relations": [
@@ -1025,6 +1113,82 @@
     [
       "payment-application",
       "supplier-payout"
+    ],
+    [
+      "return-receipt",
+      "return-authorization"
+    ],
+    [
+      "return-receipt",
+      "reverse-logistics"
+    ],
+    [
+      "return-receipt",
+      "refund"
+    ],
+    [
+      "replacement-shipment",
+      "return-receipt"
+    ],
+    [
+      "replacement-shipment",
+      "return-authorization"
+    ],
+    [
+      "replacement-shipment",
+      "exchange-order"
+    ],
+    [
+      "discount-basis",
+      "promotion-stacking"
+    ],
+    [
+      "discount-basis",
+      "discount-allocation"
+    ],
+    [
+      "discounted-price",
+      "discount-basis"
+    ],
+    [
+      "discounted-price",
+      "promotion-stacking"
+    ],
+    [
+      "payout-hold",
+      "supplier-payout"
+    ],
+    [
+      "payout-hold",
+      "supplier-settlement"
+    ],
+    [
+      "payout-reversal",
+      "payout-hold"
+    ],
+    [
+      "payout-reversal",
+      "supplier-payout"
+    ],
+    [
+      "payout-reversal",
+      "refund"
+    ],
+    [
+      "payout-reversal",
+      "settlement-adjustment"
+    ],
+    [
+      "payout-reversal",
+      "payment-application"
+    ],
+    [
+      "payout-reversal",
+      "channel-commission"
+    ],
+    [
+      "payout-hold",
+      "payment-application"
     ]
   ]
 }

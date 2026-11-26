@@ -26,4 +26,6 @@ npm ci
 npm run dev
 ```
 
-`npm run check` 驗證詞條、範例欄位與雙向參照，`npm run build` 產生靜態站。GitHub Actions 檢查 pull request，main 通過建置後自動部署至 GitHub Pages。
+`npm run check` 驗證詞條、範例欄位與雙向參照，`npm run build` 產生靜態站。前往 GitHub 的 Actions → SQL dictionary → Run workflow，選擇分支後手動執行。選擇 `main` 時，建置與測試通過後會部署至 GitHub Pages。其他分支只執行建置與測試。
+
+部署成功後，[`pages-live`](https://github.com/ge1123/software-dictionary/commits/pages-live/) 指向本次上線的 commit。每次部署另保留 `pages-<run_id>-<run_attempt>` tag，方便從 Actions 執行紀錄查回該版本。

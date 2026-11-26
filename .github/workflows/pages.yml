@@ -1,9 +1,5 @@
 name: SQL dictionary
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -26,7 +22,7 @@ jobs:
         env:
           CHROME_BIN: /usr/bin/google-chrome
       - uses: actions/upload-pages-artifact@v4
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         with:
           path: dist
 
@@ -38,19 +34,30 @@ jobs:
       - run: bash labs/rabbitmq-redelivery/run.sh
 
   deploy:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     needs: [build, redelivery]
     runs-on: ubuntu-latest
     concurrency:
       group: github-pages
       cancel-in-progress: false
     permissions:
+      contents: write
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: ${{ steps.publish.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
       - name: Deploy to Pages
         id: publish
         uses: actions/deploy-pages@v4
+      - name: Tag the deployed commit
+        run: |
+          deployment_tag="pages-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git push --atomic origin \
+            "${GITHUB_SHA}:refs/tags/${deployment_tag}" \
+            "+${GITHUB_SHA}:refs/tags/pages-live"
+          echo "Deployed [${deployment_tag}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}) · \`${GITHUB_SHA}\`" >> "$GITHUB_STEP_SUMMARY"

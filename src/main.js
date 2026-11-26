@@ -71,6 +71,6 @@ createApp({
       document.title = (term?.en ?? topic?.name ?? '主題索引') + ' · Software Dictionary';
     }, { immediate: true });
     const related = computed(() => relatedTerms(slug.value));
-    return { linkedModels, linkedGuides, modelCases, questions, comparison, withdrawn, domains, plannedTopics, domain, related, query, category, categories, filtered, reset, selected, title };
+    return { isolationEntries, isolationColumns, isolationRows, linkedModels, linkedGuides, modelCases, questions, comparison, withdrawn, domains, plannedTopics, domain, related, query, category, categories, filtered, reset, selected, title };
   }
 }).mount('#app');

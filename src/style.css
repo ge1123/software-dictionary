@@ -22,6 +22,8 @@ button[aria-pressed=true] { background: #254d3d; border-color: #254d3d; color: w
 .entries strong, .detail h1 strong { margin-inline-start: .35em; }
 .entries a:hover, .entries a:focus-visible { background: #eaf1e7; }
 .detail { max-width: 44rem; padding-block: 24px; line-height: 1.75; }
+.page-links { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; padding-top: 24px; }
+.page-links + .detail, .page-links + .term-list { padding-top: 0; }
 .back { color: #37664d; }
 .detail h1 { font-size: 1.4rem; letter-spacing: normal; margin: 20px 0 10px; }
 .detail h1 strong { font-size: 1rem; }

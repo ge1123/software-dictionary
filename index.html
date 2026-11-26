@@ -8,8 +8,13 @@
 <body>
   <header><a href="#"><b>Software Dictionary</b></a><a href="https://github.com/ge1123/software-dictionary">GitHub ↗</a></header>
   <main id="app" v-cloak>
+    <div v-if="domain || withdrawn" class="page-links">
+      <button v-if="hasPrevious" type="button" @click="goBack">← 上一頁</button>
+      <a v-if="selected" :href="'#/topics/'+domain.id" class="back">← {{ domain.name }} 詞條清單</a>
+      <a v-else-if="withdrawn" href="#/topics/commerce" class="back">← 電商業務詞條清單</a>
+      <a v-else href="#" class="back">← 主題索引</a>
+    </div>
     <section v-if="selected" class="detail">
-      <a :href="'#/topics/'+domain.id" class="back">← {{ domain.name }} 詞條清單</a>
       <h1 tabindex="-1" ref="title">{{ selected.en }} <strong>{{ selected.zh }}</strong></h1>
       <p>{{ selected.definition }}</p>
       <dl v-if="selected.properties">
@@ -114,12 +119,10 @@
       </template>
     </section>
     <section v-else-if="withdrawn" class="detail">
-      <a href="#/topics/commerce" class="back">← 電商業務詞條清單</a>
       <h1 tabindex="-1" ref="title">詞條已撤下</h1>
       <p>此詞條原有的業務規則尚缺可核對的開源專案依據。</p>
     </section>
     <section v-else-if="domain" class="term-list">
-      <a href="#" class="back">← 主題索引</a>
       <h1 ref="title" tabindex="-1">{{ domain.name }} 詞典<span>.</span></h1>
       <section v-if="questions.length" class="question-list" aria-labelledby="lookup-heading">
         <h2 id="lookup-heading">依業務問題查詞</h2>

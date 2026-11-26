@@ -296,6 +296,14 @@
       "example": "訂單報表分兩次讀取表頭與明細。若必須看到同一時間點的資料，選等級前要確認快照涵蓋一個陳述式或整筆交易。"
     },
     {
+      "id": "read-uncommitted",
+      "en": "Read Uncommitted",
+      "zh": "讀取未提交",
+      "category": "交易與併發",
+      "definition": "SQL 標準允許此等級的交易讀到其他交易尚未提交的變更。",
+      "example": "在 SQL Server，退款交易尚未提交時，報表就可能把這筆退款算入總額。若退款交易隨後回滾，報表曾顯示的總額就包含一筆未成立的退款。"
+    },
+    {
       "id": "read-committed",
       "en": "Read Committed",
       "zh": "讀取已提交",
@@ -808,6 +816,14 @@
     [
       "isolation-level",
       "dirty-read"
+    ],
+    [
+      "read-uncommitted",
+      "dirty-read"
+    ],
+    [
+      "read-uncommitted",
+      "isolation-level"
     ],
     [
       "read-committed",

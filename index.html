@@ -19,6 +19,27 @@
       </dl>
       <h2>{{ selected.domain === 'commerce' && selected.sources ? "專案實例" : "使用情境" }}</h2>
       <p>{{ selected.example }}</p>
+      <section v-if="isolationEntries.has(selected.id)" class="isolation-matrix">
+        <h2 id="isolation-heading">隔離等級與讀取異常</h2>
+        <table aria-labelledby="isolation-heading" aria-describedby="isolation-legend">
+          <thead>
+            <tr>
+              <th scope="col"><a href="#isolation-level">隔離等級</a></th>
+              <th v-for="term in isolationColumns" :key="term.id" scope="col"><a :href="'#'+term.id">{{ term.zh }}</a></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in isolationRows" :key="row.id">
+              <th scope="row"><a :href="'#'+row.id">{{ row.term.en }}</a></th>
+              <td v-for="(allowed, index) in row.allowed" :key="index">
+                <span role="img" :aria-label="allowed ? '可能發生' : '禁止發生'">{{ allowed ? '✅' : '❌' }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p id="isolation-legend">✅ 可能發生　❌ 禁止發生。表中列出 SQL 標準的最低保證。</p>
+        <p>例如 PostgreSQL 的 Read Uncommitted 與 Read Committed 行為相同，而 Repeatable Read 也會防止幻讀。</p>
+      </section>
       <section v-if="linkedGuides.length" class="question-list">
         <h2>實務案例</h2>
         <ul><li v-for="guide in linkedGuides" :key="guide.id"><a :href="'./guides/'+guide.id+'/'">{{ guide.title }}</a></li></ul>

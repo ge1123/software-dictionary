@@ -8,6 +8,16 @@ const withdrawnEntries = new Set([
   'commerce/distribution-agreement', 'commerce/channel-allocation',
   'commerce/proof-of-delivery', 'commerce/promotion-funding'
 ]);
+const isolationAnomalies = ['dirty-read', 'non-repeatable-read', 'phantom-read'];
+const isolationLevels = [
+  { id: 'read-uncommitted', allowed: [true, true, true] },
+  { id: 'read-committed', allowed: [false, true, true] },
+  { id: 'repeatable-read', allowed: [false, false, true] },
+  { id: 'serializable', allowed: [false, false, false] }
+];
+const isolationEntries = new Set(['isolation-level', ...isolationAnomalies, ...isolationLevels.map(level => level.id)]);
+const isolationColumns = isolationAnomalies.map(id => terms.find(term => term.id === id));
+const isolationRows = isolationLevels.map(level => ({ ...level, term: terms.find(term => term.id === level.id) }));
 const sorted = [...terms].sort((a, b) => a.en.localeCompare(b.en, 'en'));
 createApp({
   setup() {

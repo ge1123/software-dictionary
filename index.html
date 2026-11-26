@@ -19,6 +19,21 @@
       </dl>
       <h2>{{ selected.domain === 'commerce' && selected.sources ? "專案實例" : "使用情境" }}</h2>
       <p>{{ selected.example }}</p>
+      <section v-for="table in selected.exampleTables" :key="table.title" class="term-example">
+        <div class="term-table-scroll" tabindex="0" role="region" :aria-label="table.title">
+          <table>
+            <caption>{{ table.title }}</caption>
+            <thead><tr><th v-for="heading in table.headers" :key="heading" scope="col">{{ heading }}</th></tr></thead>
+            <tbody>
+              <tr v-for="[label, ...cells] in table.rows" :key="label">
+                <th scope="row">{{ label }}</th>
+                <td v-for="(cell, index) in cells" :key="index">{{ cell }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>{{ table.note }}</p>
+      </section>
       <section v-if="isolationEntries.has(selected.id)" class="isolation-matrix">
         <h2 id="isolation-heading">隔離等級與讀取異常</h2>
         <table aria-labelledby="isolation-heading" aria-describedby="isolation-legend">

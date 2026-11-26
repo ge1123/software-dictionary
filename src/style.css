@@ -58,3 +58,11 @@ dd { margin: 2px 0 0; }
 .isolation-matrix thead { background: #eaf1e7; }
 .isolation-matrix a { color: #37664d; text-decoration: underline; }
 .isolation-matrix p { font-size: .85rem; }
+
+.term-example { margin-block: 1.25rem; }
+.term-table-scroll { overflow-x: auto; }
+.term-example table { width: 100%; min-width: 32rem; border-collapse: collapse; }
+.term-example caption { text-align: start; font-weight: 700; padding-block: .25rem; }
+.term-example th, .term-example td { text-align: start; vertical-align: top; padding: .45rem .6rem; border-bottom: 1px solid #ced6ca; }
+.term-example thead { background: #eaf1e7; }
+.term-example p { margin-top: .4rem; font-size: .875rem; }

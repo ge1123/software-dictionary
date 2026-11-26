@@ -3,6 +3,84 @@
   "name": "SQL",
   "terms": [
     {
+      "id": "constraint",
+      "en": "Constraint",
+      "zh": "資料庫約束",
+      "category": "資料模型",
+      "aliases": [
+        "約束條件",
+        "限制式",
+        "條件約束",
+        "資料完整性",
+        "資料表設計",
+        "Database Constraint",
+        "NOT NULL",
+        "CHECK",
+        "EXCLUDE"
+      ],
+      "definition": "約束是宣告在資料表上的規則，定義哪些資料狀態可以成立。資料庫會檢查這些規則，因此 API、批次匯入和手動 SQL 寫入都受同一組限制。",
+      "example": "設計通路訂單時，先問「什麼資料絕對不能成立？」假設訪客可以下單、同一通路可能重送訂單、數量必須為正整數。這三條規則分別決定會員外鍵是否可空、哪些欄位要一起唯一，以及數量要做哪些檢查。",
+      "exampleTables": [
+        {
+          "title": "從業務規則選約束",
+          "headers": [
+            "業務規則",
+            "約束",
+            "資料庫如何判斷"
+          ],
+          "rows": [
+            [
+              "每張訂單有自己的識別碼",
+              "PRIMARY KEY (order_id)",
+              "主鍵必須唯一且不可為 NULL。同一張表只有一個主鍵，可以由多個欄位組成。"
+            ],
+            [
+              "訂單可以由訪客建立，但填了會員編號就要找得到會員",
+              "FOREIGN KEY (member_id)",
+              "對單欄外鍵，非 NULL 的值必須對應會員表的鍵。若只開放會員下單，再加 NOT NULL；兩個約束各管一件事。"
+            ],
+            [
+              "同一通路的外部單號只能用一次",
+              "UNIQUE (channel_id, external_no)",
+              "同一通路重送 A-1 會衝突；另一個通路仍可使用 A-1。兩欄都設 NOT NULL，避免缺值影響去重。"
+            ],
+            [
+              "每張訂單都要有數量",
+              "NOT NULL",
+              "省略沒有預設值的數量或明確填入 NULL，資料庫會拒絕。填 0 仍有值，要用 CHECK 檢查範圍。"
+            ],
+            [
+              "訂購數量必須大於零",
+              "CHECK (quantity > 0)",
+              "整數欄位填 0 或負數會被拒絕。單靠這個 CHECK，NULL 會讓條件成為 UNKNOWN 而通過，因此數量必填時要搭配 NOT NULL。"
+            ],
+            [
+              "同一場地的兩筆預約時段不能重疊",
+              "EXCLUDE（PostgreSQL）",
+              "可用排除約束禁止「場地相同且時間範圍重疊」的組合。只對開始時間設 UNIQUE，仍可能接受 09:00–11:00 和 10:00–12:00。"
+            ]
+          ],
+          "note": "選擇約束時先決定規則涵蓋的範圍：單一欄位、同一列的多個欄位、不同列，或兩張表之間。像「每場最多 10 人」這種需要計算多列的規則，普通的逐列 CHECK 無法保證，還要設計名額資料與交易流程。"
+        }
+      ],
+      "sample": {
+        "language": "PostgreSQL",
+        "setup": "在同一個新連線建立暫存表。情境允許訪客訂單，通路與外部單號必填。兩個通路各送來一張單號 A-1 的訂單。",
+        "code": "CREATE TEMP TABLE member_demo (\n    member_id integer PRIMARY KEY\n);\nCREATE TEMP TABLE order_demo (\n    order_id integer PRIMARY KEY,\n    channel_id integer NOT NULL,\n    external_no text NOT NULL,\n    member_id integer REFERENCES member_demo (member_id),\n    quantity integer NOT NULL CHECK (quantity > 0),\n    UNIQUE (channel_id, external_no)\n);\n\nINSERT INTO member_demo VALUES (7);\nINSERT INTO order_demo VALUES\n    (1, 10, 'A-1', 7, 2),\n    (2, 20, 'A-1', NULL, 1);\n\n-- 每次取消一行註解，在自動提交模式下個別執行\n-- INSERT INTO order_demo VALUES (3, 10, 'A-1', 7, 1);\n-- INSERT INTO order_demo VALUES (3, 10, 'B-2', 99, 1);\n-- INSERT INTO order_demo VALUES (3, 10, 'B-2', 7, 0);\n-- INSERT INTO order_demo VALUES (3, 10, 'B-2', 7, NULL);",
+        "result": "前兩筆都能建立。四個反例依序違反通路與單號唯一、會員外鍵、數量大於零、數量必填。每個反例只改一項條件，失敗後訂單仍是兩筆。"
+      },
+      "sources": [
+        [
+          "PostgreSQL · Constraints",
+          "https://www.postgresql.org/docs/current/ddl-constraints.html"
+        ],
+        [
+          "Microsoft Learn · Unique constraints and check constraints",
+          "https://learn.microsoft.com/en-us/sql/relational-databases/tables/unique-constraints-and-check-constraints"
+        ]
+      ]
+    },
+    {
       "id": "primary-key",
       "en": "Primary Key",
       "zh": "主鍵",
@@ -1292,6 +1370,34 @@
     [
       "serializable",
       "deadlock"
+    ],
+    [
+      "constraint",
+      "primary-key"
+    ],
+    [
+      "constraint",
+      "foreign-key"
+    ],
+    [
+      "constraint",
+      "unique"
+    ],
+    [
+      "constraint",
+      "null"
+    ],
+    [
+      "constraint",
+      "acid"
+    ],
+    [
+      "constraint",
+      "conditional-update"
+    ],
+    [
+      "constraint",
+      "serializable"
     ]
   ]
 }

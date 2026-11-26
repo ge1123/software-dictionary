@@ -276,8 +276,87 @@
       "en": "Execution Plan",
       "zh": "執行計畫",
       "definition": "資料庫為 SQL 選擇的執行步驟，例如掃描、連接、排序與彙總。",
-      "example": "報表突然變慢時，可比較估計與實際列數，定位哪個步驟處理的資料比預期多。",
-      "category": "索引與效能"
+      "example": "沿用「建立慢查詢基準」的 #orders。通路 7 的二月營收由 672 張訂單加總成 67,200。SSMS 的 Messages 按資料表列出讀頁數；實際執行計畫則能追到哪個步驟讀取、篩選或彙總這些訂單。",
+      "category": "索引與效能",
+      "exampleTables": [
+        {
+          "title": "從 Messages 追到執行計畫",
+          "headers": [
+            "觀察位置",
+            "示意輸出",
+            "判讀"
+          ],
+          "rows": [
+            [
+              "Messages · #orders",
+              "logical reads 2,040",
+              "本次 SELECT 對這張表的資料或索引頁累計讀取 2,040 次，同一頁可以重複計入。"
+            ],
+            [
+              "Messages · SQL Server Execution Times",
+              "CPU time = 16 ms，elapsed time = 42 ms",
+              "CPU 是工作執行緒累計使用的時間；42 ms 是這次查詢從開始到完成的時間。單次差距無法判定等待原因。"
+            ],
+            [
+              "實際執行計畫 · Key Lookup",
+              "Actual Number of Executions = 672",
+              "若每張訂單都要回到叢集索引取金額，這個節點就會執行 672 次。Messages 的 2,040 次涵蓋整張表的存取，不能全歸給 Lookup。"
+            ]
+          ],
+          "note": "數字為 SQL Server 教學示意。請在同一個 SSMS 視窗啟用「包含實際執行計畫」（Ctrl+M）、SET STATISTICS IO ON 與 SET STATISTICS TIME ON，再執行報表 SELECT 取得自己的數據。"
+        },
+        {
+          "title": "順著資料流讀節點",
+          "headers": [
+            "節點",
+            "在報表中做的事",
+            "點開屬性看什麼"
+          ],
+          "rows": [
+            [
+              "Index Seek",
+              "用 (channel_id, created_at) 找到符合條件的索引項目。",
+              "Seek Predicates 顯示用哪些條件定位。比較 Actual Number of Rows Read 與實際輸出列數，看讀進來後又篩掉多少。"
+            ],
+            [
+              "Nested Loops",
+              "從外側每取到一筆訂單，就向內側取需要的欄位。",
+              "看外側輸出幾列，再看內側執行幾次。即使每次查找很便宜，重複執行也會累積成本。"
+            ],
+            [
+              "Key Lookup",
+              "索引缺少 amount 時，依叢集鍵取回金額。",
+              "看 Output List 是否有 amount，以及 Actual Number of Executions。"
+            ],
+            [
+              "Stream Aggregate",
+              "將輸入金額加總。",
+              "看輸入 672 列、輸出 1 列，核對這一列的金額是否為 67,200。"
+            ]
+          ],
+          "note": "這是最佳化器可能選用的一種計畫。SSMS 圖上的資料通常沿箭頭由右往左流。若看見 Scan，先比較讀取與輸出列數，再判斷掃描範圍。"
+        }
+      ],
+      "sample": {
+        "language": "T-SQL",
+        "setup": "先在同一連線完成「建立慢查詢基準」的造資料步驟，使用尚未加報表索引的 #orders。第一輪只建索引鍵，執行 SELECT 三次記錄數據。第二輪保留同樣的鍵，加入 amount 後再跑同一個 SELECT 三次。",
+        "code": "SET STATISTICS IO ON;\nSET STATISTICS TIME ON;\n\n-- 第一輪\nCREATE INDEX ix_report_demo ON #orders (channel_id, created_at);\n\nSELECT SUM(amount) AS total\nFROM #orders\nWHERE channel_id = 7\n  AND created_at >= '20260201' AND created_at < '20260301';\n\n-- 第二輪：更新練習索引後，重跑上面的 SELECT\nCREATE INDEX ix_report_demo ON #orders (channel_id, created_at)\nINCLUDE (amount) WITH (DROP_EXISTING = ON);",
+        "result": "兩輪都應得到 67,200。若第一輪用了 Key Lookup，第二輪選到涵蓋索引時可直接從索引取得 amount。只比較 SELECT 的讀頁數、CPU 與耗時，排除建索引的訊息。若第一輪選了掃描，記錄實際計畫即可。"
+      },
+      "sources": [
+        [
+          "Microsoft Learn · SET STATISTICS IO",
+          "https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-io-transact-sql"
+        ],
+        [
+          "Microsoft Learn · Showplan operators",
+          "https://learn.microsoft.com/en-us/sql/relational-databases/showplan-logical-and-physical-operators-reference"
+        ],
+        [
+          "Microsoft Learn · Troubleshoot slow-running queries",
+          "https://learn.microsoft.com/en-us/troubleshoot/sql/database-engine/performance/troubleshoot-slow-running-queries"
+        ]
+      ]
     },
     {
       "id": "covering-index",
@@ -325,7 +404,84 @@
       "zh": "可序列化",
       "category": "交易與併發",
       "definition": "成功提交的並行交易必須產生等同某個逐筆執行順序的結果。",
-      "example": "兩位值班者同時請假時，PostgreSQL 可能中止其中一筆交易。應用程式須從交易起點重試並重新判斷是否還有人值班。"
+      "example": "活動上限 10 人，目前 9 人。甲替小美報名，乙替小華報名。兩個連線都用 Serializable，把計數、判斷、符合條件才新增包在各自的一筆交易內。",
+      "exampleTables": [
+        {
+          "title": "最後一個名額：兩筆交易都提交，誰報名成功？",
+          "headers": [
+            "時間",
+            "甲的交易",
+            "乙的交易",
+            "已提交人數"
+          ],
+          "rows": [
+            [
+              "①",
+              "開始交易，查到 9 人。",
+              "開始交易，尚未查人數。",
+              "9"
+            ],
+            [
+              "②",
+              "新增小美，COMMIT。",
+              "尚未查人數。",
+              "10"
+            ],
+            [
+              "③",
+              "已完成。",
+              "第一次查人數，看見 10，跳過新增，COMMIT。",
+              "10"
+            ]
+          ],
+          "note": "這是 SQL Server 中一個合法的執行順序。甲乙都提交，只有小美取得名額。若一開始只有 8 人，甲乙可以各新增一人。"
+        },
+        {
+          "title": "如果甲、乙都先查到 9 人",
+          "headers": [
+            "隔離等級（SQL Server）",
+            "接下來可能發生什麼",
+            "最後人數"
+          ],
+          "rows": [
+            [
+              "Read Committed",
+              "甲、乙都先完成 COUNT，接著依各自讀到的 9 新增不同報名紀錄，兩筆都提交。",
+              "可能變 11"
+            ],
+            [
+              "Serializable",
+              "兩人先讀同一個範圍，再嘗試新增時，鎖可能互相等待而形成死結。資料庫回滾死結犧牲者，另一筆可完成新增。",
+              "若一筆新增並提交，為 10"
+            ]
+          ],
+          "note": "遇到死結時，從交易起點重試並重新計數。若另一筆已提交，第 10 人已入列，重試就會跳過新增。若在畫面先查 9 人、按鈕送出時才開交易直接 INSERT，較早的計數在隔離範圍之外。"
+        }
+      ],
+      "properties": [
+        [
+          "並行與提交",
+          "兩個連線可以同時開始。資料庫保證成功提交的交易合起來，效果等同於依某個順序逐筆處理。"
+        ],
+        [
+          "跨列規則",
+          "兩位值班者同時請假時，PostgreSQL 可能中止其中一筆交易。應用程式須從交易起點重試，再判斷是否還有人值班。"
+        ]
+      ],
+      "sources": [
+        [
+          "Microsoft Learn · SQL Server 交易隔離等級",
+          "https://learn.microsoft.com/en-us/sql/t-sql/statements/set-transaction-isolation-level-transact-sql"
+        ],
+        [
+          "Microsoft Learn · SQL Server 死結",
+          "https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-deadlocks-guide"
+        ],
+        [
+          "PostgreSQL · Transaction Isolation",
+          "https://www.postgresql.org/docs/current/transaction-iso.html"
+        ]
+      ]
     },
     {
       "id": "mvcc",
@@ -774,6 +930,90 @@
       "category": "索引與效能",
       "definition": "依分區鍵把同一邏輯資料表的資料放入不同實體分區。",
       "example": "按月份分區的訂單，限定日期範圍時可排除無關分區；查詢缺少日期條件則可能仍須查看許多分區。"
+    },
+    {
+      "id": "logical-reads",
+      "en": "Logical Reads",
+      "zh": "邏輯讀取",
+      "category": "索引與效能",
+      "definition": "SQL Server 從資料快取讀取資料頁或索引頁的累計次數。同一頁讀三次會計三次。",
+      "example": "報表用 672 張訂單算出一列總額，仍可能有數千次 logical reads。索引查找、回表及重讀都可能增加讀頁次數。",
+      "properties": [
+        [
+          "去哪裡看",
+          "開啟 SET STATISTICS IO ON，在 Messages 找該 SELECT 的 Table 與 logical reads。每張表分開看；physical reads 另外記錄從磁碟讀取的頁數。"
+        ],
+        [
+          "怎麼判讀",
+          "先找讀頁最多的表，再開實際計畫。一次掃描很多列，或在 Nested Loops 內側反覆查找，都可能累積大量讀頁。比較相同資料、參數與結果的兩種寫法。"
+        ]
+      ],
+      "sources": [
+        [
+          "Microsoft Learn · SET STATISTICS IO",
+          "https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-io-transact-sql"
+        ],
+        [
+          "Microsoft Learn · Troubleshoot slow-running queries",
+          "https://learn.microsoft.com/en-us/troubleshoot/sql/database-engine/performance/troubleshoot-slow-running-queries"
+        ]
+      ]
+    },
+    {
+      "id": "cpu-time",
+      "en": "CPU Time",
+      "zh": "CPU 時間",
+      "category": "索引與效能",
+      "definition": "SQL Server 執行陳述式時，各工作執行緒實際使用處理器的時間總和，以毫秒計。",
+      "example": "假設兩個工作執行緒同時各使用 500 ms 的 CPU，累計約 1,000 ms，實際經過時間可以少於 1,000 ms。",
+      "properties": [
+        [
+          "去哪裡看",
+          "開啟 SET STATISTICS TIME ON，在 Messages 的 SQL Server Execution Times 讀 CPU time。剖析與編譯時間另列。"
+        ],
+        [
+          "怎麼判讀",
+          "CPU 偏高時查看實際計畫處理了多少列，有無反覆查找、排序或彙總。比較前後版本時固定參數並重跑數次。"
+        ]
+      ],
+      "sources": [
+        [
+          "Microsoft Learn · SET STATISTICS TIME",
+          "https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-time-transact-sql"
+        ],
+        [
+          "Microsoft Learn · Troubleshoot slow-running queries",
+          "https://learn.microsoft.com/en-us/troubleshoot/sql/database-engine/performance/troubleshoot-slow-running-queries"
+        ]
+      ]
+    },
+    {
+      "id": "elapsed-time",
+      "en": "Elapsed Time",
+      "zh": "經過時間",
+      "category": "索引與效能",
+      "definition": "SQL Server 從陳述式開始執行到完成所經過的時間，包含執行期間的等待。",
+      "example": "若報表的 CPU time 為 40 ms、elapsed time 為 2,000 ms，先查執行期間在等什麼，再決定要調整 SQL 還是處理阻塞。",
+      "properties": [
+        [
+          "去哪裡看",
+          "在 SET STATISTICS TIME ON 的 SQL Server Execution Times 段落讀 elapsed time。要衡量整支 API，另量連線取得、傳輸及應用程式處理。"
+        ],
+        [
+          "怎麼判讀",
+          "在查詢執行中觀察等待類型與阻塞來源。鎖等待和 I/O 等待都能拉長耗時；平行工作也會讓累計 CPU 與經過時間無法直接相減換算成等待時間。"
+        ]
+      ],
+      "sources": [
+        [
+          "Microsoft Learn · SET STATISTICS TIME",
+          "https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-time-transact-sql"
+        ],
+        [
+          "Microsoft Learn · Troubleshoot slow-running queries",
+          "https://learn.microsoft.com/en-us/troubleshoot/sql/database-engine/performance/troubleshoot-slow-running-queries"
+        ]
+      ]
     }
   ],
   "relations": [
@@ -1016,6 +1256,42 @@
     [
       "table-partitioning",
       "backend/sharding"
+    ],
+    [
+      "logical-reads",
+      "execution-plan"
+    ],
+    [
+      "logical-reads",
+      "profile-slow-query"
+    ],
+    [
+      "cpu-time",
+      "execution-plan"
+    ],
+    [
+      "cpu-time",
+      "profile-slow-query"
+    ],
+    [
+      "elapsed-time",
+      "execution-plan"
+    ],
+    [
+      "elapsed-time",
+      "profile-slow-query"
+    ],
+    [
+      "cpu-time",
+      "elapsed-time"
+    ],
+    [
+      "elapsed-time",
+      "blocking"
+    ],
+    [
+      "serializable",
+      "deadlock"
     ]
   ]
 }

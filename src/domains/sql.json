@@ -275,9 +275,61 @@
       "id": "deadlock",
       "en": "Deadlock",
       "zh": "死鎖",
-      "definition": "交易形成循環等待，每個交易都等另一個釋放資源。",
-      "example": "交易 A 鎖訂單再等庫存，交易 B 鎖庫存再等訂單。統一鎖定順序可減少這類死鎖。",
-      "category": "交易與併發"
+      "definition": "兩筆以上交易形成循環等待，每筆都持有下一筆需要的資源，無法自行往下執行。資料庫偵測到死鎖後會選擇其中一筆中止，讓其餘交易有機會繼續。",
+      "example": "A 要依序調整商品 42 和 43，B 則先調整 43 再調整 42。光是鎖定順序相反還不足以形成死鎖，關鍵是以下三步真的交錯發生。",
+      "category": "交易與併發",
+      "aliases": [
+        "死結",
+        "循環等待"
+      ],
+      "exampleTables": [
+        {
+          "title": "從單向等待變成循環等待",
+          "headers": [
+            "時間",
+            "交易 A",
+            "交易 B"
+          ],
+          "rows": [
+            [
+              "①",
+              "更新商品 42，保留交易。",
+              "更新商品 43，保留交易。"
+            ],
+            [
+              "②",
+              "要求更新商品 43，等待 B。",
+              "仍可繼續執行。"
+            ],
+            [
+              "③",
+              "仍在等 B 釋放 43。",
+              "要求更新商品 42，必須等 A。此時形成循環。"
+            ]
+          ],
+          "note": "SQL Server 的死鎖犧牲者會收到 1205，PostgreSQL 的錯誤碼為 40P01。哪筆交易被選中要以實際結果為準。"
+        }
+      ],
+      "properties": [
+        [
+          "失敗後從哪裡重試？",
+          "從整筆交易的起點重新讀取與判斷，再執行兩次更新。只重送最後一個 UPDATE 會漏掉先前被撤銷的工作。"
+        ],
+        [
+          "怎麼降低發生機率？",
+          "讓兩條路徑都依商品編號由小到大取鎖，先處理 42 再處理 43，就能打斷範例中的循環；同時縮短持鎖的交易區間。"
+        ]
+      ],
+      "sources": [
+        [
+          "PostgreSQL · Explicit Locking",
+          "https://www.postgresql.org/docs/current/explicit-locking.html"
+        ],
+        [
+          "Microsoft Learn · SQL Server deadlocks guide",
+          "https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-deadlocks-guide"
+        ]
+      ]
     },
     {
       "id": "conditional-update",
@@ -574,8 +626,85 @@
       "en": "Blocking",
       "zh": "阻塞",
       "category": "交易與併發",
-      "definition": "一個交易持有資源時，另一個交易因需要不相容的鎖而等待。",
-      "example": "櫃台 A 改了庫存尚未提交，櫃台 B 要改同一列便等待。A 提交後 B 可以繼續；單向等待本身並未形成死鎖。"
+      "definition": "交易 B 想讀取或修改資料，需要的鎖與交易 A 已持有的鎖不相容，資料庫便讓 B 等待。A 仍可繼續工作。這種等待稱為阻塞。",
+      "example": "庫存剩 1 件。櫃台 A 扣了最後一件，UPDATE 已返回，但交易還沒提交。此時櫃台 B 也要扣同一件商品。B 的 UPDATE 會停在資料庫等結果，應用程式要等指令返回後才知道有沒有扣到。",
+      "aliases": [
+        "鎖等待",
+        "封鎖",
+        "blocking session",
+        "阻塞來源"
+      ],
+      "exampleTables": [
+        {
+          "title": "同一筆庫存，A 怎麼結束交易會改變 B 的結果",
+          "headers": [
+            "時間",
+            "櫃台 A",
+            "櫃台 B"
+          ],
+          "rows": [
+            [
+              "①",
+              "BEGIN，將庫存從 1 扣到 0。",
+              "尚未開始。"
+            ],
+            [
+              "②",
+              "交易仍開著，即使暫時沒有執行 SQL，仍保有寫入所需的鎖。",
+              "執行帶有 available > 0 條件的 UPDATE，等待 A。"
+            ],
+            [
+              "③ 路徑一",
+              "COMMIT，庫存 0 生效。",
+              "恢復執行，重新檢查條件；更新 0 列。"
+            ],
+            [
+              "③ 路徑二",
+              "如果改成 ROLLBACK，庫存回到 1。",
+              "恢復執行，條件成立；更新 1 列。提交後庫存為 0。"
+            ]
+          ],
+          "note": "這是 PostgreSQL Read Committed 下的兩種結局。B 等到了執行機會，最後更新幾列取決於 A 的提交結果與 B 的 WHERE 條件。"
+        }
+      ],
+      "properties": [
+        [
+          "另一個人只是查庫存，也要等嗎？",
+          "在 PostgreSQL 的 Read Committed 下，一般 SELECT 可以讀到已提交版本。A 尚未提交扣庫存時，B 單純查詢仍可能看到 1；若 B 改為 UPDATE 同一列，就要等 A 結束。"
+        ],
+        [
+          "查詢耗時很長，怎麼判斷在等誰？",
+          "找等待中的連線、它等哪個連線，以及對方的交易何時開始。等待 SQL 花了 5 秒，只表示經過了 5 秒；若其中大部分時間在等鎖，替等待者加索引未必能解決長交易。"
+        ],
+        [
+          "SQL Server 怎麼查？",
+          "在另一條有監控權限的連線查 sys.dm_exec_requests，查看 session_id、blocking_session_id、wait_type、wait_resource。若是 LCK_M_ 開頭的等待且有正值的 blocking_session_id，可沿該 ID 找持鎖連線；即使對方現在 sleeping，也可能還有未提交交易。"
+        ]
+      ],
+      "sample": {
+        "language": "PostgreSQL",
+        "setup": "開兩個連到同一個練習資料庫的視窗 A、B，以自動提交模式執行建表與初始資料，再依編號切換視窗。使用一般資料表，兩個連線才能看到同一筆庫存。",
+        "code": "-- ① A：準備資料\nCREATE TABLE IF NOT EXISTS dictionary_stock_wait (\n    sku_id integer PRIMARY KEY,\n    available integer NOT NULL CHECK (available >= 0)\n);\nINSERT INTO dictionary_stock_wait VALUES (42, 1)\nON CONFLICT (sku_id) DO UPDATE SET available = 1;\n\n-- ② A：執行後保持交易開啟\nBEGIN ISOLATION LEVEL READ COMMITTED;\nUPDATE dictionary_stock_wait SET available = available - 1\nWHERE sku_id = 42 AND available > 0 RETURNING available;\n\n-- ③ B：執行到 UPDATE，尚未返回時切回 A\nBEGIN ISOLATION LEVEL READ COMMITTED;\nUPDATE dictionary_stock_wait SET available = available - 1\nWHERE sku_id = 42 AND available > 0 RETURNING available;\n\n-- ④ A：查出正被自己擋住的連線\nSELECT pid AS waiting_pid, pg_blocking_pids(pid) AS blocking_pids,\n       wait_event_type, wait_event\nFROM pg_stat_activity\nWHERE pg_backend_pid() = ANY(pg_blocking_pids(pid));\n\n-- ⑤ A：釋放鎖，再看 B 的 UPDATE 回應\nCOMMIT;\n\n-- ⑥ B：結束交易\nCOMMIT;",
+        "result": "④ 可看到 B 的 PID、含 A 的 blocking_pids，以及 Lock 等待。⑤ 提交時，B 更新 0 列。從①重跑並把⑤改成 ROLLBACK，B 會回傳 available = 0，更新 1 列。"
+      },
+      "sources": [
+        [
+          "PostgreSQL · Explicit Locking",
+          "https://www.postgresql.org/docs/current/explicit-locking.html"
+        ],
+        [
+          "PostgreSQL · Transaction Isolation",
+          "https://www.postgresql.org/docs/current/transaction-iso.html"
+        ],
+        [
+          "PostgreSQL · pg_blocking_pids",
+          "https://www.postgresql.org/docs/current/functions-info.html"
+        ],
+        [
+          "Microsoft Learn · Diagnose blocking",
+          "https://learn.microsoft.com/en-us/troubleshoot/sql/database-engine/performance/understand-resolve-blocking"
+        ]
+      ]
     },
     {
       "id": "optimistic-concurrency",
@@ -990,8 +1119,30 @@
       "en": "Lock Timeout",
       "zh": "鎖等待逾時",
       "category": "交易與併發",
-      "definition": "取得鎖的等待超過設定上限時，資料庫終止該次等待。",
-      "example": "連線 A 鎖住庫存，連線 B 等待逾時後檢查交易狀態並回滾。死結還需要形成循環等待。"
+      "definition": "陳述式為了取得鎖而等待超過設定上限，資料庫回報鎖等待逾時。只要 A 持鎖太久，單向等待的 B 就可能逾時。",
+      "example": "沿用阻塞詞條中剩 1 件的庫存。A 扣完仍保留交易，B 願意等 2 秒。若 A 超過 2 秒都沒釋放鎖，B 的 UPDATE 會收到逾時錯誤，A 仍能自行提交或回滾。",
+      "sample": {
+        "language": "PostgreSQL",
+        "setup": "先完成「阻塞」範例的①②，讓 A 保持交易開啟。把以下指令貼到 B 分段執行。",
+        "code": "-- B：只針對這筆交易設定鎖等待上限\nBEGIN;\nSET LOCAL lock_timeout = '2s';\nUPDATE dictionary_stock_wait SET available = available - 1\nWHERE sku_id = 42 AND available > 0;\n\n-- B：收到逾時錯誤後執行\nROLLBACK;\n\n-- A：結束這次練習\nROLLBACK;",
+        "result": "A 持續持鎖時，B 約在 2 秒後收到 SQLSTATE 55P03；在此顯式交易中，B 必須先回滾才能繼續正常操作。B 逾時不會改變 A 的交易。"
+      },
+      "properties": [
+        [
+          "SQL Server 的差異",
+          "SET LOCK_TIMEOUT 2000 以毫秒設定該連線的鎖等待上限，逾時會收到錯誤 1222。應用程式須檢查交易狀態並妥善結束交易；連線設定會持續生效，直到再次變更或連線結束。"
+        ]
+      ],
+      "sources": [
+        [
+          "PostgreSQL · lock_timeout",
+          "https://www.postgresql.org/docs/current/runtime-config-client.html"
+        ],
+        [
+          "Microsoft Learn · SET LOCK_TIMEOUT",
+          "https://learn.microsoft.com/en-us/sql/t-sql/statements/set-lock-timeout-transact-sql"
+        ]
+      ]
     },
     {
       "id": "expression-index",
@@ -1398,6 +1549,10 @@
     [
       "constraint",
       "serializable"
+    ],
+    [
+      "blocking",
+      "lock-timeout"
     ]
   ]
 }

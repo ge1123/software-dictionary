@@ -355,6 +355,141 @@
       "example": "同樣有查訂單權限，通路 A 的帳號只能讀自己通路的訂單。"
     },
     {
+      "id": "access-credential",
+      "en": "Access Credential",
+      "zh": "存取憑證",
+      "category": "API 與資料存取",
+      "aliases": [
+        "2FA",
+        "OIDC",
+        "SSH key",
+        "SSH private key",
+        "Token",
+        "PAT",
+        "Personal Access Token",
+        "Deploy key",
+        "CI token",
+        "GITHUB_TOKEN",
+        "OAuth access token",
+        "Session token",
+        "Session cookie",
+        "Client Credentials",
+        "Managed Identity"
+      ],
+      "definition": "存取憑證是使用者或程式用來證明身分、延續登入狀態，或向 API 出示授權的資料，例如 SSH 金鑰或存取權杖。先辨認請求代表誰，再判斷該身分能對哪些資源執行哪些操作。",
+      "example": "員工在訂單後台登入後查看報表，瀏覽器帶的是員工的工作階段 cookie。夜間排程也會查訂單，但使用排程服務自己的身分。兩筆請求抵達同一支 API，權限與稽核紀錄仍可分別歸屬員工和服務。",
+      "exampleTables": [
+        {
+          "title": "七種存取情境與憑證的取捨",
+          "headers": [
+            "使用情境",
+            "代表誰",
+            "常用方式或憑證",
+            "實際例子",
+            "優點",
+            "缺點／限制"
+          ],
+          "rows": [
+            [
+              "使用者 → 網站或 App 登入",
+              "使用者本人",
+              "2FA 是雙因素驗證。採用 OpenID Connect（OIDC）時，身分提供者可在登入時要求 2FA，並向 App 簽發 ID token。",
+              "員工用公司帳號登入訂單後台，再用手機核准。",
+              "密碼外洩時，第二因素仍能保護登入。多個 App 可共用公司登入。",
+              "遺失驗證裝置時需要備援登入方式。新登入也依賴身分提供者可用。"
+            ],
+            [
+              "瀏覽器 → 已登入的網站",
+              "已登入的使用者",
+              "瀏覽器透過 session cookie 攜帶工作階段識別資訊（session token）。",
+              "從訂單頁切換到報表頁。",
+              "每次換頁都能沿用登入狀態。",
+              "可重複使用的 cookie 一旦外洩，他人可能沿用該次登入，直到工作階段失效。"
+            ],
+            [
+              "App 或後端 → API，代使用者操作",
+              "授權 App 的使用者",
+              "OAuth access token（委派權限）",
+              "行事曆 App 取得使用者同意後讀取行程。",
+              "App 無須取得使用者密碼，可只要求讀取行程的範圍。",
+              "能執行的操作受使用者權限與授權範圍限制。背景同步須處理權杖到期與撤銷授權。"
+            ],
+            [
+              "服務 → 服務，背景執行",
+              "服務本身",
+              "OAuth Client Credentials 流程取得 access token。支援的 Azure 服務也可使用 Managed Identity（受控識別）。",
+              "庫存排程向供應商 API 同步庫存。",
+              "員工離線也能執行，可獨立授權。受控識別可省去自行保存及輪替密鑰的工作。",
+              "若使用 client secret，團隊須保管並輪替。受控識別需執行環境支援，且目標服務須接受 Entra 權杖。"
+            ],
+            [
+              "工程師的終端機 → Git 儲存庫",
+              "工程師個人帳號",
+              "SSH 使用個人 SSH key，本機以 SSH private key 簽章。HTTPS 可使用個人存取權杖（PAT）。",
+              "工程師在筆電執行 git push。",
+              "SSH 驗證時私鑰留在本機。GitHub fine-grained PAT 可指定儲存庫、操作權限與到期日。",
+              "私鑰須妥善保管。個人 SSH key 的存取範圍通常隨帳號權限而定。PAT 外洩時，其有效權限可能遭人使用。"
+            ],
+            [
+              "部署主機 → 單一 Git 儲存庫",
+              "該儲存庫授權的部署主機",
+              "Deploy key（綁定單一儲存庫的 SSH 金鑰）",
+              "部署主機以唯讀金鑰執行 git pull。",
+              "GitHub deploy key 預設唯讀，存取範圍限單一儲存庫，可獨立於員工帳號管理。",
+              "GitHub deploy key 沒有到期日，須自行輪替或移除。存取多個儲存庫要分別配置。"
+            ],
+            [
+              "CI/CD → 儲存庫或平台 API",
+              "自動化工作流程",
+              "CI token，例如 GitHub Actions 的 GITHUB_TOKEN",
+              "工作流程讀取程式碼，或在 PR 回報建置結果。",
+              "GitHub 為每個 job 自動簽發短效權杖，可按工作設定權限。",
+              "GITHUB_TOKEN 的儲存庫權限限於工作流程所在的 repo。若需讀取另一個私有 repo，要另外授權。"
+            ]
+          ],
+          "note": "Token 是權杖的通稱。同樣是後端呼叫 API，行事曆同步看的是使用者授予的範圍，庫存排程看的是服務本身獲授的權限。"
+        }
+      ],
+      "sources": [
+        [
+          "Microsoft Learn ／ OpenID Connect 與 ID token",
+          "https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc"
+        ],
+        [
+          "GitHub Docs ／ 雙因素驗證備援方式",
+          "https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication-recovery-methods"
+        ],
+        [
+          "OWASP ／ Session Management Cheat Sheet",
+          "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+        ],
+        [
+          "Microsoft Learn ／ 委派權限與應用程式權限",
+          "https://learn.microsoft.com/en-us/entra/identity-platform/permissions-consent-overview"
+        ],
+        [
+          "Microsoft Learn ／ OAuth 2.0 Client Credentials 流程",
+          "https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow"
+        ],
+        [
+          "Microsoft Learn ／ Azure 受控識別",
+          "https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/overview"
+        ],
+        [
+          "GitHub Docs ／ 個人存取權杖",
+          "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens"
+        ],
+        [
+          "GitHub Docs ／ 部署金鑰",
+          "https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys"
+        ],
+        [
+          "GitHub Docs ／ GITHUB_TOKEN",
+          "https://docs.github.com/en/actions/concepts/security/github_token"
+        ]
+      ]
+    },
+    {
       "id": "pessimistic-lock",
       "en": "Pessimistic Locking",
       "zh": "悲觀鎖定",
@@ -1104,6 +1239,18 @@
     [
       "pessimistic-lock",
       "sql/conditional-update"
+    ],
+    [
+      "access-credential",
+      "authentication"
+    ],
+    [
+      "access-credential",
+      "authorization"
+    ],
+    [
+      "access-credential",
+      "service-identity"
     ]
   ]
 }
